@@ -12,8 +12,10 @@
         <maven.compiler.target>18</maven.compiler.target>
         <maven.compiler.source>18</maven.compiler.source>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
         <lwjgl.version>3.3.1</lwjgl.version>
         <lwjgl.natives>natives-windows</lwjgl.natives>
+        <imgui.java.version>1.86.4</imgui.java.version>
     </properties>
 
     <build>
@@ -30,7 +32,7 @@
             </plugin>
         </plugins>
     </build>
-    
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -79,6 +81,22 @@
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-opengl</artifactId>
             <classifier>${lwjgl.natives}</classifier>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.spair</groupId>
+            <artifactId>imgui-java-binding</artifactId>
+            <version>${imgui.java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.spair</groupId>
+            <artifactId>imgui-java-lwjgl3</artifactId>
+            <version>${imgui.java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.spair</groupId>
+            <artifactId>imgui-java-natives-windows</artifactId>
+            <version>${imgui.java.version}</version>
         </dependency>
     </dependencies>
 </project>
