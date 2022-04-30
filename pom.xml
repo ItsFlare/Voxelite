@@ -25,13 +25,30 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
                 <configuration>
-                    <source>18</source>
-                    <target>18</target>
                     <compilerArgs>--enable-preview</compilerArgs>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+
+    <repositories>
+        <repository>
+            <id>scc</id>
+            <url>https://git.scc.kit.edu/api/v4/projects/32876/packages/maven</url>
+        </repository>
+    </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>scc</id>
+            <url>https://git.scc.kit.edu/api/v4/projects/32765/packages/maven</url>
+        </repository>
+        <snapshotRepository>
+            <id>scc</id>
+            <url>https://git.scc.kit.edu/api/v4/projects/32765/packages/maven</url>
+        </snapshotRepository>
+    </distributionManagement>
+
 
     <dependencyManagement>
         <dependencies>
@@ -46,6 +63,7 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- LWJGL -->
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl</artifactId>
@@ -83,6 +101,7 @@
             <classifier>${lwjgl.natives}</classifier>
         </dependency>
 
+        <!-- ImGui -->
         <dependency>
             <groupId>io.github.spair</groupId>
             <artifactId>imgui-java-binding</artifactId>
@@ -97,6 +116,13 @@
             <groupId>io.github.spair</groupId>
             <artifactId>imgui-java-natives-windows</artifactId>
             <version>${imgui.java.version}</version>
+        </dependency>
+
+        <!-- Beacon -->
+        <dependency>
+            <groupId>net.durchholz.beacon</groupId>
+            <artifactId>beacon</artifactId>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>
