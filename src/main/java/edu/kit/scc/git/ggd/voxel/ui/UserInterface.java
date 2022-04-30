@@ -7,6 +7,7 @@ import imgui.glfw.ImGuiImplGlfw;
 import net.durchholz.beacon.window.Window;
 
 public class UserInterface {
+    private static final boolean SAVE_GUI = false;
 
     private final Window window;
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
@@ -18,6 +19,7 @@ public class UserInterface {
 
     public void init() {
         ImGui.createContext();
+        if(!SAVE_GUI) ImGui.getIO().setIniFilename(null);
         imGuiGlfw.init(window.id(), true);
         imGuiGl3.init("#version 410");
     }
