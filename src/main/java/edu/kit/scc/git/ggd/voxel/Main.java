@@ -1,7 +1,7 @@
 package edu.kit.scc.git.ggd.voxel;
 
 import edu.kit.scc.git.ggd.voxel.input.InputListener;
-import edu.kit.scc.git.ggd.voxel.ui.UserInterface;
+import edu.kit.scc.git.ggd.voxel.render.Renderer;
 import edu.kit.scc.git.ggd.voxel.util.Profiler;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.input.InputSystem;
@@ -11,16 +11,19 @@ import net.durchholz.beacon.window.Window;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 
+import java.io.IOException;
+
 import static org.lwjgl.glfw.GLFW.*;
 
 public class Main {
-    public static final Window        WINDOW;
-    public static final InputSystem   INPUT_SYSTEM;
-    public static final InputListener INPUT_LISTENER;
-    public static final UserInterface USER_INTERFACE;
-    public static final Profiler      PROFILER = new Profiler();
+    private final Window        window;
+    private final InputSystem   inputSystem;
+    private final InputListener inputListener;
+    private final Renderer      renderer;
+    private final Profiler      profiler = new Profiler();
 
-    static {
+    //TODO Eliminate reference leaks
+    private Main() {
         //Init
         Util.windowsTimerHack();
         GLFWErrorCallback.createPrint(System.err).set();
@@ -28,34 +31,66 @@ public class Main {
 
         //Window
         glfwDefaultWindowHints();
-        WINDOW = Window.builder().build();
+        window = Window.builder().build();
+        window.setCursorMode(Window.CursorMode.DISABLED);
+        window.setRawMouseInput(true);
 
         //Context
-        WINDOW.makeContextCurrent();
+        window.makeContextCurrent();
         GL.createCapabilities();
 
-        //Input
-        INPUT_SYSTEM = new InputSystem(WINDOW);
-        INPUT_LISTENER = new InputListener();
-        EventType.addListener(INPUT_LISTENER);
+        //Renderer
+        try {
+            renderer = new Renderer(this);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
-        //UI
-        USER_INTERFACE = new UserInterface(WINDOW);
-        USER_INTERFACE.init();
+        //Input
+        inputSystem = new InputSystem(window);
+        inputListener = new InputListener(this);
+        EventType.addListener(inputListener);
     }
 
-    public static void main(String[] args) {
-        while (!WINDOW.shouldClose()) {
-            PROFILER.tick();
-            INPUT_SYSTEM.poll();
-            INPUT_SYSTEM.tick();
-            USER_INTERFACE.tick();
+    public void run() {
+        renderer.init();
 
-            WINDOW.swapBuffers();
+        while (!window.shouldClose()) {
+            profiler.tick();
+            inputSystem.poll();
+            inputSystem.tick();
+
+            renderer.render();
+
+            window.swapBuffers();
             OpenGL.clearAll();
         }
 
-        USER_INTERFACE.shutdown();
+        renderer.shutdown();
         glfwTerminate();
+    }
+
+    public Window getWindow() {
+        return window;
+    }
+
+    public InputSystem getInputSystem() {
+        return inputSystem;
+    }
+
+    public InputListener getInputListener() {
+        return inputListener;
+    }
+
+    public Renderer getRenderer() {
+        return renderer;
+    }
+
+    public Profiler getProfiler() {
+        return profiler;
+    }
+
+    public static void main(String[] args) {
+        new Main().run();
     }
 }
