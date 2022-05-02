@@ -1,8 +1,8 @@
-package edu.kit.scc.git.ggd.voxel;
+package edu.kit.scc.git.ggd.voxelite;
 
-import edu.kit.scc.git.ggd.voxel.input.InputListener;
-import edu.kit.scc.git.ggd.voxel.render.Renderer;
-import edu.kit.scc.git.ggd.voxel.util.Profiler;
+import edu.kit.scc.git.ggd.voxelite.input.InputListener;
+import edu.kit.scc.git.ggd.voxelite.render.Renderer;
+import edu.kit.scc.git.ggd.voxelite.util.Profiler;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.input.InputSystem;
 import net.durchholz.beacon.render.opengl.OpenGL;

@@ -1,8 +1,8 @@
-package edu.kit.scc.git.ggd.voxel.render;
+package edu.kit.scc.git.ggd.voxelite.render;
 
-import edu.kit.scc.git.ggd.voxel.Main;
-import edu.kit.scc.git.ggd.voxel.ui.UserInterface;
-import edu.kit.scc.git.ggd.voxel.util.Util;
+import edu.kit.scc.git.ggd.voxelite.Main;
+import edu.kit.scc.git.ggd.voxelite.ui.UserInterface;
+import edu.kit.scc.git.ggd.voxelite.util.Util;
 import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;

@@ -1,4 +1,4 @@
-package edu.kit.scc.git.ggd.voxel.ui;
+package edu.kit.scc.git.ggd.voxelite.ui;
 
 import java.util.function.BiConsumer;
 

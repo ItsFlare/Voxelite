@@ -1,4 +1,4 @@
-package edu.kit.scc.git.ggd.voxel.util;
+package edu.kit.scc.git.ggd.voxelite.util;
 
 import java.util.stream.LongStream;
 

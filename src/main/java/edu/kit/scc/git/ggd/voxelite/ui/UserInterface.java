@@ -1,8 +1,8 @@
-package edu.kit.scc.git.ggd.voxel.ui;
+package edu.kit.scc.git.ggd.voxelite.ui;
 
-import edu.kit.scc.git.ggd.voxel.Main;
-import edu.kit.scc.git.ggd.voxel.input.InputListener;
-import edu.kit.scc.git.ggd.voxel.render.Camera;
+import edu.kit.scc.git.ggd.voxelite.Main;
+import edu.kit.scc.git.ggd.voxelite.input.InputListener;
+import edu.kit.scc.git.ggd.voxelite.render.Camera;
 import imgui.ImGui;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;

@@ -1,7 +1,7 @@
-package edu.kit.scc.git.ggd.voxel.input;
+package edu.kit.scc.git.ggd.voxelite.input;
 
-import edu.kit.scc.git.ggd.voxel.Main;
-import edu.kit.scc.git.ggd.voxel.render.Camera;
+import edu.kit.scc.git.ggd.voxelite.Main;
+import edu.kit.scc.git.ggd.voxelite.render.Camera;
 import net.durchholz.beacon.event.Listener;
 import net.durchholz.beacon.input.Button;
 import net.durchholz.beacon.input.event.KeyboardEvent;

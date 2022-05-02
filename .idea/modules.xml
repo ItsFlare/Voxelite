@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/ggd-voxel.iml" filepath="$PROJECT_DIR$/.idea/ggd-voxel.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ggd-voxelite.iml" filepath="$PROJECT_DIR$/ggd-voxelite.iml" />
     </modules>
   </component>
 </project>

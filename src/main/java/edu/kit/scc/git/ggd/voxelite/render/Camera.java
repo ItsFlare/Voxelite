@@ -1,4 +1,4 @@
-package edu.kit.scc.git.ggd.voxel.render;
+package edu.kit.scc.git.ggd.voxelite.render;
 
 import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Quaternion;

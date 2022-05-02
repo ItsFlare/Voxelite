@@ -1,6 +1,6 @@
-package edu.kit.scc.git.ggd.voxel.util;
+package edu.kit.scc.git.ggd.voxelite.util;
 
-import edu.kit.scc.git.ggd.voxel.Main;
+import edu.kit.scc.git.ggd.voxelite.Main;
 
 import java.io.IOException;
 import java.io.InputStream;
