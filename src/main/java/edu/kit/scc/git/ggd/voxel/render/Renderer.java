@@ -22,6 +22,7 @@ public class Renderer {
 
     public boolean renderUI     = true;
     public boolean renderSkybox = true;
+    public boolean wireframe    = false;
 
     public Renderer(Main main) throws IOException {
         this.main = main;
@@ -44,7 +45,11 @@ public class Renderer {
 
     public void render() {
         updateViewport();
+        OpenGL.polygonMode(OpenGL.Face.BOTH, wireframe ? OpenGL.PolygonMode.LINE : OpenGL.PolygonMode.FILL);
+
         if (renderSkybox) renderSkybox();
+
+        OpenGL.polygonMode(OpenGL.Face.BOTH, OpenGL.PolygonMode.FILL);
         if (renderUI) renderUserInterface();
     }
 

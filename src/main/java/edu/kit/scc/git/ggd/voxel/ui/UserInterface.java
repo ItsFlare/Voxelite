@@ -13,7 +13,7 @@ import net.durchholz.beacon.window.Window;
 public class UserInterface {
     private static final boolean SAVE_GUI = true;
 
-    private final Main main;
+    private final Main          main;
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private final ImGuiImplGl3  imGuiGl3  = new ImGuiImplGl3();
 
@@ -23,7 +23,7 @@ public class UserInterface {
 
     public void init() {
         ImGui.createContext();
-        if(!SAVE_GUI) ImGui.getIO().setIniFilename(null);
+        if (!SAVE_GUI) ImGui.getIO().setIniFilename(null);
         imGuiGlfw.init(main.getWindow().id(), true);
         imGuiGl3.init("#version 410");
     }
@@ -59,6 +59,7 @@ public class UserInterface {
     private final float[]   cameraSpeed = {InputListener.DEFAULT_CAMERA_SPEED};
     private final ImBoolean skybox      = new ImBoolean(true);
     private final ImBoolean vsync       = new ImBoolean(true);
+    private final ImBoolean wireframe   = new ImBoolean(false);
 
     private void drawSettings() {
         ImGui.sliderInt("FOV", fov, 5, 180);
@@ -75,6 +76,9 @@ public class UserInterface {
 
         ImGui.checkbox("VSync", vsync);
         Window.swapInterval(vsync.get() ? 1 : 0);
+
+        ImGui.checkbox("Wireframe", wireframe);
+        main.getRenderer().wireframe = wireframe.get();
     }
 
 }
