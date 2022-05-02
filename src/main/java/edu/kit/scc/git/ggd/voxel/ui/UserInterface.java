@@ -6,7 +6,6 @@ import edu.kit.scc.git.ggd.voxel.render.Camera;
 import imgui.ImGui;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import imgui.type.ImBoolean;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.window.Window;
 
@@ -17,8 +16,20 @@ public class UserInterface {
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private final ImGuiImplGl3  imGuiGl3  = new ImGuiImplGl3();
 
+    private final IntSliderElement fov;
+    private final FloatSliderElement sensitivity, speed;
+    private final CheckboxElement skybox, vsync, wireframe;
+
     public UserInterface(Main main) {
         this.main = main;
+
+        this.fov = new IntSliderElement("FOV", Camera.DEFAULT_FOV, 5, 180, value -> main.getRenderer().getCamera().setFOV(value));
+        this.sensitivity = new FloatSliderElement("Sensitivity", InputListener.DEFAULT_SENSITIVITY, 0.01f, 10, value -> main.getInputListener().sensitivity = value);
+        this.speed = new FloatSliderElement("Speed", InputListener.DEFAULT_CAMERA_SPEED, 0.01f, 10, value -> main.getInputListener().cameraSpeed = value);
+
+        this.skybox = new CheckboxElement("Skybox", true, value -> main.getRenderer().renderSkybox = value);
+        this.vsync = new CheckboxElement("VSync", true, value ->Window.swapInterval(value ? 1 : 0));
+        this.wireframe = new CheckboxElement("Wireframe", false, value -> main.getRenderer().wireframe = value);
     }
 
     public void init() {
@@ -51,34 +62,17 @@ public class UserInterface {
     }
 
     private void drawPosition(Vec3f position) {
-        ImGui.text("Position: " + position);
+        ImGui.text("Position: " + position.round());
     }
 
-    private final int[]     fov         = {Camera.DEFAULT_FOV};
-    private final float[]   sensitivity = {InputListener.DEFAULT_SENSITIVITY};
-    private final float[]   cameraSpeed = {InputListener.DEFAULT_CAMERA_SPEED};
-    private final ImBoolean skybox      = new ImBoolean(true);
-    private final ImBoolean vsync       = new ImBoolean(true);
-    private final ImBoolean wireframe   = new ImBoolean(false);
-
     private void drawSettings() {
-        ImGui.sliderInt("FOV", fov, 5, 180);
-        main.getRenderer().getCamera().setFOV(fov[0]);
+        fov.draw();
+        sensitivity.draw();
+        speed.draw();
 
-        ImGui.sliderFloat("Sensitivity", sensitivity, 0.01f, 10);
-        main.getInputListener().sensitivity = sensitivity[0];
-
-        ImGui.sliderFloat("Speed", cameraSpeed, 0.01f, 10);
-        main.getInputListener().cameraSpeed = cameraSpeed[0];
-
-        ImGui.checkbox("Skybox", skybox);
-        main.getRenderer().renderSkybox = skybox.get();
-
-        ImGui.checkbox("VSync", vsync);
-        Window.swapInterval(vsync.get() ? 1 : 0);
-
-        ImGui.checkbox("Wireframe", wireframe);
-        main.getRenderer().wireframe = wireframe.get();
+        skybox.draw();
+        vsync.draw();
+        wireframe.draw();
     }
 
 }
