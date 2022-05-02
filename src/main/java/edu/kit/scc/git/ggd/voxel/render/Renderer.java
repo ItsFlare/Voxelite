@@ -4,8 +4,10 @@ import edu.kit.scc.git.ggd.voxel.Main;
 import edu.kit.scc.git.ggd.voxel.ui.UserInterface;
 import edu.kit.scc.git.ggd.voxel.util.Util;
 import net.durchholz.beacon.math.Matrix4f;
+import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
 import net.durchholz.beacon.util.Image;
+import net.durchholz.beacon.window.Viewport;
 
 import java.io.IOException;
 
@@ -16,6 +18,8 @@ public class Renderer {
     private final UserInterface  userInterface;
     private final SkyboxRenderer skyboxRenderer = new SkyboxRenderer(loadSkybox());
 
+    private Viewport viewport;
+
     public boolean renderUI     = true;
     public boolean renderSkybox = true;
 
@@ -23,6 +27,7 @@ public class Renderer {
         this.main = main;
         this.camera = new Camera(main.getWindow());
         this.userInterface = new UserInterface(main);
+        this.viewport = main.getWindow().getViewport();
     }
 
     public void init() {
@@ -38,8 +43,17 @@ public class Renderer {
     }
 
     public void render() {
+        updateViewport();
         if (renderSkybox) renderSkybox();
         if (renderUI) renderUserInterface();
+    }
+
+    private void updateViewport() {
+        final Viewport v = main.getWindow().getViewport();
+        if(!viewport.equals(v)) {
+            OpenGL.setViewport(v);
+            viewport = v;
+        }
     }
 
     private void renderUserInterface() {
