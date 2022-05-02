@@ -13,7 +13,7 @@ import net.durchholz.beacon.util.Image;
 
 import java.io.IOException;
 
-import static org.lwjgl.opengl.GL43.glDepthMask;
+import static org.lwjgl.opengl.GL41.*;
 
 public class SkyboxRenderer {
 
@@ -90,6 +90,9 @@ public class SkyboxRenderer {
 
             cubemapTexture.minFilter(GLTexture.MinFilter.LINEAR);
             cubemapTexture.magFilter(GLTexture.MagFilter.NEAREST);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             cubemapTexture.generateMipmap();
         });
 
