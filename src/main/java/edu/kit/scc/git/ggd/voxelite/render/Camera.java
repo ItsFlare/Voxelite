@@ -6,7 +6,9 @@ import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.window.Window;
 
 public class Camera {
-    public static final int DEFAULT_FOV = 120;
+    public static final int   DEFAULT_FOV = 120;
+    public static final float NEAR_PLANE  = 0.1f;
+    public static final float FAR_PLANE   = 1000f;
 
     private final Window window;
 
@@ -59,7 +61,7 @@ public class Camera {
     }
 
     public Matrix4f projection() {
-        return Matrix4f.perspective(fov, window.getViewport().aspectRatio(), 0.1f, 100);
+        return Matrix4f.perspective(fov, window.getViewport().aspectRatio(), NEAR_PLANE, FAR_PLANE);
     }
 
     public Matrix4f transform() {

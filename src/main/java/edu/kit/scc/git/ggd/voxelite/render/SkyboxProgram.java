@@ -7,17 +7,16 @@ import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.buffers.Vertex;
 import net.durchholz.beacon.render.opengl.buffers.VertexAttribute;
 import net.durchholz.beacon.render.opengl.buffers.VertexLayout;
-import net.durchholz.beacon.render.opengl.shader.FragmentShader;
 import net.durchholz.beacon.render.opengl.shader.Program;
+import net.durchholz.beacon.render.opengl.shader.Shader;
 import net.durchholz.beacon.render.opengl.shader.Uniform;
-import net.durchholz.beacon.render.opengl.shader.VertexShader;
 
 import java.io.IOException;
 
 public class SkyboxProgram extends Program {
 
     public SkyboxProgram() throws IOException {
-        super(new VertexShader(Util.readStringResource("shaders/skybox.vs")), new FragmentShader(Util.readStringResource("shaders/skybox.fs")));
+        super(Shader.vertex(Util.readStringResource("shaders/skybox.vs")), Shader.fragment(Util.readStringResource("shaders/skybox.fs")));
     }
 
     public final Attribute<Vec3f> pos = attribute("pos", OpenGL.Type.FLOAT, 3);

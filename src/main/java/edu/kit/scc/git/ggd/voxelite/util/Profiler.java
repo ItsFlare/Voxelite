@@ -18,4 +18,12 @@ public class Profiler {
     public float frameTime() {
         return (float) (LongStream.of(frameTime).average().getAsDouble() / 1_000_000f);
     }
+
+    public float maxFrameTime() {
+        return LongStream.of(frameTime).max().getAsLong() / 1_000_000f;
+    }
+
+    public float minFrameTime() {
+        return LongStream.of(frameTime).min().getAsLong() / 1_000_000f;
+    }
 }

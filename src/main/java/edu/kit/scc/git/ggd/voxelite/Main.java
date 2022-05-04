@@ -3,6 +3,8 @@ package edu.kit.scc.git.ggd.voxelite;
 import edu.kit.scc.git.ggd.voxelite.input.InputListener;
 import edu.kit.scc.git.ggd.voxelite.render.Renderer;
 import edu.kit.scc.git.ggd.voxelite.util.Profiler;
+import edu.kit.scc.git.ggd.voxelite.world.World;
+import edu.kit.scc.git.ggd.voxelite.world.generator.ModuloChunkGenerator;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.input.InputSystem;
 import net.durchholz.beacon.render.opengl.OpenGL;
@@ -21,6 +23,7 @@ public class Main {
     private final InputListener inputListener;
     private final Renderer      renderer;
     private final Profiler      profiler = new Profiler();
+    private final World         world    = new World(new ModuloChunkGenerator());
 
     //TODO Eliminate reference leaks
     private Main() {
@@ -42,6 +45,7 @@ public class Main {
         //Renderer
         try {
             renderer = new Renderer(this);
+            renderer.init();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -50,11 +54,12 @@ public class Main {
         inputSystem = new InputSystem(window);
         inputListener = new InputListener(this);
         EventType.addListener(inputListener);
+
+        //World
+        world.getGenerator().setWorld(world);
     }
 
     public void run() {
-        renderer.init();
-
         while (!window.shouldClose()) {
             profiler.tick();
             inputSystem.poll();
@@ -88,6 +93,10 @@ public class Main {
 
     public Profiler getProfiler() {
         return profiler;
+    }
+
+    public World getWorld() {
+        return world;
     }
 
     public static void main(String[] args) {

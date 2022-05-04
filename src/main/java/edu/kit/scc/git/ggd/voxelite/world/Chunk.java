@@ -1,0 +1,124 @@
+package edu.kit.scc.git.ggd.voxelite.world;
+
+import net.durchholz.beacon.math.AABB;
+import net.durchholz.beacon.math.Vec3f;
+import net.durchholz.beacon.math.Vec3i;
+
+import java.util.Iterator;
+
+public class Chunk implements Iterable<Voxel> {
+
+    public static final int   WIDTH_EXP    = 4;
+    public static final int   HEIGHT_EXP   = 4;
+    public static final int   AREA_EXP     = 2 * WIDTH_EXP;
+    public static final int   WIDTH        = 1 << WIDTH_EXP;
+    public static final int   HEIGHT       = 1 << HEIGHT_EXP;
+    public static final int   AREA         = 1 << AREA_EXP;
+    public static final int   VOLUME       = AREA << HEIGHT_EXP;
+    public static final Vec3i CENTER       = new Vec3i(WIDTH >> 1, HEIGHT >> 1, WIDTH >> 1);
+    public static final AABB  BOUNDING_BOX = new AABB(new Vec3f(), WIDTH, HEIGHT, WIDTH);
+
+    private final World   world;
+    private final Vec3i   position;
+    private final Block[] blocks = new Block[VOLUME];
+    private final AABB    boundingBox;
+
+
+    public Chunk(World world, Vec3i position) {
+        this.world = world;
+        this.position = position;
+        this.boundingBox = BOUNDING_BOX.translate(position);
+    }
+
+    public Voxel getVoxel(Vec3i position) {
+        return new Voxel(this, position);
+    }
+
+    public Block getBlock(Vec3i position) {
+        return blocks[toLinearSpace(position)];
+    }
+
+    public void setBlock(Vec3i position, Block block) {
+        blocks[toLinearSpace(position)] = block;
+    }
+
+    public World getWorld() {
+        return world;
+    }
+
+    public Vec3i getPosition() {
+        return position;
+    }
+
+    public AABB getBoundingBox() {
+        return boundingBox;
+    }
+
+    public int getBlockCount() {
+        return 0; //TODO Implement (int) Arrays.stream(blocks).filter(Objects::nonNull).count()
+    }
+
+    @Override
+    public Iterator<Voxel> iterator() {
+        return new Iterator<>() {
+            private int position;
+
+            @Override
+            public boolean hasNext() {
+                return position < VOLUME;
+            }
+
+            @Override
+            public Voxel next() {
+                return getVoxel(fromLinearSpace(position++).add(Chunk.toWorldPosition(Chunk.this.position)));
+            }
+        };
+    }
+
+    public static int toLinearSpace(Vec3i position) {
+        position = toChunkSpace(position);
+        return (position.x() << AREA_EXP) + (position.z() << WIDTH_EXP) + position.y(); //TODO Replace with bitwise or
+    }
+
+    public static Vec3i fromLinearSpace(int index) {
+        //TODO Optimize
+        int x = index / AREA;
+        int y = (index % AREA) % HEIGHT;
+        int z = (index % AREA) / WIDTH;
+        return new Vec3i(x, y, z);
+    }
+
+    public static Vec3f toChunkSpace(Vec3f position) {
+        final Vec3i intVec = new Vec3i(position);
+        final Vec3i chunkSpace = toChunkSpace(intVec);
+        return new Vec3f(
+                chunkSpace.x() + (position.x() - intVec.x()),
+                chunkSpace.y() + (position.y() - intVec.y()),
+                chunkSpace.z() + (position.z() - intVec.z())
+        );
+    }
+
+    public static Vec3i toChunkSpace(Vec3i position) {
+        return new Vec3i(
+                position.x() & (WIDTH - 1),
+                position.y() & (HEIGHT - 1),
+                position.z() & (WIDTH - 1)
+        );
+    }
+
+    public static Vec3i toChunkPosition(Vec3i worldPosition) {
+        return new Vec3i(
+                worldPosition.x() >> WIDTH_EXP,
+                worldPosition.y() >> HEIGHT_EXP,
+                worldPosition.z() >> WIDTH_EXP
+        );
+    }
+
+    public static Vec3i toWorldPosition(Vec3i chunkPosition) {
+        return new Vec3i(
+                chunkPosition.x() << WIDTH_EXP,
+                chunkPosition.y() << HEIGHT_EXP,
+                chunkPosition.z() << WIDTH_EXP
+        );
+    }
+}
