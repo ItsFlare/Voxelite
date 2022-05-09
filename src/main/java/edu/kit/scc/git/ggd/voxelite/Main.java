@@ -12,12 +12,16 @@ import net.durchholz.beacon.util.Util;
 import net.durchholz.beacon.window.Window;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 import static org.lwjgl.glfw.GLFW.*;
 
 public class Main {
+    private static final Logger LOGGER;
+
     private final Window        window;
     private final InputSystem   inputSystem;
     private final InputListener inputListener;
@@ -25,8 +29,15 @@ public class Main {
     private final Profiler      profiler = new Profiler();
     private final World         world    = new World(new ModuloChunkGenerator());
 
+    static {
+        System.setProperty("log4j.skipJansi", "false");
+        LOGGER = LoggerFactory.getLogger(Main.class);
+    }
+
     //TODO Eliminate reference leaks
     private Main() {
+        LOGGER.info("Initialization...");
+
         //Init
         Util.windowsTimerHack();
         GLFWErrorCallback.createPrint(System.err).set();
@@ -60,6 +71,8 @@ public class Main {
     }
 
     public void run() {
+        LOGGER.info("Run...");
+
         while (!window.shouldClose()) {
             profiler.tick();
             inputSystem.poll();
@@ -71,6 +84,7 @@ public class Main {
             OpenGL.clearAll();
         }
 
+        LOGGER.info("Shutdown...");
         renderer.shutdown();
         glfwTerminate();
     }
