@@ -10,13 +10,8 @@ import edu.kit.scc.git.ggd.voxelite.world.generator.ModuloChunkGenerator;
 import imgui.ImGui;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import net.durchholz.beacon.math.Vec3i;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.window.Window;
-
-import java.util.HashSet;
-import java.util.Set;
-import java.util.function.Predicate;
 
 public class UserInterface {
     private static final boolean SAVE_GUI = true;
@@ -43,23 +38,7 @@ public class UserInterface {
         this.directionCulling = new CheckboxElement("Direction Culling", true, value -> ChunkProgram.directionCulling = value);
         this.backfaceCulling = new CheckboxElement("Backface Culling", true, OpenGL::cull);
 
-        this.chunkRadius = new IntSliderElement("Chunk radius", 1, 1, 50, (previous, next) -> {
-            Set<Vec3i> expected = new HashSet<>();
-            for (int x = -next; x < next; x++) {
-                for (int z = -next; z < next; z++) {
-                    expected.add(new Vec3i(x, 0, z));
-                }
-            }
-            main.getWorld().getChunks().stream().map(Chunk::getPosition).filter(Predicate.not(expected::contains)).toList().forEach(main.getWorld()::unloadChunk);
-
-            main.getWorld().getChunks().stream().map(Chunk::getPosition).forEach(expected::remove);
-
-            for (Vec3i toLoad : expected) {
-                main.getWorld().loadChunk(toLoad);
-            }
-
-            expected.forEach(vec3i -> main.getRenderer().getWorldRenderer().getRenderChunk(vec3i).updateMesh(main.getRenderer().getCamera().getPosition()));
-        });
+        this.chunkRadius = new IntSliderElement("Chunk radius", 1, 1, 50, main.getWorld()::setChunkRadius);
 
         this.blockCount = new IntSliderElement("Block gen modulo", 2, 1, 50, value -> {
             if(main.getWorld().getGenerator() instanceof ModuloChunkGenerator r) {

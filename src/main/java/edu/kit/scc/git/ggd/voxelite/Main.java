@@ -20,6 +20,7 @@ import java.io.IOException;
 import static org.lwjgl.glfw.GLFW.*;
 
 public class Main {
+    public static final Main INSTANCE;
     private static final Logger LOGGER;
 
     private final Window        window;
@@ -32,6 +33,7 @@ public class Main {
     static {
         System.setProperty("log4j.skipJansi", "false");
         LOGGER = LoggerFactory.getLogger(Main.class);
+        INSTANCE = new Main();
     }
 
     //TODO Eliminate reference leaks
@@ -77,6 +79,7 @@ public class Main {
             profiler.tick();
             inputSystem.poll();
             inputSystem.tick();
+            world.tick();
 
             renderer.render();
 
@@ -114,6 +117,6 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        new Main().run();
+        INSTANCE.run();
     }
 }
