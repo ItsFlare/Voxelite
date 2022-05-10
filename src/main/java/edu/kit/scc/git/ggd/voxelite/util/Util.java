@@ -16,6 +16,10 @@ import java.util.stream.Stream;
 
 public class Util {
 
+    public static String readShaderResource(String name) throws IOException {
+        return readStringResource("shaders/" + name);
+    }
+
     public static String readStringResource(String resource) throws IOException {
         return new String(readResource(resource).readAllBytes());
     }

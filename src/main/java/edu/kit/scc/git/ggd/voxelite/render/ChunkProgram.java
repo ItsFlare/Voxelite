@@ -47,6 +47,7 @@ public class ChunkProgram extends Program {
 
     public final Uniform<Matrix4f> mvp   = uniMatrix4f("mvp", true);
     public final Uniform<Vec3i>    chunk = uniVec3i("chunk");
+    public final Sampler           atlas = sampler("atlas");
 
     public record MeshVertex(short position, Vec2f texture) implements Vertex {
         public static final VertexLayout<MeshVertex> LAYOUT   = new VertexLayout<>(MeshVertex.class);

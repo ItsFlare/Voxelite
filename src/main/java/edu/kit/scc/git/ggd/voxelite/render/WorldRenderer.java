@@ -1,6 +1,7 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
+import edu.kit.scc.git.ggd.voxelite.texture.TextureAtlas;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import net.durchholz.beacon.event.EventType;
@@ -8,6 +9,8 @@ import net.durchholz.beacon.event.Listener;
 import net.durchholz.beacon.math.Vec3i;
 import net.durchholz.beacon.render.opengl.OpenGL;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,11 +18,18 @@ import java.util.Map;
 public class WorldRenderer {
 
     private final Map<Vec3i, RenderChunk> renderChunks = new HashMap<>();
-    private final Main                    main;
+    private final Main         main;
+    private final TextureAtlas atlas;
 
     public WorldRenderer(Main main) {
         this.main = main;
         EventType.addListener(this);
+
+        try {
+            atlas = new TextureAtlas("/textures/blocks");
+        } catch (IOException | URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Listener
@@ -53,6 +63,8 @@ public class WorldRenderer {
                 OpenGL.primitiveRestartIndex(ChunkProgram.PRIMITIVE_RESET_INDEX);
 
                 program.mvp.set(main.getRenderer().getCamera().transform());
+                program.atlas.bind(0, atlas);
+
                 for (RenderChunk renderChunk : renderChunks.values()) {
                     renderChunk.render(renderType, main.getRenderer().getCamera().getPosition());
                 }
@@ -66,5 +78,9 @@ public class WorldRenderer {
 
     public RenderChunk getRenderChunk(Vec3i position) {
         return renderChunks.get(position);
+    }
+
+    public TextureAtlas getAtlas() {
+        return atlas;
     }
 }
