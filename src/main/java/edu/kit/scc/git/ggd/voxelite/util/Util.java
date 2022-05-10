@@ -26,7 +26,7 @@ public class Util {
 
 
     public static Collection<Path> listResourceFolder(String folder) throws URISyntaxException, IOException {
-        return listResourceFolder(folder, 0);
+        return listResourceFolder(folder, 1);
     }
 
     public static Collection<Path> listResourceFolder(String folder, int depth) throws URISyntaxException, IOException {
