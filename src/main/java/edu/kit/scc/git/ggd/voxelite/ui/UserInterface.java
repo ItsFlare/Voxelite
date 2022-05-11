@@ -22,7 +22,7 @@ public class UserInterface {
 
     private final IntSliderElement fov, chunkRadius, blockCount;
     private final FloatSliderElement sensitivity, speed;
-    private final CheckboxElement skybox, world, vsync, wireframe, directionCulling, backfaceCulling;
+    private final CheckboxElement skybox, world, vsync, wireframe, directionCulling, backfaceCulling, loadChunks;
 
     public UserInterface(Main main) {
         this.main = main;
@@ -37,19 +37,14 @@ public class UserInterface {
         this.wireframe = new CheckboxElement("Wireframe", false, value -> main.getRenderer().wireframe = value);
         this.directionCulling = new CheckboxElement("Direction Culling", true, value -> ChunkProgram.directionCulling = value);
         this.backfaceCulling = new CheckboxElement("Backface Culling", true, OpenGL::cull);
+        this.loadChunks = new CheckboxElement("Load Chunks", true, value -> main.getWorld().setLoadChunks(value));
 
         this.chunkRadius = new IntSliderElement("Chunk radius", 1, 1, 50, main.getWorld()::setChunkRadius);
 
         this.blockCount = new IntSliderElement("Block gen modulo", 2, 1, 50, value -> {
             if(main.getWorld().getGenerator() instanceof ModuloChunkGenerator r) {
                 r.modulo = value;
-
-                main.getWorld().getChunks().stream().map(Chunk::getPosition).toList().forEach(vec3i -> {
-                    main.getWorld().unloadChunk(vec3i);
-                    main.getWorld().loadChunk(vec3i);
-                });
-
-                main.getRenderer().getWorldRenderer().updateMeshes();
+                main.getWorld().regenerate();
             }
         });
     }
@@ -105,6 +100,7 @@ public class UserInterface {
         wireframe.draw();
         directionCulling.draw();
         backfaceCulling.draw();
+        loadChunks.draw();
 
         chunkRadius.draw();
         blockCount.draw();

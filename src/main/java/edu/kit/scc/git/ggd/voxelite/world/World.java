@@ -18,6 +18,7 @@ public class World {
 
     private int   radius = 2;
     private Vec3i lastChunk;
+    private boolean loadChunks = true;
 
     public World(WorldGenerator generator) {
         this.generator = generator;
@@ -49,7 +50,24 @@ public class World {
         this.radius = radius;
     }
 
+    public void setLoadChunks(boolean loadChunks) {
+        this.loadChunks = loadChunks;
+    }
+
+    public void regenerate() {
+        getChunks().stream().map(Chunk::getPosition).toList().forEach(vec3i -> {
+            unloadChunk(vec3i);
+            loadChunk(vec3i);
+        });
+
+        Main.INSTANCE.getRenderer().getWorldRenderer().updateMeshes();
+    }
+
     public void tick() {
+        if(loadChunks) tickChunkLoad();
+    }
+
+    private void tickChunkLoad() {
         final Vec3f cameraPos = Main.INSTANCE.getRenderer().getCamera().getPosition();
         final Vec3i currentChunk = Chunk.toChunkPosition(new Vec3i(cameraPos));
 
@@ -59,8 +77,10 @@ public class World {
 
             //Add all expected chunks
             for (int x = -radius; x < radius; x++) {
-                for (int z = -radius; z < radius; z++) {
-                    toLoad.add(new Vec3i(currentChunk.x() + x, 0, currentChunk.z() + z));
+                for (int y = -radius; y < radius; y++) {
+                    for (int z = -radius; z < radius; z++) {
+                        toLoad.add(currentChunk.add(new Vec3i(x, y, z)));
+                    }
                 }
             }
 
