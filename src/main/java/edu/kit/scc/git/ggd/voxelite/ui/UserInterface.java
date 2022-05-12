@@ -10,6 +10,8 @@ import edu.kit.scc.git.ggd.voxelite.world.generator.ModuloChunkGenerator;
 import imgui.ImGui;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
+import net.durchholz.beacon.math.Vec3f;
+import net.durchholz.beacon.math.Vec4f;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.window.Window;
 
@@ -20,9 +22,10 @@ public class UserInterface {
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private final ImGuiImplGl3  imGuiGl3  = new ImGuiImplGl3();
 
-    private final IntSliderElement fov, chunkRadius, blockCount;
-    private final FloatSliderElement sensitivity, speed;
+    private final IntSliderElement fov, chunkRadius, generatorModulo;
+    private final FloatSliderElement sensitivity, speed, ambientStrength, diffuseStrength, specularStrength;
     private final CheckboxElement skybox, world, vsync, wireframe, directionCulling, backfaceCulling, loadChunks;
+    private final ColorPickerElement lightColor;
 
     public UserInterface(Main main) {
         this.main = main;
@@ -39,14 +42,19 @@ public class UserInterface {
         this.backfaceCulling = new CheckboxElement("Backface Culling", true, OpenGL::cull);
         this.loadChunks = new CheckboxElement("Load Chunks", true, value -> main.getWorld().setLoadChunks(value));
 
-        this.chunkRadius = new IntSliderElement("Chunk radius", 1, 1, 50, main.getWorld()::setChunkRadius);
+        this.chunkRadius = new IntSliderElement("Chunk radius", 4, 1, 50, main.getWorld()::setChunkRadius);
 
-        this.blockCount = new IntSliderElement("Block gen modulo", 2, 1, 50, value -> {
+        this.generatorModulo = new IntSliderElement("Block gen modulo", 8, 1, 50, value -> {
             if(main.getWorld().getGenerator() instanceof ModuloChunkGenerator r) {
                 r.modulo = value;
                 main.getWorld().regenerate();
             }
         });
+
+        this.lightColor = new ColorPickerElement("Light", new Vec4f(1), color -> main.getRenderer().getWorldRenderer().lightColor = new Vec3f(color.x(), color.y(), color.z()));
+        this.ambientStrength = new FloatSliderElement("Ambient", 0.2f, 0, 1, value -> main.getRenderer().getWorldRenderer().ambientStrength = value);
+        this.diffuseStrength = new FloatSliderElement("Diffuse", 1, 0, 1, value -> main.getRenderer().getWorldRenderer().diffuseStrength = value);
+        this.specularStrength = new FloatSliderElement("Specular", 0.5f, 0, 1, value -> main.getRenderer().getWorldRenderer().specularStrength = value);
     }
 
     public void init() {
@@ -103,7 +111,14 @@ public class UserInterface {
         loadChunks.draw();
 
         chunkRadius.draw();
-        blockCount.draw();
+        if(main.getWorld().getGenerator() instanceof ModuloChunkGenerator) generatorModulo.draw();
+
+        if(ImGui.collapsingHeader("Light")) {
+            lightColor.draw();
+            ambientStrength.draw();
+            diffuseStrength.draw();
+            specularStrength.draw();
+        }
     }
 
 }

@@ -12,8 +12,11 @@ const int X_MASK = Z_MASK << X_SHIFT;
 
 in int pos;
 in vec2 tex;
+in vec3 normal;
 
 out vec2 Tex;
+out vec3 Pos;
+out vec3 Normal;
 
 uniform mat4 mvp;
 uniform ivec3 chunk;
@@ -23,4 +26,6 @@ void main() {
     gl_Position = mvp * vec4(vec3(chunk + v), 1);
 
     Tex = tex;
+    Pos = vec3(chunk + v);
+    Normal = normal;
 }

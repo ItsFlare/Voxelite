@@ -44,15 +44,23 @@ public class ChunkProgram extends Program {
 
     public final Attribute<Integer> position = attribute("pos", OpenGL.Type.INT, 1);
     public final Attribute<Vec2f>   texture  = attribute("tex", OpenGL.Type.FLOAT, 2);
+    public final Attribute<Vec3f>   normal   = attribute("normal", OpenGL.Type.FLOAT, 3);
 
-    public final Uniform<Matrix4f> mvp   = uniMatrix4f("mvp", true);
-    public final Uniform<Vec3i>    chunk = uniVec3i("chunk");
-    public final Sampler           atlas = sampler("atlas");
+    public final Uniform<Matrix4f> mvp              = uniMatrix4f("mvp", true);
+    public final Uniform<Vec3i>    chunk            = uniVec3i("chunk");
+    public final Sampler           atlas            = sampler("atlas");
+    public final Uniform<Vec3f>    camera           = uniVec3f("camera");
+    public final Uniform<Vec3f>    lightDirection   = uniVec3f("light.direction");
+    public final Uniform<Vec3f>    lightColor       = uniVec3f("light.color");
+    public final Uniform<Float>    ambientStrength  = uniFloat("ambientStrength");
+    public final Uniform<Float>    diffuseStrength  = uniFloat("diffuseStrength");
+    public final Uniform<Float>    specularStrength = uniFloat("specularStrength");
 
-    public record MeshVertex(short position, Vec2f texture) implements Vertex {
+    public record MeshVertex(short position, Vec2f texture, Vec3f normal) implements Vertex {
         public static final VertexLayout<MeshVertex> LAYOUT   = new VertexLayout<>(MeshVertex.class);
         public static final VertexAttribute<Integer> POSITION = LAYOUT.primitive(false);
         public static final VertexAttribute<Vec2f>   TEXTURE  = LAYOUT.vec2f(false);
+        public static final VertexAttribute<Vec3f>   NORMAL   = LAYOUT.vec3f(false);
 
         @Override
         public VertexLayout<?> getLayout() {
@@ -85,6 +93,7 @@ public class ChunkProgram extends Program {
                 meshBuffer.use(() -> {
                     vertexArray.set(ChunkProgram.this.position, MeshVertex.POSITION, meshBuffer, 0);
                     vertexArray.set(ChunkProgram.this.texture, MeshVertex.TEXTURE, meshBuffer, 0);
+                    vertexArray.set(ChunkProgram.this.normal, MeshVertex.NORMAL, meshBuffer, 0);
                 });
 
 //                lightBuffer.use(() -> {
@@ -110,10 +119,11 @@ public class ChunkProgram extends Program {
                 //Store quad positions for later use like sorting
                 quadPositions[i] = queuedQuad.quadPosition();
 
-                meshVertices[i * 4 + 0] = new MeshVertex((short) packVector(queuedQuad.mesh().v0()), queuedQuad.texture().uv0());
-                meshVertices[i * 4 + 1] = new MeshVertex((short) packVector(queuedQuad.mesh().v1()), queuedQuad.texture().uv1());
-                meshVertices[i * 4 + 2] = new MeshVertex((short) packVector(queuedQuad.mesh().v2()), queuedQuad.texture().uv2());
-                meshVertices[i * 4 + 3] = new MeshVertex((short) packVector(queuedQuad.mesh().v3()), queuedQuad.texture().uv3());
+                Vec3f normal = new Vec3f(queuedQuad.direction.getAxis());
+                meshVertices[i * 4 + 0] = new MeshVertex((short) packVector(queuedQuad.mesh().v0()), queuedQuad.texture().uv0(), normal);
+                meshVertices[i * 4 + 1] = new MeshVertex((short) packVector(queuedQuad.mesh().v1()), queuedQuad.texture().uv1(), normal);
+                meshVertices[i * 4 + 2] = new MeshVertex((short) packVector(queuedQuad.mesh().v2()), queuedQuad.texture().uv2(), normal);
+                meshVertices[i * 4 + 3] = new MeshVertex((short) packVector(queuedQuad.mesh().v3()), queuedQuad.texture().uv3(), normal);
             }
 
             //Upload mesh

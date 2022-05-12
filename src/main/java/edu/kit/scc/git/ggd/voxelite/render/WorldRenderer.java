@@ -6,6 +6,7 @@ import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.event.Listener;
+import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 import net.durchholz.beacon.render.opengl.OpenGL;
 
@@ -20,6 +21,8 @@ public class WorldRenderer {
     private final Map<Vec3i, RenderChunk> renderChunks = new HashMap<>();
     private final Main         main;
     private final TextureAtlas atlas;
+    public Vec3f               lightColor = new Vec3f(1);
+    public float               ambientStrength = 0.2f, diffuseStrength = 1.0f, specularStrength = 0.5f;
 
     public WorldRenderer(Main main) {
         this.main = main;
@@ -64,6 +67,12 @@ public class WorldRenderer {
 
                 program.mvp.set(main.getRenderer().getCamera().transform());
                 program.atlas.bind(0, atlas);
+                program.camera.set(main.getRenderer().getCamera().getPosition());
+                program.lightColor.set(lightColor);
+                program.lightDirection.set(new Vec3f(0, -1, 0));
+                program.ambientStrength.set(ambientStrength);
+                program.diffuseStrength.set(diffuseStrength);
+                program.specularStrength.set(specularStrength);
 
                 for (RenderChunk renderChunk : renderChunks.values()) {
                     renderChunk.render(renderType, main.getRenderer().getCamera().getPosition());

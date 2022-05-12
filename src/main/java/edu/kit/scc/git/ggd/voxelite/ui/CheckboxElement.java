@@ -5,13 +5,11 @@ import imgui.type.ImBoolean;
 
 import java.util.function.Consumer;
 
-public class CheckboxElement extends Element<Boolean> {
-    private final String    title;
+public class CheckboxElement extends TitledElement<Boolean> {
     private final ImBoolean value;
 
     public CheckboxElement(String title, boolean initial, Consumer<Boolean> action) {
-        super((previous, next) -> action.accept(next));
-        this.title = title;
+        super(title, (previous, next) -> action.accept(next));
         this.value = new ImBoolean(initial);
     }
 
