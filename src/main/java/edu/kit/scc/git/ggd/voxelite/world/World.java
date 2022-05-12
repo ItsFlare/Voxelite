@@ -1,10 +1,13 @@
 package edu.kit.scc.git.ggd.voxelite.world;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
+import edu.kit.scc.git.ggd.voxelite.render.event.CameraMoveEvent;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.generator.WorldGenerator;
+import net.durchholz.beacon.event.EventType;
+import net.durchholz.beacon.event.Listener;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 
@@ -22,6 +25,7 @@ public class World {
 
     public World(WorldGenerator generator) {
         this.generator = generator;
+        EventType.addListener(this);
     }
 
     public void loadChunk(Vec3i chunkPosition) {
@@ -63,11 +67,10 @@ public class World {
         Main.INSTANCE.getRenderer().getWorldRenderer().updateMeshes();
     }
 
-    public void tick() {
-        if(loadChunks) tickChunkLoad();
-    }
+    @Listener
+    private void onCameraMove(CameraMoveEvent event) {
+        if(!loadChunks) return;
 
-    private void tickChunkLoad() {
         final Vec3f cameraPos = Main.INSTANCE.getRenderer().getCamera().getPosition();
         final Vec3i currentChunk = Chunk.toChunkPosition(new Vec3i(cameraPos));
 
@@ -83,8 +86,6 @@ public class World {
                     }
                 }
             }
-
-            var main = Main.INSTANCE;
 
             //loadedChunks \ expected
             var toUnload = getChunks()
@@ -124,7 +125,7 @@ public class World {
             toUpdate.addAll(toLoad);
             toUpdate
                     .stream()
-                    .map(vec3i -> main.getRenderer().getWorldRenderer().getRenderChunk(vec3i))
+                    .map(vec3i -> Main.INSTANCE.getRenderer().getWorldRenderer().getRenderChunk(vec3i))
                     .filter(Objects::nonNull)
                     .forEach(renderChunk -> renderChunk.updateMesh(cameraPos));
         }

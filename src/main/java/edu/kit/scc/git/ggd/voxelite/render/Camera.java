@@ -1,5 +1,6 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
+import edu.kit.scc.git.ggd.voxelite.render.event.CameraMoveEvent;
 import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Quaternion;
 import net.durchholz.beacon.math.Vec3f;
@@ -25,11 +26,15 @@ public class Camera {
     }
 
     public void setPosition(Vec3f position) {
+        Vec3f previous = this.position;
         this.position = position;
+        new CameraMoveEvent(previous, position).fire();
     }
 
     public void move(Vec3f delta) {
-        this.position = position.add(delta);
+        Vec3f previous = this.position;
+        this.position = this.position.add(delta);
+        new CameraMoveEvent(previous, this.position).fire();
     }
 
     public Quaternion getRotation() {

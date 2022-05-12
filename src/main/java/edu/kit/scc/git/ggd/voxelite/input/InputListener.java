@@ -47,7 +47,7 @@ public class InputListener {
     }
 
     @Listener
-    public void onKeyboard(KeyboardEvent event) {
+    private void onKeyboard(KeyboardEvent event) {
         if (event.action() == GLFW.GLFW_RELEASE) return;
 
         for (Input input : inputs) {
@@ -58,7 +58,7 @@ public class InputListener {
     }
 
     @Listener
-    public void onMouse(MouseEvent event) {
+    private void onMouse(MouseEvent event) {
         if (main.getWindow().getCursorMode() != Window.CursorMode.DISABLED) return;
 
         final Quaternion yaw = Quaternion.ofAxisAngle(new Vec3f(0, 1, 0), (float) ((cursor.x() - event.x()) * sensitivity));

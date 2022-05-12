@@ -36,13 +36,13 @@ public class WorldRenderer {
     }
 
     @Listener
-    public void onChunkLoad(ChunkLoadEvent event) {
+    private void onChunkLoad(ChunkLoadEvent event) {
         final RenderChunk renderChunk = new RenderChunk(event.getChunk());
         renderChunks.put(event.getChunk().getPosition(), renderChunk);
     }
 
     @Listener
-    public void onChunkUnload(ChunkUnloadEvent event) {
+    private void onChunkUnload(ChunkUnloadEvent event) {
         renderChunks.remove(event.getChunk().getPosition()).delete();
     }
 
