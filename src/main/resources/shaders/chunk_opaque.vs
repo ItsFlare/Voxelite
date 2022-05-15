@@ -1,15 +1,5 @@
 #version 410
 
-#define WIDTH_EXP 4
-#define HEIGHT_EXP 4
-
-//const int Y_SHIFT = WIDTH_EXP + 1;
-//const int X_SHIFT = Y_SHIFT + HEIGHT_EXP + 1;
-//
-//const int Z_MASK = (1 << (WIDTH_EXP + 1)) - 1;
-//const int Y_MASK = ((1 << (HEIGHT_EXP + 1)) - 1) << Y_SHIFT;
-//const int X_MASK = Z_MASK << X_SHIFT;
-
 in ivec2 tex;
 in vec3 pos;
 in vec3 normal;
@@ -24,11 +14,13 @@ uniform ivec3 chunk;
 uniform float normalizedSpriteSize;
 
 void main() {
-    uint x = data >> 28;
-    uint y = (data & uint(0xf000000)) >> 24;
-    uint z = (data & uint(0xf00000)) >> 20;
-    uint u = (data & uint(0xff000)) >> 12;
-    uint v = (data & uint(0xff0)) >> 4;
+    uint x = data >> 27;
+    uint y = (data >> 22) & uint(0x1f);
+    uint z = (data >> 17) & uint(0x1f);
+
+    uint u = (data >> 8) & uint(0xff);
+    uint v = data & uint(0xff);
+
     vec3 vp = vec3(chunk) + pos + vec3(x, y, z);
     gl_Position = mvp * vec4(vp, 1);
 

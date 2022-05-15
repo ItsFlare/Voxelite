@@ -219,24 +219,24 @@ public class ChunkProgram extends Program {
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
         }
 
+        public int getQuadCount() {
+            return quadCount;
+        }
+
         public static int packInstance(Vec3i offset, Vec2i texture) {
-            assert offset.x() < 16 && offset.y() < 16 && offset.z() < 16;
+            assert offset.x() < Chunk.WIDTH && offset.y() < Chunk.HEIGHT && offset.z() < Chunk.WIDTH;
             assert texture.x() < 256 && texture.y() < 256;
 
             int result = 0;
 
-            result |= offset.x() << 28;
-            result |= offset.y() << 24;
-            result |= offset.z() << 20;
+            result |= offset.x() << 27;
+            result |= offset.y() << 22;
+            result |= offset.z() << 17;
 
-            result |= texture.x() << 12;
-            result |= texture.y() << 4;
+            result |= texture.x() << 8;
+            result |= texture.y();
 
             return result;
-        }
-
-        public int getQuadCount() {
-            return quadCount;
         }
     }
 }

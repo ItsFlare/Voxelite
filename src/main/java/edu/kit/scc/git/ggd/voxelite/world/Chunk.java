@@ -8,8 +8,8 @@ import java.util.Iterator;
 
 public class Chunk implements Iterable<Voxel> {
 
-    public static final int   WIDTH_EXP    = 4;
-    public static final int   HEIGHT_EXP   = 4;
+    public static final int   WIDTH_EXP    = 5;
+    public static final int   HEIGHT_EXP   = 5;
     public static final int   AREA_EXP     = 2 * WIDTH_EXP;
     public static final int   WIDTH        = 1 << WIDTH_EXP;
     public static final int   HEIGHT       = 1 << HEIGHT_EXP;
