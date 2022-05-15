@@ -6,7 +6,9 @@ import edu.kit.scc.git.ggd.voxelite.render.Camera;
 import edu.kit.scc.git.ggd.voxelite.render.ChunkProgram;
 import edu.kit.scc.git.ggd.voxelite.render.RenderChunk;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
+import edu.kit.scc.git.ggd.voxelite.world.Voxel;
 import edu.kit.scc.git.ggd.voxelite.world.generator.ModuloChunkGenerator;
+import edu.kit.scc.git.ggd.voxelite.world.generator.NaturalWorldGenerator;
 import imgui.ImGui;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
@@ -50,16 +52,28 @@ public class UserInterface {
                     Main.INSTANCE.getWorld().regenerate();
                 }
             });
+            var frequency = new FloatSliderElement("Frequency", 0.02f, 0, 0.1f, value -> {
+                if(Main.INSTANCE.getWorld().getGenerator() instanceof NaturalWorldGenerator g) {
+                    g.getPasses().get(0).setFrequency(value);
+                }
+            });
+            var amplitude = new IntSliderElement("Amplitude", 20, 0, 50, value -> {
+                if(Main.INSTANCE.getWorld().getGenerator() instanceof NaturalWorldGenerator g) {
+                    g.getPasses().get(0).setAmplitude(value);
+                }
+            });
             var rebuild = new ButtonElement("Force rebuild", () -> Main.INSTANCE.getRenderer().getWorldRenderer().queueAll());
-            this.world = new Accordion("World", true, load, radius, modulo, rebuild);
+            var regenerate = new ButtonElement("Force regenerate", () -> Main.INSTANCE.getWorld().regenerate());
+            this.world = new Accordion("World", true, load, radius, modulo, frequency, amplitude, rebuild, regenerate);
         }
 
         {
             var color = new ColorPickerElement("Light", new Vec4f(1), value -> Main.INSTANCE.getRenderer().getWorldRenderer().lightColor = new Vec3f(value.x(), value.y(), value.z()));
-            var ambient = new FloatSliderElement("Ambient", 0.2f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().ambientStrength = value);
-            var diffuse = new FloatSliderElement("Diffuse", 0.5f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().diffuseStrength = value);
-            var specular = new FloatSliderElement("Specular", 0.5f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().specularStrength = value);
-            this.light = new Accordion("Light", false, color, ambient, diffuse, specular);
+            var ambient = new FloatSliderElement("Ambient", 0.4f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().ambientStrength = value);
+            var diffuse = new FloatSliderElement("Diffuse", 0.7f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().diffuseStrength = value);
+            var specular = new FloatSliderElement("Specular", 0.2f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().specularStrength = value);
+            var exponent = new IntSliderElement("Exponent", 32, 1, 128, value -> Main.INSTANCE.getRenderer().getWorldRenderer().phongExponent = value);
+            this.light = new Accordion("Light", false, color, ambient, diffuse, specular, exponent);
         }
     }
 
@@ -91,9 +105,10 @@ public class UserInterface {
     private void drawProfiler() {
         final float frameTime = Main.INSTANCE.getProfiler().frameTime();
         ImGui.text("%d FPS (AVG %.2fms | MIN %.2fms | MAX  %.2fms)".formatted((int) (1_000 / frameTime), frameTime, Main.INSTANCE.getProfiler().minFrameTime(), Main.INSTANCE.getProfiler().maxFrameTime()));
-        ImGui.text("Chunks: %d | Blocks: %d | Quads: %d"
+        ImGui.text("Chunks: %d (%d) | Blocks: %d | Quads: %d"
                 .formatted(
                         Main.INSTANCE.getWorld().getChunks().size(),
+                        Main.INSTANCE.getRenderer().getWorldRenderer().renderList.size(),
                         Main.INSTANCE.getWorld().getChunks().stream().mapToInt(Chunk::getBlockCount).sum(),
                         Main.INSTANCE.getRenderer().getWorldRenderer().getRenderChunks().stream().mapToInt(RenderChunk::getQuadCount).sum()
                 ));
@@ -103,6 +118,9 @@ public class UserInterface {
         final Vec3f position = Main.INSTANCE.getRenderer().getCamera().getPosition();
         ImGui.text("Position: " + Chunk.toBlockPosition(position));
         ImGui.text("Chunk: " + Chunk.toChunkPosition(position));
+
+        final Voxel voxel = Main.INSTANCE.getWorld().getVoxel(position);
+        ImGui.text("Block: " + (voxel == null ? "null" : voxel.getBlock()));
     }
 
     private void drawSettings() {

@@ -64,6 +64,7 @@ public class ChunkProgram extends Program {
     public final Uniform<Float>    ambientStrength      = uniFloat("ambientStrength");
     public final Uniform<Float>    diffuseStrength      = uniFloat("diffuseStrength");
     public final Uniform<Float>    specularStrength     = uniFloat("specularStrength");
+    public final Uniform<Integer>  phongExponent        = uniInteger("phongExponent");
     public final Uniform<Float>    normalizedSpriteSize = uniFloat("normalizedSpriteSize");
 
     public record QuadVertex(Vec3f position, Vec2i texture, Vec3f normal) implements Vertex {
@@ -97,7 +98,7 @@ public class ChunkProgram extends Program {
             public static final int STRIDE = 20; //5 ints (see OpenGL.DrawMultiElementsIndirectCommand)
         }
 
-        protected final Vec3i      position, worldPosition;
+        protected final Vec3i position, worldPosition;
         protected final RenderType renderType;
 
         protected final VertexArray                  vertexArray    = new VertexArray();

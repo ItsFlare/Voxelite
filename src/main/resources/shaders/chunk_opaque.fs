@@ -12,13 +12,12 @@ uniform vec3 camera;
 uniform float ambientStrength;
 uniform float diffuseStrength;
 uniform float specularStrength;
+uniform int phongExponent;
 
 uniform struct Light {
     vec3 direction;
     vec3 color;
 } light;
-
-const int PHONG_EXPONENT = 128;
 
 vec3 DirectionalLight(Light light, vec3 normal, vec3 viewDirection)
 {
@@ -30,7 +29,7 @@ vec3 DirectionalLight(Light light, vec3 normal, vec3 viewDirection)
 
     //specular (blinn)
     vec3 halfwayDirection = normalize(lightDirection + viewDirection);
-    float spec = pow(max(dot(normal, halfwayDirection), 0.0), PHONG_EXPONENT);
+    float spec = pow(max(dot(normal, halfwayDirection), 0.0), phongExponent);
 
     vec3 ambient  = color * ambientStrength;
     vec3 diffuse  = color * diffuseStrength * diff;

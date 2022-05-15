@@ -5,7 +5,7 @@ import edu.kit.scc.git.ggd.voxelite.render.Renderer;
 import edu.kit.scc.git.ggd.voxelite.util.Profiler;
 import edu.kit.scc.git.ggd.voxelite.util.VoxeliteExecutor;
 import edu.kit.scc.git.ggd.voxelite.world.World;
-import edu.kit.scc.git.ggd.voxelite.world.generator.ModuloChunkGenerator;
+import edu.kit.scc.git.ggd.voxelite.world.generator.NaturalWorldGenerator;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.input.InputSystem;
 import net.durchholz.beacon.render.opengl.OpenGL;
@@ -32,7 +32,7 @@ public class Main {
     private final InputListener    inputListener;
     private final Renderer         renderer;
     private final Profiler         profiler = new Profiler();
-    private final World            world    = new World(new ModuloChunkGenerator());
+    private final World            world    = new World(new NaturalWorldGenerator(25));
     private final VoxeliteExecutor executor = new VoxeliteExecutor();
 
     static {

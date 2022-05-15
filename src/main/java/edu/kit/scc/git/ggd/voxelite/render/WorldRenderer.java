@@ -32,7 +32,8 @@ public class WorldRenderer {
 
     public List<RenderChunk> renderList = new ArrayList<>();
     public Vec3f lightColor      = new Vec3f(1);
-    public float ambientStrength = 0.2f, diffuseStrength = 0.5f, specularStrength = 0.5f;
+    public float ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f;
+    public int phongExponent = 32;
 
     public WorldRenderer() {
         EventType.addListener(this);
@@ -101,6 +102,7 @@ public class WorldRenderer {
                 program.ambientStrength.set(ambientStrength);
                 program.diffuseStrength.set(diffuseStrength);
                 program.specularStrength.set(specularStrength);
+                program.phongExponent.set(phongExponent);
                 program.normalizedSpriteSize.set(atlas.getNormalizedSpriteSize());
 
                 for (RenderChunk renderChunk : renderList) {
