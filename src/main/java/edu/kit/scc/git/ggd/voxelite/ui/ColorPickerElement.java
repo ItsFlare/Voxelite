@@ -6,7 +6,7 @@ import net.durchholz.beacon.math.Vec4f;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class ColorPickerElement extends TitledElement<Vec4f> {
+public class ColorPickerElement extends StateElement<Vec4f> {
     private final float[] value;
 
     public ColorPickerElement(String title, Vec4f initial, BiConsumer<Vec4f, Vec4f> action) {

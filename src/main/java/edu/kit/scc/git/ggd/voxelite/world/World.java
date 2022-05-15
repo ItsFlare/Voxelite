@@ -2,7 +2,6 @@ package edu.kit.scc.git.ggd.voxelite.world;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.render.event.CameraMoveEvent;
-import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.generator.WorldGenerator;
@@ -11,26 +10,31 @@ import net.durchholz.beacon.event.Listener;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
 public class World {
 
-    private final Map<Vec3i, Chunk> chunks = new HashMap<>();
-    private final WorldGenerator    generator;
+    private final Map<Vec3i, Chunk> chunks = new ConcurrentHashMap<>();
+    private final WorldGenerator generator;
+    private final AsyncChunkLoader chunkLoader;
 
-    private int   radius = 2;
-    private Vec3i lastChunk;
+    private int     radius     = 2;
+    private Vec3i   lastChunk;
     private boolean loadChunks = true;
 
     public World(WorldGenerator generator) {
         this.generator = generator;
+        this.chunkLoader = new AsyncChunkLoader(generator);
         EventType.addListener(this);
     }
 
     public void loadChunk(Vec3i chunkPosition) {
-        var chunk = chunks.computeIfAbsent(chunkPosition, generator::generate);
-        new ChunkLoadEvent(chunk).fire();
+        chunkLoader.load(chunkPosition);
     }
 
     public void unloadChunk(Vec3i chunkPosition) {
@@ -50,6 +54,10 @@ public class World {
         return chunks.values();
     }
 
+    public int getChunkRadius() {
+        return radius;
+    }
+
     public void setChunkRadius(int radius) {
         this.radius = radius;
     }
@@ -63,71 +71,49 @@ public class World {
             unloadChunk(vec3i);
             loadChunk(vec3i);
         });
+    }
 
-        Main.INSTANCE.getRenderer().getWorldRenderer().updateMeshes();
+    public void tick() {
+        chunkLoader.consume(chunk -> {
+            chunks.put(chunk.getPosition(), chunk);
+            new ChunkLoadEvent(chunk).fire();
+        });
     }
 
     @Listener
     private void onCameraMove(CameraMoveEvent event) {
-        if(!loadChunks) return;
+        if (!loadChunks) return;
 
         final Vec3f cameraPos = Main.INSTANCE.getRenderer().getCamera().getPosition();
-        final Vec3i currentChunk = Chunk.toChunkPosition(new Vec3i(cameraPos));
+        final Vec3i currentChunk = Chunk.toChunkPosition(cameraPos);
 
         if (!currentChunk.equals(lastChunk)) {
-            final Set<Vec3i> toLoad = new HashSet<>();
-            final Set<Vec3i> toUpdate = new HashSet<>();
+            final Set<Vec3i> expected = new HashSet<>((int) Math.ceil(Math.pow(radius + 1, 3)));
 
             //Add all expected chunks
-            for (int x = -radius; x < radius; x++) {
-                for (int y = -radius; y < radius; y++) {
-                    for (int z = -radius; z < radius; z++) {
-                        toLoad.add(currentChunk.add(new Vec3i(x, y, z)));
+            for (int x = -radius; x <= radius; x++) {
+                for (int y = -radius; y <= radius; y++) {
+                    for (int z = -radius; z <= radius; z++) {
+                        expected.add(currentChunk.add(new Vec3i(x, y, z)));
                     }
                 }
             }
 
-            //loadedChunks \ expected
-            var toUnload = getChunks()
-                    .stream()
-                    .map(Chunk::getPosition)
-                    .filter(Predicate.not(toLoad::contains))
-                    .toList();
-
-            //Unload chunks
-            for (Vec3i v : toUnload) {
-                unloadChunk(v);
-
-                //Update all chunks neighbouring unloading chunks
-                for (Direction direction : Direction.values()) {
-                    toUpdate.add(v.add(direction.getAxis()));
-                }
-            }
-
-            //Remove loaded chunks from toLoad
+            //Unload loadedChunks \ expected
             getChunks()
                     .stream()
                     .map(Chunk::getPosition)
-                    .forEach(toLoad::remove);
+                    .filter(Predicate.not(expected::contains))
+                    .forEach(this::unloadChunk);
 
+            //Remove loaded chunks from expected
+            getChunks()
+                    .stream()
+                    .map(Chunk::getPosition)
+                    .forEach(expected::remove);
 
             //Load chunks
-            for (Vec3i v : toLoad) {
-                loadChunk(v);
-
-                //Update all chunks neighbouring loading chunks
-                for (Direction direction : Direction.values()) {
-                    toUpdate.add(v.add(direction.getAxis()));
-                }
-            }
-
-            //Update chunks
-            toUpdate.addAll(toLoad);
-            toUpdate
-                    .stream()
-                    .map(vec3i -> Main.INSTANCE.getRenderer().getWorldRenderer().getRenderChunk(vec3i))
-                    .filter(Objects::nonNull)
-                    .forEach(renderChunk -> renderChunk.updateMesh(cameraPos));
+            expected.forEach(this::loadChunk);
         }
 
         lastChunk = currentChunk;

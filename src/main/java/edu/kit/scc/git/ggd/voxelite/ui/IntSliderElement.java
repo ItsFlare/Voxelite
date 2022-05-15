@@ -5,7 +5,7 @@ import imgui.ImGui;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class IntSliderElement extends TitledElement<Integer> {
+public class IntSliderElement extends StateElement<Integer> {
     private final int[] value;
     private final int min;
     private final int max;

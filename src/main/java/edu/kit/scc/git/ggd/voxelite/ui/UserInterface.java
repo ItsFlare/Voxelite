@@ -18,50 +18,56 @@ import net.durchholz.beacon.window.Window;
 public class UserInterface {
     private static final boolean SAVE_GUI = true;
 
-    private final Main          main;
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private final ImGuiImplGl3  imGuiGl3  = new ImGuiImplGl3();
 
-    private final IntSliderElement fov, chunkRadius, generatorModulo;
-    private final FloatSliderElement sensitivity, speed, ambientStrength, diffuseStrength, specularStrength;
-    private final CheckboxElement skybox, world, vsync, wireframe, directionCulling, backfaceCulling, loadChunks;
-    private final ColorPickerElement lightColor;
+    private final Accordion camera, world, render, light;
+    
+    public UserInterface() {
+        {
+            var fov = new IntSliderElement("FOV", Camera.DEFAULT_FOV, 5, 180, value -> Main.INSTANCE.getRenderer().getCamera().setFOV(value));
+            var sensitivity = new FloatSliderElement("Sensitivity", InputListener.DEFAULT_SENSITIVITY, 0.01f, 10, value -> Main.INSTANCE.getInputListener().sensitivity = value);
+            var speed = new FloatSliderElement("Speed", InputListener.DEFAULT_CAMERA_SPEED, 0.01f, 10, value -> Main.INSTANCE.getInputListener().cameraSpeed = value);
+            this.camera = new Accordion("Camera", true, fov, sensitivity, speed);
+        }
 
-    public UserInterface(Main main) {
-        this.main = main;
+        {
+            var skybox = new CheckboxElement("Skybox", true, value -> Main.INSTANCE.getRenderer().renderSkybox = value);
+            var world = new CheckboxElement("World", true, value -> Main.INSTANCE.getRenderer().renderWorld = value);
+            var vsync = new CheckboxElement("VSync", true, value -> Window.swapInterval(value ? 1 : 0));
+            var wireframe = new CheckboxElement("Wireframe", false, value -> Main.INSTANCE.getRenderer().wireframe = value);
+            var directionCulling = new CheckboxElement("Direction Culling", true, value -> ChunkProgram.directionCulling = value);
+            var backfaceCulling = new CheckboxElement("Backface Culling", true, OpenGL::cull);
+            this.render = new Accordion("Render", true, skybox, world, vsync, wireframe, directionCulling, backfaceCulling);
+        }
 
-        this.fov = new IntSliderElement("FOV", Camera.DEFAULT_FOV, 5, 180, value -> main.getRenderer().getCamera().setFOV(value));
-        this.sensitivity = new FloatSliderElement("Sensitivity", InputListener.DEFAULT_SENSITIVITY, 0.01f, 10, value -> main.getInputListener().sensitivity = value);
-        this.speed = new FloatSliderElement("Speed", InputListener.DEFAULT_CAMERA_SPEED, 0.01f, 10, value -> main.getInputListener().cameraSpeed = value);
+        {
+            var load = new CheckboxElement("Load Chunks", true, value -> Main.INSTANCE.getWorld().setLoadChunks(value));
+            var radius = new IntSliderElement("Chunk radius", 2, 0, 50, value -> Main.INSTANCE.getWorld().setChunkRadius(value));
+            var modulo = new IntSliderElement("Block gen modulo", ModuloChunkGenerator.DEFAULT_MOD, 1, 50, value -> {
+                if (Main.INSTANCE.getWorld().getGenerator() instanceof ModuloChunkGenerator r) {
+                    r.modulo = value;
+                    Main.INSTANCE.getWorld().regenerate();
+                }
+            });
+            var rebuild = new ButtonElement("Rebuild meshes", () -> Main.INSTANCE.getRenderer().getWorldRenderer().rebuildMeshes());
+            this.world = new Accordion("World", true, load, radius, modulo, rebuild);
+        }
 
-        this.skybox = new CheckboxElement("Skybox", true, value -> main.getRenderer().renderSkybox = value);
-        this.world = new CheckboxElement("World", true, value -> main.getRenderer().renderWorld = value);
-        this.vsync = new CheckboxElement("VSync", true, value -> Window.swapInterval(value ? 1 : 0));
-        this.wireframe = new CheckboxElement("Wireframe", false, value -> main.getRenderer().wireframe = value);
-        this.directionCulling = new CheckboxElement("Direction Culling", true, value -> ChunkProgram.directionCulling = value);
-        this.backfaceCulling = new CheckboxElement("Backface Culling", true, OpenGL::cull);
-        this.loadChunks = new CheckboxElement("Load Chunks", true, value -> main.getWorld().setLoadChunks(value));
-
-        this.chunkRadius = new IntSliderElement("Chunk radius", 4, 1, 50, main.getWorld()::setChunkRadius);
-
-        this.generatorModulo = new IntSliderElement("Block gen modulo", 8, 1, 50, value -> {
-            if(main.getWorld().getGenerator() instanceof ModuloChunkGenerator r) {
-                r.modulo = value;
-                main.getWorld().regenerate();
-            }
-        });
-
-        this.lightColor = new ColorPickerElement("Light", new Vec4f(1), color -> main.getRenderer().getWorldRenderer().lightColor = new Vec3f(color.x(), color.y(), color.z()));
-        this.ambientStrength = new FloatSliderElement("Ambient", 0.2f, 0, 1, value -> main.getRenderer().getWorldRenderer().ambientStrength = value);
-        this.diffuseStrength = new FloatSliderElement("Diffuse", 1, 0, 1, value -> main.getRenderer().getWorldRenderer().diffuseStrength = value);
-        this.specularStrength = new FloatSliderElement("Specular", 0.5f, 0, 1, value -> main.getRenderer().getWorldRenderer().specularStrength = value);
+        {
+            var color = new ColorPickerElement("Light", new Vec4f(1), value -> Main.INSTANCE.getRenderer().getWorldRenderer().lightColor = new Vec3f(value.x(), value.y(), value.z()));
+            var ambient = new FloatSliderElement("Ambient", 0.2f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().ambientStrength = value);
+            var diffuse = new FloatSliderElement("Diffuse", 0.5f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().diffuseStrength = value);
+            var specular = new FloatSliderElement("Specular", 0.5f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().specularStrength = value);
+            this.light = new Accordion("Light", false, color, ambient, diffuse, specular);
+        }
     }
 
     public void init() {
         ImGui.createContext();
         if (!SAVE_GUI) ImGui.getIO().setIniFilename(null);
-        imGuiGlfw.init(main.getWindow().id(), true);
-        imGuiGl3.init("#version 410");
+        imGuiGlfw.init(Main.INSTANCE.getWindow().id(), true);
+        imGuiGl3.init("#version 430");
     }
 
     public void shutdown() {
@@ -71,7 +77,7 @@ public class UserInterface {
     public void tick() {
         imGuiGlfw.newFrame();
         ImGui.newFrame();
-        ImGui.begin("Debug");
+        ImGui.begin("Settings");
 
         drawProfiler();
         drawPosition();
@@ -83,42 +89,26 @@ public class UserInterface {
     }
 
     private void drawProfiler() {
-        var frameTime = main.getProfiler().frameTime();
-        ImGui.text("%d FPS (AVG %.2fms | MIN %.2fms | MAX  %.2fms)".formatted((int) (1_000 / frameTime), frameTime, main.getProfiler().minFrameTime(), main.getProfiler().maxFrameTime()));
+        final float frameTime = Main.INSTANCE.getProfiler().frameTime();
+        ImGui.text("%d FPS (AVG %.2fms | MIN %.2fms | MAX  %.2fms)".formatted((int) (1_000 / frameTime), frameTime, Main.INSTANCE.getProfiler().minFrameTime(), Main.INSTANCE.getProfiler().maxFrameTime()));
         ImGui.text("Chunks: %d | Blocks: %d | Quads: %d"
                 .formatted(
-                        main.getWorld().getChunks().size(),
-                        main.getWorld().getChunks().stream().mapToInt(Chunk::getBlockCount).sum(),
-                        main.getRenderer().getWorldRenderer().getRenderChunks().stream().mapToInt(RenderChunk::getQuadCount).sum()
+                        Main.INSTANCE.getWorld().getChunks().size(),
+                        Main.INSTANCE.getWorld().getChunks().stream().mapToInt(Chunk::getBlockCount).sum(),
+                        Main.INSTANCE.getRenderer().getWorldRenderer().getRenderChunks().stream().mapToInt(RenderChunk::getQuadCount).sum()
                 ));
     }
 
     private void drawPosition() {
-        ImGui.text("Position: " + main.getRenderer().getCamera().getPosition().round());
+        ImGui.text("Position: " + Main.INSTANCE.getRenderer().getCamera().getPosition());
+        ImGui.text("Chunk: " + Chunk.toChunkPosition(Main.INSTANCE.getRenderer().getCamera().getPosition()));
     }
 
     private void drawSettings() {
-        fov.draw();
-        sensitivity.draw();
-        speed.draw();
-
-        skybox.draw();
+        camera.draw();
+        render.draw();
         world.draw();
-        vsync.draw();
-        wireframe.draw();
-        directionCulling.draw();
-        backfaceCulling.draw();
-        loadChunks.draw();
-
-        chunkRadius.draw();
-        if(main.getWorld().getGenerator() instanceof ModuloChunkGenerator) generatorModulo.draw();
-
-        if(ImGui.collapsingHeader("Light")) {
-            lightColor.draw();
-            ambientStrength.draw();
-            diffuseStrength.draw();
-            specularStrength.draw();
-        }
+        light.draw();
     }
 
 }

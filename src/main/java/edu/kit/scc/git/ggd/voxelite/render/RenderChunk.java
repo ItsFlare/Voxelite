@@ -4,7 +4,10 @@ import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.world.Block;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import edu.kit.scc.git.ggd.voxelite.world.Voxel;
-import net.durchholz.beacon.math.Vec3f;
+import net.durchholz.beacon.math.Vec2i;
+
+import java.util.Arrays;
+import java.util.Objects;
 
 public class RenderChunk {
     private final Chunk                chunk;
@@ -21,7 +24,9 @@ public class RenderChunk {
         }
     }
 
-    public void updateMesh(Vec3f cameraPosition) {
+    public void build() {
+        //TODO Make async
+
         for (Voxel voxel : chunk) {
             final Block block = voxel.getBlock();
             if (block == null) continue;
@@ -32,40 +37,32 @@ public class RenderChunk {
                 final Voxel neighbor = voxel.getNeighbor(direction);
                 if (neighbor == null || neighbor.getBlock() == null) {
 
-                    QuadMesh quadMesh = direction.getUnitQuad().translate(Chunk.toChunkSpace(voxel.position()));
-                    QuadTexture quadTexture = block.getTexture(direction);
-                    short quadPosition = (short) Chunk.toLinearSpace(voxel.position().add(direction.getAxis()));
+                    Vec2i texture = block.getTexture(direction);
 
-                    slice.queue.add(new ChunkProgram.Slice.QueuedQuad(direction, quadMesh, quadTexture, quadPosition));
+                    slice.queue.add(new ChunkProgram.Slice.QueuedQuad(direction, Chunk.toChunkSpace(voxel.position()), texture));
                 }
             }
         }
 
         for (ChunkProgram.Slice slice : slices) {
             if (slice == null) continue; //TODO Remove with transparency
-            slice.upload(cameraPosition);
+            slice.upload();
         }
     }
 
-    public void render(RenderType renderType, Vec3f cameraPosition) {
-        slices[renderType.ordinal()].render(cameraPosition);
-    }
-
-    public int getQuadCount() {
-        int count = 0;
-        for (ChunkProgram.Slice slice : slices) {
-            if (slice != null) count += slice.quadPositions.length; //TODO Remove null check with transparency
-        }
-
-        return count;
+    public void render(RenderType renderType) {
+        slices[renderType.ordinal()].render();
     }
 
     public void delete() {
         for (ChunkProgram.Slice slice : slices) {
             if(slice == null) return; //TODO Remove with transparency
             slice.vertexArray.delete();
-            slice.meshBuffer.delete();
-            slice.ibo.delete();
+            slice.instanceBuffer.delete();
         }
+    }
+
+    public int getQuadCount() {
+        return Arrays.stream(slices).filter(Objects::nonNull).mapToInt(ChunkProgram.Slice::getQuadCount).sum(); //TODO Remove filter with transparency
     }
 }

@@ -8,12 +8,12 @@ import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
 import net.durchholz.beacon.util.Image;
 import net.durchholz.beacon.window.Viewport;
+import net.durchholz.beacon.window.Window;
 
 import java.io.IOException;
 
 public class Renderer {
 
-    private final Main           main;
     private final Camera         camera;
     private final UserInterface  userInterface;
     private final WorldRenderer  worldRenderer;
@@ -26,12 +26,11 @@ public class Renderer {
     public boolean renderWorld  = true;
     public boolean wireframe    = false;
 
-    public Renderer(Main main) throws IOException {
-        this.main = main;
-        this.camera = new Camera(main.getWindow());
-        this.userInterface = new UserInterface(main);
-        this.worldRenderer = new WorldRenderer(main);
-        this.viewport = main.getWindow().getViewport();
+    public Renderer(Window window) throws IOException {
+        this.camera = new Camera(window);
+        this.userInterface = new UserInterface();
+        this.worldRenderer = new WorldRenderer();
+        this.viewport = window.getViewport();
     }
 
     public void init() {
@@ -63,7 +62,7 @@ public class Renderer {
     }
 
     private void updateViewport() {
-        final Viewport v = main.getWindow().getViewport();
+        final Viewport v = Main.INSTANCE.getWindow().getViewport();
         if (!viewport.equals(v)) {
             OpenGL.setViewport(v);
             viewport = v;

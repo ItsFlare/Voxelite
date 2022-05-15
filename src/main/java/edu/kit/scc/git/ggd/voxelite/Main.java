@@ -3,6 +3,7 @@ package edu.kit.scc.git.ggd.voxelite;
 import edu.kit.scc.git.ggd.voxelite.input.InputListener;
 import edu.kit.scc.git.ggd.voxelite.render.Renderer;
 import edu.kit.scc.git.ggd.voxelite.util.Profiler;
+import edu.kit.scc.git.ggd.voxelite.util.VoxeliteExecutor;
 import edu.kit.scc.git.ggd.voxelite.world.World;
 import edu.kit.scc.git.ggd.voxelite.world.generator.ModuloChunkGenerator;
 import net.durchholz.beacon.event.EventType;
@@ -20,15 +21,16 @@ import java.io.IOException;
 import static org.lwjgl.glfw.GLFW.*;
 
 public class Main {
-    public static final Main INSTANCE;
+    public static final  Main   INSTANCE;
     private static final Logger LOGGER;
 
-    private final Window        window;
-    private final InputSystem   inputSystem;
-    private final InputListener inputListener;
-    private final Renderer      renderer;
-    private final Profiler      profiler = new Profiler();
-    private final World         world    = new World(new ModuloChunkGenerator());
+    private final Window           window;
+    private final InputSystem      inputSystem;
+    private final InputListener    inputListener;
+    private final Renderer         renderer;
+    private final Profiler         profiler = new Profiler();
+    private final World            world    = new World(new ModuloChunkGenerator());
+    private final VoxeliteExecutor executor = new VoxeliteExecutor();
 
     static {
         System.setProperty("log4j.skipJansi", "false");
@@ -38,9 +40,8 @@ public class Main {
 
     //TODO Eliminate reference leaks
     private Main() {
-        LOGGER.info("Initialization...");
+        LOGGER.info("Construction...");
 
-        //Init
         Util.windowsTimerHack();
         GLFWErrorCallback.createPrint(System.err).set();
         if (!glfwInit()) throw new IllegalStateException("Failed to initialize GLFW");
@@ -54,18 +55,23 @@ public class Main {
         //Context
         window.makeContextCurrent();
         GL.createCapabilities();
+        OpenGL.setExecutor(executor);
 
         //Renderer
         try {
-            renderer = new Renderer(this);
-            renderer.init();
+            renderer = new Renderer(window);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
         //Input
         inputSystem = new InputSystem(window);
-        inputListener = new InputListener(this);
+        inputListener = new InputListener();
+    }
+
+    private void init() {
+        LOGGER.info("Initialization...");
+        renderer.init();
         EventType.addListener(inputListener);
 
         //World
@@ -73,15 +79,20 @@ public class Main {
     }
 
     public void run() {
-        LOGGER.info("Run...");
+        init();
 
+        LOGGER.info("Run...");
         while (!window.shouldClose()) {
             profiler.tick();
+
             inputSystem.poll();
             inputSystem.tick();
+
             world.tick();
 
             renderer.render();
+
+            executor.process();
 
             window.swapBuffers();
             OpenGL.clearAll();
@@ -114,6 +125,10 @@ public class Main {
 
     public World getWorld() {
         return world;
+    }
+
+    public VoxeliteExecutor getExecutor() {
+        return executor;
     }
 
     public static void main(String[] args) {

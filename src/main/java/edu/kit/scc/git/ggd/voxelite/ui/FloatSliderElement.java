@@ -5,7 +5,7 @@ import imgui.ImGui;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class FloatSliderElement extends TitledElement<Float> {
+public class FloatSliderElement extends StateElement<Float> {
     private final float[] value;
     private final float min;
     private final float max;

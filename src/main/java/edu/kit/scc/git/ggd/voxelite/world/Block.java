@@ -1,10 +1,9 @@
 package edu.kit.scc.git.ggd.voxelite.world;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
-import edu.kit.scc.git.ggd.voxelite.render.QuadTexture;
 import edu.kit.scc.git.ggd.voxelite.render.RenderType;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
-import net.durchholz.beacon.math.Vec2f;
+import net.durchholz.beacon.math.Vec2i;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Consumer;
@@ -20,7 +19,7 @@ public enum Block {
     GRASS_PATH(builder -> builder.texture("grass_path_side").texture("dirt", Direction.NEG_Y).texture("grass_path_top", Direction.POS_Y)),
     TNT(builder -> builder.texture("tnt_side").texture("tnt_bottom", Direction.NEG_Y).texture("tnt_top", Direction.POS_Y));
 
-    private final QuadTexture[] quads;
+    private final Vec2i[] quads;
 
     Block(Consumer<Builder> builder) {
         final Builder b = new Builder();
@@ -35,12 +34,12 @@ public enum Block {
     }
 
     @NotNull
-    public QuadTexture getTexture(Direction direction) {
+    public Vec2i getTexture(Direction direction) {
         return quads[direction.ordinal()];
     }
 
     private static class Builder {
-        private final QuadTexture[] quads = new QuadTexture[Direction.values().length]; //TODO Default values
+        private final Vec2i[] quads = new Vec2i[Direction.values().length]; //TODO Default values
 
         public Builder texture(String name) {
             return texture(name, 0);
@@ -55,12 +54,9 @@ public enum Block {
         }
 
         public Builder texture(String name, int rotation, Direction... directions) {
-            Vec2f[] uv = Main.INSTANCE.getRenderer().getWorldRenderer().getAtlas().getNormCoord(name + ".png"); //TODO Atlas lookup
-
-            RenderType renderType = RenderType.OPAQUE;
-
+            Vec2i uv = Main.INSTANCE.getRenderer().getWorldRenderer().getAtlas().getSprite(name + ".png"); //TODO Atlas lookup
             for (Direction direction : directions) {
-                quads[direction.ordinal()] = new QuadTexture(uv[0], uv[2], uv[3], uv[1], renderType); //TODO Rotate
+                quads[direction.ordinal()] = uv; //TODO Rotate
             }
 
             return this;

@@ -2,6 +2,7 @@ package edu.kit.scc.git.ggd.voxelite.render;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.texture.TextureAtlas;
+import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import net.durchholz.beacon.event.EventType;
@@ -19,13 +20,11 @@ import java.util.Map;
 public class WorldRenderer {
 
     private final Map<Vec3i, RenderChunk> renderChunks = new HashMap<>();
-    private final Main         main;
     private final TextureAtlas atlas;
     public Vec3f               lightColor = new Vec3f(1);
-    public float               ambientStrength = 0.2f, diffuseStrength = 1.0f, specularStrength = 0.5f;
+    public float               ambientStrength = 0.2f, diffuseStrength = 0.5f, specularStrength = 0.5f;
 
-    public WorldRenderer(Main main) {
-        this.main = main;
+    public WorldRenderer() {
         EventType.addListener(this);
 
         try {
@@ -37,17 +36,33 @@ public class WorldRenderer {
 
     @Listener
     private void onChunkLoad(ChunkLoadEvent event) {
-        final RenderChunk renderChunk = new RenderChunk(event.getChunk());
-        renderChunks.put(event.getChunk().getPosition(), renderChunk);
+        final RenderChunk renderChunk = new RenderChunk(event.chunk());
+        final Vec3i position = event.chunk().getPosition();
+        renderChunks.put(position, renderChunk);
+        Main.INSTANCE.getExecutor().execute(() -> {
+            renderChunk.build();
+            rebuildNeighbors(position);
+        });
     }
 
     @Listener
     private void onChunkUnload(ChunkUnloadEvent event) {
-        renderChunks.remove(event.getChunk().getPosition()).delete();
+        final Vec3i position = event.chunk().getPosition();
+        renderChunks.remove(position).delete();
+        Main.INSTANCE.getExecutor().execute(() -> {
+            rebuildNeighbors(position);
+        });
     }
 
-    public void updateMeshes() {
-        renderChunks.values().forEach(renderChunk -> renderChunk.updateMesh(main.getRenderer().getCamera().getPosition()));
+    public void rebuildNeighbors(Vec3i position) {
+        for (Direction direction : Direction.values()) {
+            var neighbor = renderChunks.get(position.add(direction.getAxis()));
+            if(neighbor != null) neighbor.build();
+        }
+    }
+
+    public void rebuildMeshes() {
+        renderChunks.values().forEach(RenderChunk::build);
     }
 
     public void render() {
@@ -65,17 +80,18 @@ public class WorldRenderer {
                 OpenGL.primitiveRestart(true);
                 OpenGL.primitiveRestartIndex(ChunkProgram.PRIMITIVE_RESET_INDEX);
 
-                program.mvp.set(main.getRenderer().getCamera().transform());
+                program.mvp.set(Main.INSTANCE.getRenderer().getCamera().transform());
                 program.atlas.bind(0, atlas);
-                program.camera.set(main.getRenderer().getCamera().getPosition());
+                program.camera.set(Main.INSTANCE.getRenderer().getCamera().getPosition());
                 program.lightColor.set(lightColor);
                 program.lightDirection.set(new Vec3f(0, -1, 0));
                 program.ambientStrength.set(ambientStrength);
                 program.diffuseStrength.set(diffuseStrength);
                 program.specularStrength.set(specularStrength);
+                program.normalizedSpriteSize.set(atlas.getNormalizedSpriteSize());
 
                 for (RenderChunk renderChunk : renderChunks.values()) {
-                    renderChunk.render(renderType, main.getRenderer().getCamera().getPosition());
+                    renderChunk.render(renderType);
                 }
             });
         }
