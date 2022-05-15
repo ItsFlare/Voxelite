@@ -20,8 +20,8 @@ public class UserInterface {
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private final ImGuiImplGl3  imGuiGl3  = new ImGuiImplGl3();
 
-    private final IntSliderElement fov, chunkRadius, blockCount;
-    private final FloatSliderElement sensitivity, speed;
+    private final IntSliderElement fov, chunkRadius, blockCount, amplitude;
+    private final FloatSliderElement sensitivity, speed, frequency;
     private final CheckboxElement skybox, world, vsync, wireframe, directionCulling, backfaceCulling, loadChunks;
 
     public UserInterface(Main main) {
@@ -39,8 +39,15 @@ public class UserInterface {
         this.backfaceCulling = new CheckboxElement("Backface Culling", true, OpenGL::cull);
         this.loadChunks = new CheckboxElement("Load Chunks", true, value -> main.getWorld().setLoadChunks(value));
         this.chunkRadius = new IntSliderElement("Chunk radius", 1, 1, 50, main.getWorld()::setChunkRadius);
-        //this.frequency = new FloatSliderElement("Frequency", 0.02f, 0, 1, main.getWorld().getGenerator().)
-
+        //TODO fix after presentation
+        this.frequency = new FloatSliderElement("Frequency", 0.02f, 0, 1, value -> {
+            main.getWorld().getGenerator().getPasses().get(0).setFrequency(value);
+            main.getWorld().regenerate();
+        });
+        this.amplitude = new IntSliderElement("Amplitude", 20, 10, 30, value -> {
+            main.getWorld().getGenerator().getPasses().get(0).setAmplitude(value);
+            main.getWorld().regenerate();
+        });
 
         this.blockCount = new IntSliderElement("Block gen modulo", 2, 1, 50, value -> {
             if(main.getWorld().getGenerator() instanceof ModuloChunkGenerator r) {
@@ -105,6 +112,9 @@ public class UserInterface {
 
         chunkRadius.draw();
         blockCount.draw();
+
+        frequency.draw();
+        amplitude.draw();
     }
 
 }

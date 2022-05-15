@@ -4,8 +4,10 @@ import edu.kit.scc.git.ggd.voxelite.world.Block;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import edu.kit.scc.git.ggd.voxelite.world.Voxel;
 import edu.kit.scc.git.ggd.voxelite.world.World;
+import edu.kit.scc.git.ggd.voxelite.world.generator.pass.GeneratorPass;
 import net.durchholz.beacon.math.Vec3i;
 
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class ModuloChunkGenerator implements WorldGenerator {
@@ -15,6 +17,11 @@ public class ModuloChunkGenerator implements WorldGenerator {
     @Override
     public void setWorld(World world) {
         this.world = world;
+    }
+
+    @Override
+    public List<GeneratorPass> getPasses() {
+        return null;
     }
 
     @Override

@@ -57,8 +57,8 @@ public class TerrainPass implements GeneratorPass {
     //TODO how does octave wokr with spline
     //linear spline interpolation
     private double octave(int n, Vec2f pos) {
-        float startFrequency = 0.02f;
-        double startAmplitude = 20;
+        /*float startFrequency = 0.02f;
+        double startAmplitude = 20;*/
         double noiseValue = 0;
         for(int i = 0; i < n; i++) {
             float amplitude = (float) (1/Math.pow(2, i));
@@ -68,6 +68,7 @@ public class TerrainPass implements GeneratorPass {
         return noiseValue;
     }
 
+    //TODO alternative height with splines
     private void setSplineFunction() {
         SplineInterpolator splineInterpolator = new SplineInterpolator();
         double[] x = {-1 , -0.3, 0.4, 1};
@@ -78,7 +79,13 @@ public class TerrainPass implements GeneratorPass {
         }*/
     }
 
-    public void setStartFrequency(float startFrequency) {
+    @Override
+    public void setFrequency(float startFrequency) {
         this.startFrequency = startFrequency;
+    }
+
+    @Override
+    public void setAmplitude(int amplitude) {
+        this.startAmplitude = amplitude;
     }
 }

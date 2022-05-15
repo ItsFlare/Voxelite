@@ -6,4 +6,8 @@ public interface GeneratorPass {
 
     void apply(Chunk chunk);
 
+    void setFrequency(float frequency);
+
+    void setAmplitude(int amplitude);
+
 }

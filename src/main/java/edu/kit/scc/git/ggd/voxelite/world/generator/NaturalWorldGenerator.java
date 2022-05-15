@@ -27,6 +27,11 @@ public class NaturalWorldGenerator implements WorldGenerator {
     }
 
     @Override
+    public List<GeneratorPass> getPasses() {
+        return passes;
+    }
+
+    @Override
     public Chunk generate(Vec3i position) {
         Chunk chunk = new Chunk(world, position);
 
