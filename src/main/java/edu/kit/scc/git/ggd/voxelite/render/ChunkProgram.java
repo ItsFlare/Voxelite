@@ -97,7 +97,7 @@ public class ChunkProgram extends Program {
             public static final int STRIDE = 20; //5 ints (see OpenGL.DrawMultiElementsIndirectCommand)
         }
 
-        protected final Chunk      chunk;
+        protected final Vec3i      position, worldPosition;
         protected final RenderType renderType;
 
         protected final VertexArray                  vertexArray    = new VertexArray();
@@ -107,8 +107,9 @@ public class ChunkProgram extends Program {
         protected Command[] commands = new Command[1 << Direction.values().length];
         protected int       quadCount;
 
-        public Slice(Chunk chunk, RenderType renderType) {
-            this.chunk = chunk;
+        public Slice(Vec3i position, RenderType renderType) {
+            this.position = position;
+            this.worldPosition = Chunk.toWorldPosition(position);
             this.renderType = renderType;
 
             OpenGL.use(vertexArray, QUAD_IBO, () -> {
@@ -126,22 +127,24 @@ public class ChunkProgram extends Program {
 
 
         public void upload() {
-            if (queue.isEmpty()) return;
-            quadCount = queue.size();
-            generateCommands();
+            synchronized (queue) {
+                if (queue.isEmpty()) return;
+                quadCount = queue.size();
+                generateCommands();
 
-            var instanceVertices = queue
-                    .stream()
-                    .sorted(Comparator.comparingInt(value -> value.direction.ordinal()))
-                    .map(queuedQuad -> new InstanceVertex(packInstance(queuedQuad.position(), queuedQuad.texture())))
-                    .toArray(InstanceVertex[]::new);
+                var instanceVertices = queue
+                        .stream()
+                        .sorted(Comparator.comparingInt(value -> value.direction.ordinal()))
+                        .map(queuedQuad -> new InstanceVertex(packInstance(queuedQuad.position(), queuedQuad.texture())))
+                        .toArray(InstanceVertex[]::new);
 
-            //Upload mesh
-            instanceBuffer.use(() -> {
-                instanceBuffer.data(instanceVertices);
-            });
+                //Upload mesh
+                instanceBuffer.use(() -> {
+                    instanceBuffer.data(instanceVertices);
+                });
 
-            queue.clear();
+                queue.clear();
+            }
         }
 
         private void generateCommands() {
@@ -178,7 +181,7 @@ public class ChunkProgram extends Program {
 
         public void render() {
             if (quadCount == 0) return;
-            ChunkProgram.this.chunk.set(Chunk.toWorldPosition(chunk.getPosition()));
+            ChunkProgram.this.chunk.set(worldPosition);
             final Vec3f cameraPosition = Main.INSTANCE.getRenderer().getCamera().getPosition();
             final int visibilityBitset;
 
@@ -188,7 +191,7 @@ public class ChunkProgram extends Program {
                 TODO Unroll loop and replace dot product with comparison?
                 */
 
-                final Vec3i chunkCenter = Chunk.toWorldPosition(chunk.getPosition()).add(Chunk.CENTER);
+                final Vec3i chunkCenter = worldPosition.add(Chunk.CENTER);
                 final Direction[] directions = Direction.values();
 
                 //Calculate visibility bitset
@@ -211,7 +214,6 @@ public class ChunkProgram extends Program {
             }
 
             final var cmd = commands[visibilityBitset];
-            if (cmd == null) return;
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, cmd.buffer.id());
             vertexArray.use(() -> glMultiDrawElementsIndirect(GL_TRIANGLE_STRIP, GL_UNSIGNED_SHORT, 0L, cmd.commands, Command.STRIDE));
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);

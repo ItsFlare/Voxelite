@@ -50,7 +50,7 @@ public class UserInterface {
                     Main.INSTANCE.getWorld().regenerate();
                 }
             });
-            var rebuild = new ButtonElement("Rebuild meshes", () -> Main.INSTANCE.getRenderer().getWorldRenderer().rebuildMeshes());
+            var rebuild = new ButtonElement("Force rebuild", () -> Main.INSTANCE.getRenderer().getWorldRenderer().queueAll());
             this.world = new Accordion("World", true, load, radius, modulo, rebuild);
         }
 
