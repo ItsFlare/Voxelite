@@ -38,8 +38,9 @@ public class UserInterface {
         this.directionCulling = new CheckboxElement("Direction Culling", true, value -> ChunkProgram.directionCulling = value);
         this.backfaceCulling = new CheckboxElement("Backface Culling", true, OpenGL::cull);
         this.loadChunks = new CheckboxElement("Load Chunks", true, value -> main.getWorld().setLoadChunks(value));
-
         this.chunkRadius = new IntSliderElement("Chunk radius", 1, 1, 50, main.getWorld()::setChunkRadius);
+        //this.frequency = new FloatSliderElement("Frequency", 0.02f, 0, 1, main.getWorld().getGenerator().)
+
 
         this.blockCount = new IntSliderElement("Block gen modulo", 2, 1, 50, value -> {
             if(main.getWorld().getGenerator() instanceof ModuloChunkGenerator r) {

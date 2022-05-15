@@ -5,6 +5,7 @@ import edu.kit.scc.git.ggd.voxelite.render.Renderer;
 import edu.kit.scc.git.ggd.voxelite.util.Profiler;
 import edu.kit.scc.git.ggd.voxelite.world.World;
 import edu.kit.scc.git.ggd.voxelite.world.generator.ModuloChunkGenerator;
+import edu.kit.scc.git.ggd.voxelite.world.generator.NaturalWorldGenerator;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.input.InputSystem;
 import net.durchholz.beacon.render.opengl.OpenGL;
@@ -16,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.random.RandomGenerator;
 
 import static org.lwjgl.glfw.GLFW.*;
 
@@ -28,7 +30,8 @@ public class Main {
     private final InputListener inputListener;
     private final Renderer      renderer;
     private final Profiler      profiler = new Profiler();
-    private final World         world    = new World(new ModuloChunkGenerator());
+    private final World         world    = new World(new NaturalWorldGenerator(12345));
+
 
     static {
         System.setProperty("log4j.skipJansi", "false");
@@ -118,5 +121,12 @@ public class Main {
 
     public static void main(String[] args) {
         INSTANCE.run();
+    }
+
+    private long generateSeed() {
+        RandomGenerator random1 = RandomGenerator.of("Random");
+        long value1 = random1.nextLong();
+        System.out.println(value1);
+        return value1;
     }
 }
