@@ -126,25 +126,23 @@ public class ChunkProgram extends Program {
         }
 
 
-        public void upload() {
-            synchronized (queue) {
-                if (queue.isEmpty()) return;
-                quadCount = queue.size();
-                generateCommands();
+        public synchronized void upload() {
+            if (queue.isEmpty()) return;
+            quadCount = queue.size();
+            generateCommands();
 
-                var instanceVertices = queue
-                        .stream()
-                        .sorted(Comparator.comparingInt(value -> value.direction.ordinal()))
-                        .map(queuedQuad -> new InstanceVertex(packInstance(queuedQuad.position(), queuedQuad.texture())))
-                        .toArray(InstanceVertex[]::new);
+            var instanceVertices = queue
+                    .stream()
+                    .sorted(Comparator.comparingInt(value -> value.direction.ordinal()))
+                    .map(queuedQuad -> new InstanceVertex(packInstance(queuedQuad.position(), queuedQuad.texture())))
+                    .toArray(InstanceVertex[]::new);
 
-                //Upload mesh
-                instanceBuffer.use(() -> {
-                    instanceBuffer.data(instanceVertices);
-                });
+            //Upload mesh
+            instanceBuffer.use(() -> {
+                instanceBuffer.data(instanceVertices);
+            });
 
-                queue.clear();
-            }
+            queue.clear();
         }
 
         private void generateCommands() {

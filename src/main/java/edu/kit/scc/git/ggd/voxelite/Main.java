@@ -17,11 +17,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import static org.lwjgl.glfw.GLFW.*;
 
 public class Main {
     public static final  Main   INSTANCE;
+    public static final  int    TICKRATE    = 20;
+    public static final  long   NS_PER_TICK = TimeUnit.SECONDS.toNanos(1) / TICKRATE;
     private static final Logger LOGGER;
 
     private final Window           window;
@@ -82,25 +85,36 @@ public class Main {
         init();
 
         LOGGER.info("Run...");
+        long accumulator = 0;
         while (!window.shouldClose()) {
             profiler.tick();
 
             inputSystem.poll();
             inputSystem.tick();
 
-            world.tick();
+            while (accumulator >= NS_PER_TICK) {
+                simulate();
+                accumulator -= NS_PER_TICK;
+            }
 
+            long start = System.nanoTime();
             renderer.render();
-
-            executor.process();
+            accumulator += System.nanoTime() - start;
 
             window.swapBuffers();
             OpenGL.clearAll();
+
+            executor.process();
         }
 
         LOGGER.info("Shutdown...");
         renderer.shutdown();
         glfwTerminate();
+    }
+
+    private void simulate() {
+        world.tick();
+        renderer.tick();
     }
 
     public Window getWindow() {

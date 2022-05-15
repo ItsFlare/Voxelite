@@ -3,6 +3,7 @@ package edu.kit.scc.git.ggd.voxelite.render;
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.texture.TextureAtlas;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
+import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import net.durchholz.beacon.event.EventType;
@@ -18,17 +19,18 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.stream.Collectors;
 
 public class WorldRenderer {
 
-    public static final Comparator<RenderChunk> DISTANCE_COMPARATOR = Comparator.comparingInt(rc -> rc.getChunk().getPosition().subtract(new Vec3i(Main.INSTANCE.getRenderer().getCamera().getPosition())).magnitudeSq());
+    public static final Comparator<RenderChunk> DISTANCE_COMPARATOR = Comparator.comparingInt(rc -> Chunk.toWorldPosition(rc.getChunk().getPosition()).subtract(new Vec3i(Main.INSTANCE.getRenderer().getCamera().getPosition())).magnitudeSq());
 
     private final Map<Vec3i, RenderChunk> renderChunks    = new HashMap<>();
-    private final List<RenderChunk>       renderChunkList = new ArrayList<>();
     private final TextureAtlas            atlas;
     private final Set<RenderChunk>        toBuild         = ConcurrentHashMap.newKeySet();
     public final  Queue<RenderChunk>      toUpload        = new PriorityBlockingQueue<>(1000, DISTANCE_COMPARATOR);
 
+    public List<RenderChunk> renderList = new ArrayList<>();
     public Vec3f lightColor      = new Vec3f(1);
     public float ambientStrength = 0.2f, diffuseStrength = 0.5f, specularStrength = 0.5f;
 
@@ -47,7 +49,6 @@ public class WorldRenderer {
         final RenderChunk renderChunk = new RenderChunk(event.chunk());
         final Vec3i position = event.chunk().getPosition();
         renderChunks.put(position, renderChunk);
-        renderChunkList.add(renderChunk);
         toBuild.add(renderChunk);
         queueNeighbors(position);
     }
@@ -56,7 +57,7 @@ public class WorldRenderer {
     private void onChunkUnload(ChunkUnloadEvent event) {
         final Vec3i position = event.chunk().getPosition();
         final RenderChunk renderChunk = renderChunks.remove(position);
-        renderChunkList.remove(renderChunk);
+        renderList.remove(renderChunk);
         queueNeighbors(position);
         renderChunk.delete();
     }
@@ -76,33 +77,8 @@ public class WorldRenderer {
         toBuild.add(renderChunk);
     }
 
-    public void buildChunksAsync() {
-        CompletableFuture.runAsync(() -> {
-            toBuild.forEach(renderChunk -> {
-                ForkJoinPool.commonPool().submit(() -> {
-                    try {
-                        renderChunk.build();
-                    } catch (RuntimeException e) {
-                        System.out.println(e);
-                    }
-                });
-                toBuild.remove(renderChunk);
-            });
-        }).exceptionally(throwable -> {
-            System.out.println(throwable);
-            return null;
-        });
-    }
-
-    public void uploadFor(long nanos) {
-        long limit = System.nanoTime() + nanos;
-        RenderChunk r;
-        while (System.nanoTime() < limit && (r = toUpload.poll()) != null) {
-            r.upload();
-        }
-    }
-
     public void render() {
+        upload(5);
         OpenGL.depthTest(true);
         OpenGL.depthMask(true);
 
@@ -127,15 +103,20 @@ public class WorldRenderer {
                 program.specularStrength.set(specularStrength);
                 program.normalizedSpriteSize.set(atlas.getNormalizedSpriteSize());
 
-                for (RenderChunk renderChunk : renderChunkList) {
+                for (RenderChunk renderChunk : renderList) {
                     renderChunk.render(renderType);
                 }
             });
         }
     }
 
+    public void tick() {
+        buildChunksAsync();
+        renderList = renderChunks.values().stream().filter(renderChunk -> renderChunk.getQuadCount() > 0).collect(Collectors.toList());
+    }
+
     public Collection<RenderChunk> getRenderChunks() {
-        return Collections.unmodifiableList(renderChunkList);
+        return Collections.unmodifiableCollection(renderChunks.values());
     }
 
     public RenderChunk getRenderChunk(Vec3i position) {
@@ -144,5 +125,25 @@ public class WorldRenderer {
 
     public TextureAtlas getAtlas() {
         return atlas;
+    }
+
+    private void buildChunksAsync() {
+        CompletableFuture.runAsync(() -> {
+            toBuild.forEach(renderChunk -> {
+                ForkJoinPool.commonPool().submit(renderChunk::build); //TODO Error handling
+                toBuild.remove(renderChunk);
+            });
+        }).exceptionally(throwable -> {
+            System.out.println(throwable);
+            return null;
+        });
+    }
+
+    private void upload(int limit) {
+        RenderChunk r;
+        int i = 0;
+        while (i++ < limit && (r = toUpload.poll()) != null) {
+            r.upload();
+        }
     }
 }

@@ -11,7 +11,6 @@ import net.durchholz.beacon.window.Viewport;
 import net.durchholz.beacon.window.Window;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 public class Renderer {
 
@@ -62,6 +61,10 @@ public class Renderer {
         if (renderUI) renderUserInterface();
     }
 
+    public void tick() {
+        worldRenderer.tick();
+    }
+
     private void updateViewport() {
         final Viewport v = Main.INSTANCE.getWindow().getViewport();
         if (!viewport.equals(v)) {
@@ -81,8 +84,6 @@ public class Renderer {
     }
 
     private void renderWorld() {
-        worldRenderer.buildChunksAsync();
-        worldRenderer.uploadFor(TimeUnit.MILLISECONDS.toNanos(2));
         worldRenderer.render();
     }
 

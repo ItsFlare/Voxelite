@@ -13,7 +13,7 @@ import java.util.Objects;
 public class RenderChunk {
     private final Chunk                chunk;
     private final ChunkProgram.Slice[] slices = new ChunkProgram.Slice[RenderType.values().length];
-    private boolean valid = true;
+    private volatile boolean valid = true;
 
     public RenderChunk(Chunk chunk) {
         this.chunk = chunk;
@@ -42,7 +42,7 @@ public class RenderChunk {
 
                         Vec2i texture = block.getTexture(direction);
 
-                        synchronized (slice.queue) {
+                        synchronized (slice) {
                             slice.queue.add(new ChunkProgram.Slice.QueuedQuad(direction, Chunk.toChunkSpace(voxel.position()), texture));
                         }
                     }
@@ -53,7 +53,7 @@ public class RenderChunk {
         Main.INSTANCE.getRenderer().getWorldRenderer().toUpload.add(this);
     }
 
-    public synchronized void upload() {
+    public void upload() {
         if(!valid) return;
         for (ChunkProgram.Slice slice : slices) {
             if (slice == null) continue; //TODO Remove with transparency
@@ -61,12 +61,12 @@ public class RenderChunk {
         }
     }
 
-    public synchronized void render(RenderType renderType) {
+    public void render(RenderType renderType) {
         if(!valid) return;
         slices[renderType.ordinal()].render();
     }
 
-    public synchronized void delete() {
+    public void delete() {
         valid = false;
         for (ChunkProgram.Slice slice : slices) {
             if(slice == null) return; //TODO Remove with transparency
