@@ -22,6 +22,7 @@ public class Chunk implements Iterable<Voxel> {
     private final Vec3i   position;
     private final Block[] blocks = new Block[VOLUME];
     private final AABB    boundingBox;
+    private int blockCount = 0;
 
 
     public Chunk(World world, Vec3i position) {
@@ -39,7 +40,13 @@ public class Chunk implements Iterable<Voxel> {
     }
 
     public void setBlock(Vec3i position, Block block) {
-        blocks[toLinearSpace(position)] = block;
+        final int linear = toLinearSpace(position);
+        var previous = blocks[linear];
+        blocks[linear] = block;
+
+        //TODO Optimize?
+        if(previous == null && block != null) blockCount += 1;
+        else if(previous != null && block == null) blockCount -= 1;
     }
 
     public World getWorld() {
@@ -55,7 +62,7 @@ public class Chunk implements Iterable<Voxel> {
     }
 
     public int getBlockCount() {
-        return 0; //TODO Implement (int) Arrays.stream(blocks).filter(Objects::nonNull).count()
+        return blockCount;
     }
 
     @Override
