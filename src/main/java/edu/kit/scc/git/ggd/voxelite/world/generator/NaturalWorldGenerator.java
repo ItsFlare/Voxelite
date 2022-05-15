@@ -1,12 +1,15 @@
 package edu.kit.scc.git.ggd.voxelite.world.generator;
 
+import edu.kit.scc.git.ggd.voxelite.world.Block;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
+import edu.kit.scc.git.ggd.voxelite.world.Voxel;
 import edu.kit.scc.git.ggd.voxelite.world.World;
 import edu.kit.scc.git.ggd.voxelite.world.generator.pass.GeneratorPass;
 import edu.kit.scc.git.ggd.voxelite.world.generator.pass.TerrainPass;
 import net.durchholz.beacon.math.Vec3i;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class NaturalWorldGenerator implements WorldGenerator {
 
@@ -24,10 +27,15 @@ public class NaturalWorldGenerator implements WorldGenerator {
     }
 
     @Override
-    public Chunk generate(Vec3i position) {
-        final Chunk chunk = new Chunk(world, position);
+    public List<GeneratorPass> getPasses() {
+        return passes;
+    }
 
-        for (GeneratorPass pass : passes) {
+    @Override
+    public Chunk generate(Vec3i position) {
+        Chunk chunk = new Chunk(world, position);
+
+       for (GeneratorPass pass : passes) {
             pass.apply(chunk);
         }
 
