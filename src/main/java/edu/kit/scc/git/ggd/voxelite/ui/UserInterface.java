@@ -100,8 +100,9 @@ public class UserInterface {
     }
 
     private void drawPosition() {
-        ImGui.text("Position: " + Main.INSTANCE.getRenderer().getCamera().getPosition());
-        ImGui.text("Chunk: " + Chunk.toChunkPosition(Main.INSTANCE.getRenderer().getCamera().getPosition()));
+        final Vec3f position = Main.INSTANCE.getRenderer().getCamera().getPosition();
+        ImGui.text("Position: " + Chunk.toBlockPosition(position));
+        ImGui.text("Chunk: " + Chunk.toChunkPosition(position));
     }
 
     private void drawSettings() {
