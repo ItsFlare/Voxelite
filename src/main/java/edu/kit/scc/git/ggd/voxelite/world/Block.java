@@ -16,7 +16,7 @@ public enum Block {
     SAND(builder -> builder.texture("sand")),
     COBBLESTONE(builder -> builder.texture("cobblestone")),
     OAK_LOG(builder -> builder.texture("oak_log").texture("oak_log_top", Direction.POS_Y, Direction.NEG_Y)),
-    GRASS_PATH(builder -> builder.texture("grass_path_side").texture("dirt", Direction.NEG_Y).texture("grass_path_top", Direction.POS_Y)),
+    GRASS(builder -> builder.texture("grass_block_side").texture("dirt", Direction.NEG_Y).texture("grass_block_top", Direction.POS_Y)),
     TNT(builder -> builder.texture("tnt_side").texture("tnt_bottom", Direction.NEG_Y).texture("tnt_top", Direction.POS_Y));
 
     private final Vec2i[] quads;

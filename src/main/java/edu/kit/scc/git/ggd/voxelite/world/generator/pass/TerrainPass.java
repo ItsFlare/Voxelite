@@ -1,6 +1,5 @@
 package edu.kit.scc.git.ggd.voxelite.world.generator.pass;
 
-import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.world.Block;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import edu.kit.scc.git.ggd.voxelite.world.Voxel;
@@ -44,7 +43,7 @@ public class TerrainPass implements GeneratorPass {
             if((voxel.position().y() <  height) && (voxel.position().y() > (height - dirtRange))) {
                 voxel.setBlock(Block.DIRT);
                 if (voxel.position().y() >  height - 1) {
-                    voxel.setBlock(Block.GRASS_PATH);
+                    voxel.setBlock(Block.GRASS);
                 }
             }
             if (voxel.position().y() <  (height - dirtRange)) {
