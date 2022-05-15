@@ -112,15 +112,14 @@ public class Chunk implements Iterable<Voxel> {
     }
 
     public static Vec3i toChunkPosition(Vec3f worldPosition) {
+        return toChunkPosition(toBlockPosition(worldPosition));
+    }
+
+    public static Vec3i toBlockPosition(Vec3f worldPosition) {
         int x = (int) (worldPosition.x() < 0 ? Math.floor(worldPosition.x()) : worldPosition.x());
         int y = (int) (worldPosition.y() < 0 ? Math.floor(worldPosition.y()) : worldPosition.y());
         int z = (int) (worldPosition.z() < 0 ? Math.floor(worldPosition.z()) : worldPosition.z());
-
-        return new Vec3i(
-                x >> WIDTH_EXP,
-                y >> HEIGHT_EXP,
-                z >> WIDTH_EXP
-        );
+        return new Vec3i(x, y, z);
     }
 
     public static Vec3i toWorldPosition(Vec3i chunkPosition) {
