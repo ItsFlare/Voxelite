@@ -1,12 +1,15 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
+import edu.kit.scc.git.ggd.voxelite.render.event.CameraMoveEvent;
 import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Quaternion;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.window.Window;
 
 public class Camera {
-    public static final int DEFAULT_FOV = 120;
+    public static final int   DEFAULT_FOV = 120;
+    public static final float NEAR_PLANE  = 0.2f;
+    public static final float FAR_PLANE   = 500f;
 
     private final Window window;
 
@@ -23,11 +26,15 @@ public class Camera {
     }
 
     public void setPosition(Vec3f position) {
+        Vec3f previous = this.position;
         this.position = position;
+        new CameraMoveEvent(previous, position).fire();
     }
 
     public void move(Vec3f delta) {
-        this.position = position.add(delta);
+        Vec3f previous = this.position;
+        this.position = this.position.add(delta);
+        new CameraMoveEvent(previous, this.position).fire();
     }
 
     public Quaternion getRotation() {
@@ -59,7 +66,7 @@ public class Camera {
     }
 
     public Matrix4f projection() {
-        return Matrix4f.perspective(fov, window.getViewport().aspectRatio(), 0.1f, 100);
+        return Matrix4f.perspective(fov, window.getViewport().aspectRatio(), NEAR_PLANE, FAR_PLANE);
     }
 
     public Matrix4f transform() {

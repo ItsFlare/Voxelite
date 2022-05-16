@@ -16,6 +16,10 @@ import java.util.stream.Stream;
 
 public class Util {
 
+    public static String readShaderResource(String name) throws IOException {
+        return readStringResource("shaders/" + name);
+    }
+
     public static String readStringResource(String resource) throws IOException {
         return new String(readResource(resource).readAllBytes());
     }
@@ -46,5 +50,9 @@ public class Util {
         try(Stream<Path> walk = Files.walk(path, depth)) {
             return walk.collect(Collectors.toList());
         }
+    }
+
+    public static int log2(int n) {
+        return (int) Math.ceil(Math.log(n) / Math.log(2));
     }
 }

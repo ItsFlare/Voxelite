@@ -11,7 +11,6 @@ import net.durchholz.beacon.render.opengl.shader.Program;
 import net.durchholz.beacon.render.opengl.shader.Shader;
 import net.durchholz.beacon.render.opengl.shader.Uniform;
 
-
 import java.io.IOException;
 
 public class SkyboxProgram extends Program {

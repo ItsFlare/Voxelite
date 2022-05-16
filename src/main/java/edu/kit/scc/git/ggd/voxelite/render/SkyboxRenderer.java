@@ -8,12 +8,11 @@ import net.durchholz.beacon.render.opengl.buffers.IBO;
 import net.durchholz.beacon.render.opengl.buffers.VertexArray;
 import net.durchholz.beacon.render.opengl.buffers.VertexBuffer;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
-import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.util.Image;
 
 import java.io.IOException;
 
-import static org.lwjgl.opengl.GL41.*;
+import static net.durchholz.beacon.render.opengl.textures.GLTexture.*;
 
 public class SkyboxRenderer {
 
@@ -71,9 +70,9 @@ public class SkyboxRenderer {
 
     public void render(Matrix4f matrix) {
         OpenGL.depthTest(false);
-        glDepthMask(false);
+        OpenGL.depthMask(false);
 
-        OpenGL.use(program, va, vb, ibo, skybox, () -> {
+        OpenGL.use(program, va, skybox, () -> {
             program.mvp.set(matrix);
 
             program.skybox.bind(0, skybox);
@@ -88,11 +87,12 @@ public class SkyboxRenderer {
         cubemapTexture.use(() -> {
             cubemapTexture.image(images);
 
-            cubemapTexture.minFilter(GLTexture.MinFilter.LINEAR);
-            cubemapTexture.magFilter(GLTexture.MagFilter.NEAREST);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            for (TextureCoordinate coordinate : TextureCoordinate.values()) {
+                cubemapTexture.wrapMode(coordinate, WrapMode.CLAMP_TO_EDGE);
+            }
+
+            cubemapTexture.minFilter(MinFilter.LINEAR);
+            cubemapTexture.magFilter(MagFilter.NEAREST);
             cubemapTexture.generateMipmap();
         });
 

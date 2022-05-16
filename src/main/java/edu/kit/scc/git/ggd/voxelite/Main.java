@@ -3,6 +3,9 @@ package edu.kit.scc.git.ggd.voxelite;
 import edu.kit.scc.git.ggd.voxelite.input.InputListener;
 import edu.kit.scc.git.ggd.voxelite.render.Renderer;
 import edu.kit.scc.git.ggd.voxelite.util.Profiler;
+import edu.kit.scc.git.ggd.voxelite.util.VoxeliteExecutor;
+import edu.kit.scc.git.ggd.voxelite.world.World;
+import edu.kit.scc.git.ggd.voxelite.world.generator.NaturalWorldGenerator;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.input.InputSystem;
 import net.durchholz.beacon.render.opengl.OpenGL;
@@ -14,28 +17,37 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import static org.lwjgl.glfw.GLFW.*;
 
 public class Main {
+    public static final  Main   INSTANCE;
+
+    public static final  int    TICKRATE      = 20;
+    public static final  long   NS_PER_SECOND = TimeUnit.SECONDS.toNanos(1);
+    public static final  long   NS_PER_TICK   = NS_PER_SECOND / TICKRATE;
+
     private static final Logger LOGGER;
 
-    private final Window        window;
-    private final InputSystem   inputSystem;
-    private final InputListener inputListener;
-    private final Renderer      renderer;
-    private final Profiler      profiler = new Profiler();
+    private final Window           window;
+    private final InputSystem      inputSystem;
+    private final InputListener    inputListener;
+    private final Renderer         renderer;
+    private final Profiler         profiler = new Profiler();
+    private final World            world    = new World(new NaturalWorldGenerator(25));
+    private final VoxeliteExecutor executor = new VoxeliteExecutor();
 
     static {
         System.setProperty("log4j.skipJansi", "false");
         LOGGER = LoggerFactory.getLogger(Main.class);
+        INSTANCE = new Main();
     }
 
     //TODO Eliminate reference leaks
     private Main() {
-        LOGGER.info("Initialization...");
+        LOGGER.info("Construction...");
 
-        //Init
         Util.windowsTimerHack();
         GLFWErrorCallback.createPrint(System.err).set();
         if (!glfwInit()) throw new IllegalStateException("Failed to initialize GLFW");
@@ -49,38 +61,65 @@ public class Main {
         //Context
         window.makeContextCurrent();
         GL.createCapabilities();
+        OpenGL.setExecutor(executor);
 
         //Renderer
         try {
-            renderer = new Renderer(this);
+            renderer = new Renderer(window);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
         //Input
         inputSystem = new InputSystem(window);
-        inputListener = new InputListener(this);
+        inputListener = new InputListener();
+    }
+
+    private void init() {
+        LOGGER.info("Initialization...");
+        renderer.init();
         EventType.addListener(inputListener);
+
+        //World
+        world.getGenerator().setWorld(world);
     }
 
     public void run() {
-        renderer.init();
+        init();
 
         LOGGER.info("Run...");
+        long accumulator = 0, deltaTime = 0;
         while (!window.shouldClose()) {
+            long start = System.nanoTime();
             profiler.tick();
+
             inputSystem.poll();
             inputSystem.tick();
+
+            inputListener.move(deltaTime / (float) NS_PER_SECOND);
+            while (accumulator >= NS_PER_TICK) {
+                simulate();
+                accumulator -= NS_PER_TICK;
+            }
 
             renderer.render();
 
             window.swapBuffers();
             OpenGL.clearAll();
+
+            executor.process();
+            deltaTime = System.nanoTime() - start;
+            accumulator += deltaTime;
         }
 
         LOGGER.info("Shutdown...");
         renderer.shutdown();
         glfwTerminate();
+    }
+
+    private void simulate() {
+        world.tick();
+        renderer.tick();
     }
 
     public Window getWindow() {
@@ -103,7 +142,15 @@ public class Main {
         return profiler;
     }
 
+    public World getWorld() {
+        return world;
+    }
+
+    public VoxeliteExecutor getExecutor() {
+        return executor;
+    }
+
     public static void main(String[] args) {
-        new Main().run();
+        INSTANCE.run();
     }
 }
