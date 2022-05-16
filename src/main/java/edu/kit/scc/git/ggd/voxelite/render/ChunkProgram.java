@@ -230,6 +230,8 @@ public class ChunkProgram extends Program {
                 visibilityBitset = (1 << 6) - 1;
             }
 
+            if(visibilityBitset == 0) return;
+
             final var cmd = commands[visibilityBitset];
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, cmd.buffer.id());
             vertexArray.use(() -> glMultiDrawElementsIndirect(GL_TRIANGLE_STRIP, GL_UNSIGNED_SHORT, 0L, cmd.commands, Command.STRIDE));
