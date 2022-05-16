@@ -92,6 +92,7 @@ public class ChunkProgram extends Program {
     //TODO Subclass per RenderType?
     public class Slice {
 
+
         record QueuedQuad(Direction direction, Vec3i position, Vec2i texture) {}
 
         record Command(VBO buffer, int commands) {
@@ -105,8 +106,10 @@ public class ChunkProgram extends Program {
         protected final VertexBuffer<InstanceVertex> instanceBuffer = new VertexBuffer<>(InstanceVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
         protected final List<QueuedQuad>             queue          = new ArrayList<>();
 
-        protected Command[] commands = new Command[1 << Direction.values().length];
-        protected int       quadCount;
+        protected final Command[]        commands = new Command[1 << Direction.values().length];
+        protected OpenGL.DrawMultiElementsIndirectCommand[][] nextCommands;
+        protected InstanceVertex[] nextVertices;
+        protected volatile int              quadCount;
 
         public Slice(Vec3i position, RenderType renderType) {
             this.position = position;
@@ -126,27 +129,40 @@ public class ChunkProgram extends Program {
             });
         }
 
-
-        public synchronized void upload() {
+        public synchronized void build() {
             if (queue.isEmpty()) return;
-            quadCount = queue.size();
-            generateCommands();
 
-            var instanceVertices = queue
+            this.nextVertices = queue
                     .stream()
                     .sorted(Comparator.comparingInt(value -> value.direction.ordinal()))
                     .map(queuedQuad -> new InstanceVertex(packInstance(queuedQuad.position(), queuedQuad.texture())))
                     .toArray(InstanceVertex[]::new);
 
-            //Upload mesh
-            instanceBuffer.use(() -> {
-                instanceBuffer.data(instanceVertices);
-            });
+            this.nextCommands = generateCommands();
 
             queue.clear();
         }
 
-        private void generateCommands() {
+
+        public synchronized void upload() {
+            if(nextVertices == null) return;
+
+            instanceBuffer.use(() -> {
+                instanceBuffer.data(nextVertices);
+            });
+
+            for (int i = 0; i < nextCommands.length; i++) {
+                OpenGL.DrawMultiElementsIndirectCommand[] directionCommands = nextCommands[i];
+                VBO vbo = new VBO();
+                vbo.use(() -> vbo.data(OpenGL.Usage.DYNAMIC_DRAW, IntVector.merge(directionCommands)));
+                this.commands[i] = new Command(vbo, directionCommands.length);
+            }
+
+            this.quadCount = nextVertices.length;
+        }
+
+        private OpenGL.DrawMultiElementsIndirectCommand[][] generateCommands() {
+            OpenGL.DrawMultiElementsIndirectCommand[][] cmds = new OpenGL.DrawMultiElementsIndirectCommand[commands.length][];
 
             //Calculate partition sizes
             int[] directionCounts = new int[Direction.values().length];
@@ -155,9 +171,8 @@ public class ChunkProgram extends Program {
             }
 
             //For all bitset permutations, precompute command data arrays
-            for (int i = 0; i < commands.length; i++) {
+            for (int i = 0; i < cmds.length; i++) {
                 final List<OpenGL.DrawMultiElementsIndirectCommand> dataList = new ArrayList<>(Direction.values().length);
-                final VBO vbo = new VBO();
 
                 int offset = 0;
                 for (int dir = 0; dir < Direction.values().length; dir++) {
@@ -173,9 +188,10 @@ public class ChunkProgram extends Program {
                 }
 
                 final OpenGL.DrawMultiElementsIndirectCommand[] directionCommands = dataList.toArray(OpenGL.DrawMultiElementsIndirectCommand[]::new);
-                vbo.use(() -> vbo.data(OpenGL.Usage.DYNAMIC_DRAW, IntVector.merge(directionCommands)));
-                this.commands[i] = new Command(vbo, directionCommands.length);
+                cmds[i] = directionCommands;
             }
+
+            return cmds;
         }
 
         public void render() {

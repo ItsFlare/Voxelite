@@ -48,8 +48,11 @@ public class RenderChunk {
                     }
                 }
             }
-        }
 
+            for (ChunkProgram.Slice s : slices) {
+                if(s != null) s.build();
+            }
+        }
         Main.INSTANCE.getRenderer().getWorldRenderer().toUpload.add(this);
     }
 

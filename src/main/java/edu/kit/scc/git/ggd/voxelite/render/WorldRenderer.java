@@ -58,6 +58,7 @@ public class WorldRenderer {
     private void onChunkUnload(ChunkUnloadEvent event) {
         final Vec3i position = event.chunk().getPosition();
         final RenderChunk renderChunk = renderChunks.remove(position);
+        toBuild.remove(renderChunk);
         renderList.remove(renderChunk);
         queueNeighbors(position);
         renderChunk.delete();
