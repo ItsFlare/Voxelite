@@ -4,6 +4,7 @@ import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.render.Camera;
 import net.durchholz.beacon.event.Listener;
 import net.durchholz.beacon.input.Button;
+import net.durchholz.beacon.input.ButtonAction;
 import net.durchholz.beacon.input.event.KeyboardEvent;
 import net.durchholz.beacon.input.event.MouseEvent;
 import net.durchholz.beacon.math.Quaternion;
@@ -18,7 +19,7 @@ import java.util.List;
 public class InputListener {
 
     public static final float DEFAULT_SENSITIVITY  = 0.5f;
-    public static final float DEFAULT_CAMERA_SPEED = 0.5f;
+    public static final int DEFAULT_CAMERA_SPEED = 20;
 
     record Input(Button button, Runnable action) {}
 
@@ -31,15 +32,6 @@ public class InputListener {
     public InputListener() {
 
         inputs.add(new Input(Button.ESCAPE, () -> Main.INSTANCE.getWindow().shouldClose(true)));
-
-        inputs.add(new Input(Button.W, () -> Main.INSTANCE.getRenderer().getCamera().move(new Vec3f(0, 0, -1).rotate(Main.INSTANCE.getRenderer().getCamera().getRotation()).scale(cameraSpeed))));
-        inputs.add(new Input(Button.A, () -> Main.INSTANCE.getRenderer().getCamera().move(new Vec3f(-1, 0, 0).rotate(Main.INSTANCE.getRenderer().getCamera().getRotation()).scale(cameraSpeed))));
-        inputs.add(new Input(Button.S, () -> Main.INSTANCE.getRenderer().getCamera().move(new Vec3f(0, 0, 1).rotate(Main.INSTANCE.getRenderer().getCamera().getRotation()).scale(cameraSpeed))));
-        inputs.add(new Input(Button.D, () -> Main.INSTANCE.getRenderer().getCamera().move(new Vec3f(1, 0, 0).rotate(Main.INSTANCE.getRenderer().getCamera().getRotation()).scale(cameraSpeed))));
-
-        inputs.add(new Input(Button.SPACE, () -> Main.INSTANCE.getRenderer().getCamera().move(new Vec3f(0, 1, 0).scale(cameraSpeed))));
-        inputs.add(new Input(Button.LEFT_SHIFT, () -> Main.INSTANCE.getRenderer().getCamera().move(new Vec3f(0, -1, 0).scale(cameraSpeed))));
-
         inputs.add(new Input(Button.F3, () -> Main.INSTANCE.getWindow().setCursorMode(Main.INSTANCE.getWindow().getCursorMode() == Window.CursorMode.DISABLED ? Window.CursorMode.NORMAL : Window.CursorMode.DISABLED)));
         inputs.add(new Input(Button.F1, () -> Main.INSTANCE.getRenderer().renderUI = !Main.INSTANCE.getRenderer().renderUI));
     }
@@ -53,6 +45,18 @@ public class InputListener {
                 input.action().run();
             }
         }
+    }
+
+    public void move(float alpha) {
+        final Window window = Main.INSTANCE.getWindow();
+        final Camera camera = Main.INSTANCE.getRenderer().getCamera();
+
+        if (window.getButton(Button.W) == ButtonAction.PRESSED) camera.move(new Vec3f(0, 0, -1).rotate(camera.getRotation()).scale(cameraSpeed).scale(alpha));
+        if (window.getButton(Button.A) == ButtonAction.PRESSED) camera.move(new Vec3f(-1, 0, 0).rotate(camera.getRotation()).scale(cameraSpeed).scale(alpha));
+        if (window.getButton(Button.S) == ButtonAction.PRESSED) camera.move(new Vec3f(0, 0, 1).rotate(camera.getRotation()).scale(cameraSpeed).scale(alpha));
+        if (window.getButton(Button.D) == ButtonAction.PRESSED) camera.move(new Vec3f(1, 0, 0).rotate(camera.getRotation()).scale(cameraSpeed).scale(alpha));
+        if (window.getButton(Button.SPACE) == ButtonAction.PRESSED) camera.move(new Vec3f(0, 1, 0).scale(cameraSpeed).scale(alpha));
+        if (window.getButton(Button.LEFT_SHIFT) == ButtonAction.PRESSED) camera.move(new Vec3f(0, -1, 0).scale(cameraSpeed).scale(alpha));
     }
 
     @Listener

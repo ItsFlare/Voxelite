@@ -28,8 +28,8 @@ public class UserInterface {
     public UserInterface() {
         {
             var fov = new IntSliderElement("FOV", Camera.DEFAULT_FOV, 5, 180, value -> Main.INSTANCE.getRenderer().getCamera().setFOV(value));
-            var sensitivity = new FloatSliderElement("Sensitivity", InputListener.DEFAULT_SENSITIVITY, 0.01f, 10, value -> Main.INSTANCE.getInputListener().sensitivity = value);
-            var speed = new FloatSliderElement("Speed", InputListener.DEFAULT_CAMERA_SPEED, 0.01f, 10, value -> Main.INSTANCE.getInputListener().cameraSpeed = value);
+            var sensitivity = new FloatSliderElement("Sensitivity", InputListener.DEFAULT_SENSITIVITY, 0f, 10f, value -> Main.INSTANCE.getInputListener().sensitivity = value);
+            var speed = new IntSliderElement("Speed", InputListener.DEFAULT_CAMERA_SPEED, 1, 200, value -> Main.INSTANCE.getInputListener().cameraSpeed = value);
             this.camera = new Accordion("Camera", true, fov, sensitivity, speed);
         }
 

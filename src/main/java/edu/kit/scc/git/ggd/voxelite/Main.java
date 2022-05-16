@@ -23,8 +23,11 @@ import static org.lwjgl.glfw.GLFW.*;
 
 public class Main {
     public static final  Main   INSTANCE;
-    public static final  int    TICKRATE    = 20;
-    public static final  long   NS_PER_TICK = TimeUnit.SECONDS.toNanos(1) / TICKRATE;
+
+    public static final  int    TICKRATE      = 20;
+    public static final  long   NS_PER_SECOND = TimeUnit.SECONDS.toNanos(1);
+    public static final  long   NS_PER_TICK   = NS_PER_SECOND / TICKRATE;
+
     private static final Logger LOGGER;
 
     private final Window           window;
@@ -85,26 +88,28 @@ public class Main {
         init();
 
         LOGGER.info("Run...");
-        long accumulator = 0;
+        long accumulator = 0, deltaTime = 0;
         while (!window.shouldClose()) {
+            long start = System.nanoTime();
             profiler.tick();
 
             inputSystem.poll();
             inputSystem.tick();
 
+            inputListener.move(deltaTime / (float) NS_PER_SECOND);
             while (accumulator >= NS_PER_TICK) {
                 simulate();
                 accumulator -= NS_PER_TICK;
             }
 
-            long start = System.nanoTime();
             renderer.render();
-            accumulator += System.nanoTime() - start;
 
             window.swapBuffers();
             OpenGL.clearAll();
 
             executor.process();
+            deltaTime = System.nanoTime() - start;
+            accumulator += deltaTime;
         }
 
         LOGGER.info("Shutdown...");
