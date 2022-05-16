@@ -32,7 +32,11 @@ public class InputListener {
     public InputListener() {
 
         inputs.add(new Input(Button.ESCAPE, () -> Main.INSTANCE.getWindow().shouldClose(true)));
-        inputs.add(new Input(Button.F3, () -> Main.INSTANCE.getWindow().setCursorMode(Main.INSTANCE.getWindow().getCursorMode() == Window.CursorMode.DISABLED ? Window.CursorMode.NORMAL : Window.CursorMode.DISABLED)));
+        inputs.add(new Input(Button.F3, () -> {
+            final Window window = Main.INSTANCE.getWindow();
+            window.setCursorPosition(cursor);
+            window.setCursorMode(window.getCursorMode() == Window.CursorMode.DISABLED ? Window.CursorMode.NORMAL : Window.CursorMode.DISABLED);
+        }));
         inputs.add(new Input(Button.F1, () -> Main.INSTANCE.getRenderer().renderUI = !Main.INSTANCE.getRenderer().renderUI));
     }
 
