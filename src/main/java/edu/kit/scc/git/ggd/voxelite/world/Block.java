@@ -10,6 +10,21 @@ import java.util.function.Consumer;
 
 public enum Block {
 
+    AIR(builder -> {}) {
+        @Override
+        public @NotNull Vec2i getTexture(Direction direction) {
+            return thr();
+        }
+
+        @Override
+        public @NotNull RenderType getRenderType() {
+            return thr();
+        }
+
+        private static <T> T thr() {
+            throw new UnsupportedOperationException("Air has no properties");
+        }
+    },
     BEDROCK(builder -> builder.texture("bedrock")),
     DIRT(builder -> builder.texture("dirt")),
     STONE(builder -> builder.texture("stone")),

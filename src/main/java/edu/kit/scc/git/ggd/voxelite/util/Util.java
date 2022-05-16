@@ -51,4 +51,8 @@ public class Util {
             return walk.collect(Collectors.toList());
         }
     }
+
+    public static int log2(int n) {
+        return (int) Math.ceil(Math.log(n) / Math.log(2));
+    }
 }

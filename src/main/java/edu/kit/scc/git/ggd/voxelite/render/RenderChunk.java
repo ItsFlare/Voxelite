@@ -32,13 +32,13 @@ public class RenderChunk {
 
             for (Voxel voxel : chunk) {
                 final Block block = voxel.getBlock();
-                if (block == null) continue;
+                if (block == Block.AIR) continue;
 
                 final ChunkProgram.Slice slice = slices[block.getRenderType().ordinal()];
 
                 for (Direction direction : Direction.values()) {
                     final Voxel neighbor = voxel.getNeighbor(direction);
-                    if (neighbor == null || neighbor.getBlock() == null) {
+                    if (neighbor == null || neighbor.getBlock() == Block.AIR) {
 
                         Vec2i texture = block.getTexture(direction);
 

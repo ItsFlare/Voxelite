@@ -18,11 +18,12 @@ public class Chunk implements Iterable<Voxel> {
     public static final Vec3i CENTER       = new Vec3i(WIDTH >> 1, HEIGHT >> 1, WIDTH >> 1);
     public static final AABB  BOUNDING_BOX = new AABB(new Vec3f(), WIDTH, HEIGHT, WIDTH);
 
-    private final World   world;
-    private final Vec3i   position;
-    private final Block[] blocks = new Block[VOLUME];
-    private final AABB    boundingBox;
-    private int blockCount = 0;
+
+    private final World        world;
+    private final Vec3i        position;
+    private final AABB         boundingBox;
+    private final BlockStorage storage    = new CompressedBlockStorage();
+    private       int          blockCount = 0;
 
 
     public Chunk(World world, Vec3i position) {
@@ -36,17 +37,17 @@ public class Chunk implements Iterable<Voxel> {
     }
 
     public Block getBlock(Vec3i position) {
-        return blocks[toLinearSpace(position)];
+        return storage.getBlock(Chunk.toLinearSpace(position));
     }
 
     public void setBlock(Vec3i position, Block block) {
-        final int linear = toLinearSpace(position);
-        var previous = blocks[linear];
-        blocks[linear] = block;
+        final int linear = Chunk.toLinearSpace(position);
+        var previous = storage.getBlock(linear);
+        storage.setBlock(linear, block);
 
         //TODO Optimize?
-        if(previous == null && block != null) blockCount += 1;
-        else if(previous != null && block == null) blockCount -= 1;
+        if (previous == null && block != Block.AIR) blockCount += 1;
+        else if (previous != null && block == Block.AIR) blockCount -= 1;
     }
 
     public World getWorld() {
