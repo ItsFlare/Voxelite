@@ -23,7 +23,8 @@ import java.util.stream.Collectors;
 
 public class WorldRenderer {
 
-    public static final Comparator<RenderChunk> DISTANCE_COMPARATOR = Comparator.comparingInt(rc -> Chunk.toWorldPosition(rc.getChunk().getPosition()).subtract(new Vec3i(Main.INSTANCE.getRenderer().getCamera().getPosition())).magnitudeSq());
+    private static final Comparator<RenderChunk> DISTANCE_COMPARATOR = Comparator.comparingInt(rc -> Chunk.toWorldPosition(rc.getChunk().getPosition()).subtract(new Vec3i(Main.INSTANCE.getRenderer().getCamera().getPosition())).magnitudeSq());
+    private static final int UPLOADS_PER_FRAME = 5;
 
     private final Map<Vec3i, RenderChunk> renderChunks    = new HashMap<>();
     private final TextureAtlas            atlas;
@@ -80,7 +81,7 @@ public class WorldRenderer {
     }
 
     public void render() {
-        upload(5);
+        upload(UPLOADS_PER_FRAME);
         OpenGL.depthTest(true);
         OpenGL.depthMask(true);
 

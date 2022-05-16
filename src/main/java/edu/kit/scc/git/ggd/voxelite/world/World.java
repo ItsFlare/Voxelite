@@ -12,7 +12,7 @@ import java.util.concurrent.*;
 import java.util.function.Predicate;
 
 public class World {
-    public static final Comparator<Vec3i> DISTANCE_COMPARATOR = Comparator.comparingInt(position -> Chunk.toWorldPosition(position).subtract(new Vec3i(Main.INSTANCE.getRenderer().getCamera().getPosition())).magnitudeSq());
+    private static final Comparator<Vec3i> DISTANCE_COMPARATOR = Comparator.comparingInt(position -> Chunk.toWorldPosition(position).subtract(new Vec3i(Main.INSTANCE.getRenderer().getCamera().getPosition())).magnitudeSq());
 
     private final Map<Vec3i, Chunk>    chunks    = new ConcurrentHashMap<>();
     private final BlockingQueue<Vec3i> loadQueue = new LinkedBlockingQueue<>();

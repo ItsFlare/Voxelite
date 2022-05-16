@@ -159,6 +159,8 @@ public class ChunkProgram extends Program {
             }
 
             this.quadCount = nextVertices.length;
+            this.nextVertices = null;
+            this.nextCommands = null;
         }
 
         private OpenGL.DrawMultiElementsIndirectCommand[][] generateCommands() {

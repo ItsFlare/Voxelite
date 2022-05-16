@@ -10,7 +10,7 @@ public class Chunk implements Iterable<Voxel> {
 
     public static final int   WIDTH_EXP    = 5;
     public static final int   HEIGHT_EXP   = 5;
-    public static final int   AREA_EXP     = 2 * WIDTH_EXP;
+    public static final int   AREA_EXP     = WIDTH_EXP << 1;
     public static final int   WIDTH        = 1 << WIDTH_EXP;
     public static final int   HEIGHT       = 1 << HEIGHT_EXP;
     public static final int   AREA         = 1 << AREA_EXP;
