@@ -12,19 +12,19 @@ class ChunkTest {
     @Test
     void toChunkSpace() {
         assertEquals(new Vec3i(1), Chunk.toChunkSpace(new Vec3i(1)));
-        assertEquals(new Vec3i(1), Chunk.toChunkSpace(new Vec3i(17)));
-        assertEquals(new Vec3i(15), Chunk.toChunkSpace(new Vec3i(-1)));
-        assertEquals(new Vec3i(15), Chunk.toChunkSpace(new Vec3i(-17)));
+        assertEquals(new Vec3i(1), Chunk.toChunkSpace(new Vec3i(Chunk.WIDTH + 1)));
+        assertEquals(new Vec3i(Chunk.WIDTH - 1), Chunk.toChunkSpace(new Vec3i(-1)));
+        assertEquals(new Vec3i(Chunk.WIDTH - 1), Chunk.toChunkSpace(new Vec3i(-Chunk.WIDTH - 1)));
     }
 
     @Test
     void toChunkPosition() {
         assertEquals(new Vec3i(0), Chunk.toChunkPosition(new Vec3i(0)));
         assertEquals(new Vec3i(0), Chunk.toChunkPosition(new Vec3i(1)));
-        assertEquals(new Vec3i(0), Chunk.toChunkPosition(new Vec3i(15)));
-        assertEquals(new Vec3i(1), Chunk.toChunkPosition(new Vec3i(16)));
+        assertEquals(new Vec3i(0), Chunk.toChunkPosition(new Vec3i(Chunk.WIDTH - 1)));
+        assertEquals(new Vec3i(1), Chunk.toChunkPosition(new Vec3i(Chunk.WIDTH)));
         assertEquals(new Vec3i(-1), Chunk.toChunkPosition(new Vec3i(-1)));
-        assertEquals(new Vec3i(-1), Chunk.toChunkPosition(new Vec3i(-16)));
+        assertEquals(new Vec3i(-1), Chunk.toChunkPosition(new Vec3i(-Chunk.WIDTH)));
 
         //Wrong way to calculate chunk position of a float vector
         assertNotEquals(new Vec3i(-1), Chunk.toChunkPosition(new Vec3i(new Vec3f(-0.1f))));
@@ -40,7 +40,15 @@ class ChunkTest {
     @Test
     void toWorldPosition() {
         assertEquals(new Vec3i(0), Chunk.toWorldPosition(new Vec3i(0)));
-        assertEquals(new Vec3i(16), Chunk.toWorldPosition(new Vec3i(1)));
-        assertEquals(new Vec3i(-16), Chunk.toWorldPosition(new Vec3i(-1)));
+        assertEquals(new Vec3i(Chunk.WIDTH), Chunk.toWorldPosition(new Vec3i(1)));
+        assertEquals(new Vec3i(-Chunk.WIDTH), Chunk.toWorldPosition(new Vec3i(-1)));
+    }
+
+    @Test
+    void toBlockPosition() {
+        assertEquals(new Vec3i(0), Chunk.toBlockPosition(new Vec3f(0.1f)));
+        assertEquals(new Vec3i(-1), Chunk.toBlockPosition(new Vec3f(-0.1f)));
+        assertEquals(new Vec3i(-Chunk.WIDTH), Chunk.toBlockPosition(new Vec3f(-Chunk.WIDTH)));
+        assertEquals(new Vec3i(-Chunk.WIDTH - 1), Chunk.toBlockPosition(new Vec3f(-Chunk.WIDTH - 0.1f)));
     }
 }
