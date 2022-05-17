@@ -198,10 +198,8 @@ public class ChunkProgram extends Program {
 
         public void render() {
             if (quadCount == 0) return;
-            ChunkProgram.this.chunk.set(worldPosition);
             final Vec3f cameraPosition = Main.INSTANCE.getRenderer().getCamera().getPosition();
             final int visibilityBitset;
-
             if (directionCulling) {
                 /*
                 Direction culling (geometry partitioned by face direction)
@@ -230,6 +228,7 @@ public class ChunkProgram extends Program {
                 visibilityBitset = (1 << 6) - 1;
             }
 
+            if(visibilityBitset == 0) return;
             final var cmd = commands[visibilityBitset];
             if(cmd.commands == 0) return;
 

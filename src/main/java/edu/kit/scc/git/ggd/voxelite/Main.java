@@ -2,7 +2,7 @@ package edu.kit.scc.git.ggd.voxelite;
 
 import edu.kit.scc.git.ggd.voxelite.input.InputListener;
 import edu.kit.scc.git.ggd.voxelite.render.Renderer;
-import edu.kit.scc.git.ggd.voxelite.util.Profiler;
+import edu.kit.scc.git.ggd.voxelite.util.TimerRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.util.VoxeliteExecutor;
 import edu.kit.scc.git.ggd.voxelite.world.World;
 import edu.kit.scc.git.ggd.voxelite.world.generator.NaturalWorldGenerator;
@@ -22,11 +22,11 @@ import java.util.concurrent.TimeUnit;
 import static org.lwjgl.glfw.GLFW.*;
 
 public class Main {
-    public static final  Main   INSTANCE;
+    public static final Main INSTANCE;
 
-    public static final  int    TICKRATE      = 20;
-    public static final  long   NS_PER_SECOND = TimeUnit.SECONDS.toNanos(1);
-    public static final  long   NS_PER_TICK   = NS_PER_SECOND / TICKRATE;
+    public static final int  TICKRATE      = 20;
+    public static final long NS_PER_SECOND = TimeUnit.SECONDS.toNanos(1);
+    public static final long NS_PER_TICK   = NS_PER_SECOND / TICKRATE;
 
     private static final Logger LOGGER;
 
@@ -34,7 +34,7 @@ public class Main {
     private final InputSystem      inputSystem;
     private final InputListener    inputListener;
     private final Renderer         renderer;
-    private final Profiler         profiler = new Profiler();
+    private final TimerRingBuffer  profiler = new TimerRingBuffer();
     private final World            world    = new World(new NaturalWorldGenerator(25));
     private final VoxeliteExecutor executor = new VoxeliteExecutor();
 
@@ -101,6 +101,7 @@ public class Main {
                 accumulator -= NS_PER_TICK;
             }
 
+            world.frame();
             renderer.render();
 
             window.swapBuffers();
@@ -137,7 +138,7 @@ public class Main {
         return renderer;
     }
 
-    public Profiler getProfiler() {
+    public TimerRingBuffer getProfiler() {
         return profiler;
     }
 

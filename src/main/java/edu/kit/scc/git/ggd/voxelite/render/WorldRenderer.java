@@ -3,6 +3,7 @@ package edu.kit.scc.git.ggd.voxelite.render;
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.texture.TextureAtlas;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
+import edu.kit.scc.git.ggd.voxelite.world.AsyncChunkBuilder;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
@@ -15,8 +16,7 @@ import net.durchholz.beacon.render.opengl.OpenGL;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.stream.Collectors;
@@ -24,17 +24,20 @@ import java.util.stream.Collectors;
 public class WorldRenderer {
 
     private static final Comparator<RenderChunk> DISTANCE_COMPARATOR = Comparator.comparingInt(rc -> Chunk.toWorldPosition(rc.getChunk().getPosition()).subtract(new Vec3i(Main.INSTANCE.getRenderer().getCamera().getPosition())).magnitudeSq());
-    private static final int UPLOADS_PER_FRAME = 5;
 
-    private final Map<Vec3i, RenderChunk> renderChunks    = new HashMap<>();
+    private final Map<Vec3i, RenderChunk> renderChunks = new HashMap<>();
     private final TextureAtlas            atlas;
-    private final Set<RenderChunk>        toBuild         = ConcurrentHashMap.newKeySet();
-    public final  Queue<RenderChunk>      toUpload        = new PriorityBlockingQueue<>(1000, DISTANCE_COMPARATOR);
 
-    public List<RenderChunk> renderList = new ArrayList<>();
-    public Vec3f lightColor      = new Vec3f(1);
-    public float ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f;
+    private final BlockingQueue<RenderChunk> buildQueue        = new PriorityBlockingQueue<>(128, DISTANCE_COMPARATOR);
+    private final  BlockingQueue<RenderChunk> uploadQueue       = new PriorityBlockingQueue<>(128, DISTANCE_COMPARATOR);
+    private final AsyncChunkBuilder          asyncChunkBuilder = new AsyncChunkBuilder(buildQueue, uploadQueue, ForkJoinPool.getCommonPoolParallelism() / 4 + 1);
+
+
+    public List<RenderChunk> renderList      = new ArrayList<>();
+    public Vec3f             lightColor      = new Vec3f(1);
+    public float             ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f;
     public int phongExponent = 32;
+    public int uploadRate    = 5;
 
     public WorldRenderer() {
         EventType.addListener(this);
@@ -44,6 +47,8 @@ public class WorldRenderer {
         } catch (IOException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
+
+        asyncChunkBuilder.start();
     }
 
     @Listener
@@ -51,7 +56,9 @@ public class WorldRenderer {
         final RenderChunk renderChunk = new RenderChunk(event.chunk());
         final Vec3i position = event.chunk().getPosition();
         renderChunks.put(position, renderChunk);
-        toBuild.add(renderChunk);
+
+        renderChunk.setDirty();
+        buildQueue.add(renderChunk);
         queueNeighbors(position);
     }
 
@@ -59,7 +66,7 @@ public class WorldRenderer {
     private void onChunkUnload(ChunkUnloadEvent event) {
         final Vec3i position = event.chunk().getPosition();
         final RenderChunk renderChunk = renderChunks.remove(position);
-        toBuild.remove(renderChunk);
+        buildQueue.remove(renderChunk);
         renderList.remove(renderChunk);
         queueNeighbors(position);
         renderChunk.delete();
@@ -73,15 +80,18 @@ public class WorldRenderer {
     }
 
     public void queueAll() {
-        toBuild.addAll(renderChunks.values());
+        renderChunks.values().forEach(RenderChunk::setDirty);
+        buildQueue.addAll(renderChunks.values());
     }
 
     public void queueRebuild(RenderChunk renderChunk) {
-        toBuild.add(renderChunk);
+        renderChunk.setDirty();
+        buildQueue.add(renderChunk);
     }
 
+    static boolean init = true;
     public void render() {
-        upload(UPLOADS_PER_FRAME);
+        upload(uploadRate);
         OpenGL.depthTest(true);
         OpenGL.depthMask(true);
 
@@ -108,14 +118,13 @@ public class WorldRenderer {
                 program.normalizedSpriteSize.set(atlas.getNormalizedSpriteSize());
 
                 for (RenderChunk renderChunk : renderList) {
-                    renderChunk.render(renderType);
+                    if(renderChunk.isValid()) renderChunk.render(renderType);
                 }
             });
         }
     }
 
     public void tick() {
-        buildChunksAsync();
         renderList = renderChunks.values().stream().filter(renderChunk -> renderChunk.getQuadCount() > 0).collect(Collectors.toList());
     }
 
@@ -131,23 +140,30 @@ public class WorldRenderer {
         return atlas;
     }
 
-    private void buildChunksAsync() {
-        CompletableFuture.runAsync(() -> {
-            toBuild.forEach(renderChunk -> {
-                ForkJoinPool.commonPool().submit(renderChunk::build); //TODO Error handling
-                toBuild.remove(renderChunk);
-            });
-        }).exceptionally(throwable -> {
-            System.out.println(throwable);
-            return null;
-        });
+    public AsyncChunkBuilder getAsyncChunkBuilder() {
+        return asyncChunkBuilder;
+    }
+
+    public void queueUpload(RenderChunk renderChunk) {
+        uploadQueue.add(renderChunk);
     }
 
     private void upload(int limit) {
         RenderChunk r;
         int i = 0;
-        while (i++ < limit && (r = toUpload.poll()) != null) {
-            r.upload();
+        while (i < limit && (r = uploadQueue.poll()) != null) {
+            if(r.isValid()) {
+                r.upload();
+                i++;
+            }
         }
+    }
+
+    public int getBuildQueueSize() {
+        return buildQueue.size();
+    }
+
+    public int getUploadQueueSize() {
+        return uploadQueue.size();
     }
 }

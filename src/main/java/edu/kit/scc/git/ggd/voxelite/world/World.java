@@ -14,19 +14,23 @@ import java.util.function.Predicate;
 public class World {
     private static final Comparator<Vec3i> DISTANCE_COMPARATOR = Comparator.comparingInt(position -> Chunk.toWorldPosition(position).subtract(new Vec3i(Main.INSTANCE.getRenderer().getCamera().getPosition())).magnitudeSq());
 
-    private final Map<Vec3i, Chunk>    chunks    = new ConcurrentHashMap<>();
-    private final BlockingQueue<Vec3i> loadQueue = new LinkedBlockingQueue<>();
-    private final WorldGenerator       generator;
-    private final AsyncChunkLoader chunkLoader;
+    private final WorldGenerator    generator;
+    private final Map<Vec3i, Chunk> chunks = new ConcurrentHashMap<>();
 
-    private int     radius     = 2;
-    private volatile Vec3i   lastChunk;
+    private final BlockingQueue<Vec3i> loadQueue           = new LinkedBlockingQueue<>();
+    private final AsyncChunkLoader     chunkLoader;
+
     private boolean loadChunks = true;
+    private int     radius     = 2;
+    public  int     buildRate  = 5;
+
+    private volatile Vec3i           lastChunk;
     private volatile ForkJoinTask<?> chunkMapTask;
 
     public World(WorldGenerator generator) {
         this.generator = generator;
-        this.chunkLoader = new AsyncChunkLoader(generator, loadQueue);
+        this.chunkLoader = new AsyncChunkLoader(generator, loadQueue, 128, ForkJoinPool.getCommonPoolParallelism() / 4 + 1);
+        this.chunkLoader.start();
     }
 
     public void loadChunk(Vec3i chunkPosition) {
@@ -71,11 +75,12 @@ public class World {
 
     public void tick() {
         tickChunkLoading();
+    }
 
+    public void frame() {
         chunkLoader.consume(chunk -> {
-            chunks.put(chunk.getPosition(), chunk);
-            new ChunkLoadEvent(chunk).fire();
-        });
+            if(chunks.putIfAbsent(chunk.getPosition(), chunk) == null) new ChunkLoadEvent(chunk).fire();
+        }, buildRate);
     }
 
     private void tickChunkLoading() {
@@ -84,7 +89,7 @@ public class World {
         final Vec3f cameraPos = Main.INSTANCE.getRenderer().getCamera().getPosition();
         final Vec3i currentChunk = Chunk.toChunkPosition(cameraPos);
 
-        if(currentChunk.equals(lastChunk)) return;
+        if (currentChunk.equals(lastChunk)) return;
         lastChunk = currentChunk;
 
         chunkMapTask = ForkJoinPool.commonPool().submit(() -> {
@@ -119,15 +124,19 @@ public class World {
                     .forEach(expected::remove);
 
             //Load chunks
-            loadQueue.clear();
             expected.sort(DISTANCE_COMPARATOR);
+            loadQueue.clear();
             loadQueue.addAll(expected);
         });
     }
 
     public Voxel getVoxel(Vec3f position) {
         final Chunk chunk = getChunk(Chunk.toChunkPosition(position));
-        if(chunk == null) return null;
+        if (chunk == null) return null;
         return new Voxel(chunk, Chunk.toBlockPosition(position));
+    }
+
+    public int getLoadQueueSize() {
+        return loadQueue.size();
     }
 }
