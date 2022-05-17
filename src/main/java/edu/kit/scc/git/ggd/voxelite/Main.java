@@ -44,7 +44,6 @@ public class Main {
         INSTANCE = new Main();
     }
 
-    //TODO Eliminate reference leaks
     private Main() {
         LOGGER.info("Construction...");
 
@@ -54,7 +53,7 @@ public class Main {
 
         //Window
         glfwDefaultWindowHints();
-        window = Window.builder().build();
+        window = Window.builder().title("Voxelite").build();
         window.setCursorMode(Window.CursorMode.DISABLED);
         window.setRawMouseInput(true);
 
@@ -95,8 +94,8 @@ public class Main {
 
             inputSystem.poll();
             inputSystem.tick();
-
             inputListener.move(deltaTime / (float) NS_PER_SECOND);
+
             while (accumulator >= NS_PER_TICK) {
                 simulate();
                 accumulator -= NS_PER_TICK;
