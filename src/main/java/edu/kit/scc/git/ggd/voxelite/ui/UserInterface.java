@@ -7,16 +7,21 @@ import edu.kit.scc.git.ggd.voxelite.render.ChunkProgram;
 import edu.kit.scc.git.ggd.voxelite.render.RenderChunk;
 import edu.kit.scc.git.ggd.voxelite.util.LongRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.util.SuppliedLongRingBuffer;
+import edu.kit.scc.git.ggd.voxelite.world.Block;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
+import edu.kit.scc.git.ggd.voxelite.world.LightStorage;
 import edu.kit.scc.git.ggd.voxelite.world.generator.ModuloChunkGenerator;
 import edu.kit.scc.git.ggd.voxelite.world.generator.NaturalWorldGenerator;
 import imgui.ImGui;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import net.durchholz.beacon.math.Vec3f;
+import net.durchholz.beacon.math.Vec3i;
 import net.durchholz.beacon.math.Vec4f;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.window.Window;
+
+import java.util.Map;
+import java.util.function.Consumer;
 
 public class UserInterface {
     private static final boolean SAVE_GUI = true;
@@ -38,11 +43,15 @@ public class UserInterface {
                 var voxel = Main.INSTANCE.getWorld().getVoxel(Main.INSTANCE.getRenderer().getCamera().getPosition());
                 return "Block: " +  (voxel == null ? "null" : voxel.getBlock());
             });
+            var blockLight = new TextElement(() -> {
+                var voxel = Main.INSTANCE.getWorld().getVoxel(Main.INSTANCE.getRenderer().getCamera().getPosition());
+                return "Light: " +  (voxel == null ? "null" : voxel.chunk().getLightStorage().getLight(voxel.position()));
+            });
 
             var fov = new IntSliderElement("FOV", Camera.DEFAULT_FOV, 5, 180, value -> Main.INSTANCE.getRenderer().getCamera().setFOV(value));
             var sensitivity = new FloatSliderElement("Sensitivity", InputListener.DEFAULT_SENSITIVITY, 0f, 5f, value -> Main.INSTANCE.getInputListener().sensitivity = value);
             var speed = new IntSliderElement("Speed", InputListener.DEFAULT_CAMERA_SPEED, 1, 300, value -> Main.INSTANCE.getInputListener().cameraSpeed = value);
-            this.camera = new Accordion("Camera", true, blockPos, chunkPos, block, fov, sensitivity, speed);
+            this.camera = new Accordion("Camera", true, blockPos, chunkPos, block, blockLight, fov, sensitivity, speed);
         }
 
         {
@@ -82,12 +91,25 @@ public class UserInterface {
         }
 
         {
-            var color = new ColorPickerElement("Light", new Vec4f(1), value -> Main.INSTANCE.getRenderer().getWorldRenderer().lightColor = new Vec3f(value.x(), value.y(), value.z()));
+            var mode = new DropdownElement<Consumer<Vec4f>>("Mode",
+                    Map.of("sun", value -> Main.INSTANCE.getRenderer().getWorldRenderer().lightColor = value,
+                            "block", value -> {
+                                int channelsR = Math.round(value.x() * (float) LightStorage.CHANNELS);
+                                int channelsG = Math.round(value.y() * (float) LightStorage.CHANNELS);
+                                int channelsB = Math.round(value.z() * (float) LightStorage.CHANNELS);
+
+                                Block.GLOWSTONE.light = new Vec3i(channelsR, channelsG, channelsB);
+                            }
+                    )
+            );
+
+            var color = new ColorPickerElement("Light", new Vec4f(1), value -> mode.read().accept(value));
             var ambient = new FloatSliderElement("Ambient", 0.4f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().ambientStrength = value);
             var diffuse = new FloatSliderElement("Diffuse", 0.7f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().diffuseStrength = value);
             var specular = new FloatSliderElement("Specular", 0.2f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().specularStrength = value);
             var exponent = new IntSliderElement("Exponent", 32, 1, 128, value -> Main.INSTANCE.getRenderer().getWorldRenderer().phongExponent = value);
-            this.light = new Accordion("Light", false, color, ambient, diffuse, specular, exponent);
+            var placeGlowstone = new ButtonElement("Place Glowstone", () -> Main.INSTANCE.getWorld().getVoxel(Main.INSTANCE.getRenderer().getCamera().getPosition()).setBlock(Block.GLOWSTONE));
+            this.light = new Accordion("Light", false, mode, color, ambient, diffuse, specular, exponent, placeGlowstone);
         }
 
         {

@@ -1,10 +1,15 @@
 package edu.kit.scc.git.ggd.voxelite.world;
 
+import edu.kit.scc.git.ggd.voxelite.Main;
+import edu.kit.scc.git.ggd.voxelite.render.RenderChunk;
+import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import net.durchholz.beacon.math.AABB;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 public class Chunk implements Iterable<Voxel> {
 
@@ -22,8 +27,9 @@ public class Chunk implements Iterable<Voxel> {
     private final World        world;
     private final Vec3i        position;
     private final AABB         boundingBox;
-    private final BlockStorage storage    = new CompressedBlockStorage();
-    private       int          blockCount = 0;
+    private final BlockStorage blockStorage = new CompressedBlockStorage();
+    private final NaiveLightStorage lightStorage = new NaiveLightStorage(this);
+    private       int          blockCount   = 0;
 
 
     public Chunk(World world, Vec3i position) {
@@ -37,17 +43,44 @@ public class Chunk implements Iterable<Voxel> {
     }
 
     public Block getBlock(Vec3i position) {
-        return storage.getBlock(Chunk.toLinearSpace(position));
+        return blockStorage.getBlock(toLinearSpace(position));
     }
 
-    public void setBlock(Vec3i position, Block block) {
-        final int linear = Chunk.toLinearSpace(position);
-        var previous = storage.getBlock(linear);
-        storage.setBlock(linear, block);
+    public void setBlock(final Vec3i position, final Block block) {
+        final Voxel voxel = getVoxel(position);
+        final int linear = toLinearSpace(position);
+
+        final Block previous = blockStorage.getBlock(linear);
+
+        blockStorage.setBlock(linear, block);
+
+        //Store chunks to update
+        final Set<Vec3i> chunks = new HashSet<>();
+
+        //Add current chunk
+        chunks.add(this.position);
+
+        //Add neighboring chunks
+        for (Direction direction : Direction.values()) {
+            final Voxel neighbor = voxel.getNeighbor(direction);
+            if(neighbor != null) chunks.add(neighbor.chunk().position);
+        }
+
+        lightStorage.calculate(voxel, previous);
 
         //TODO Optimize?
         if (previous == Block.AIR && block != Block.AIR) blockCount += 1;
         else if (previous != Block.AIR && block == Block.AIR) blockCount -= 1;
+
+        //Update all affected chunks
+        for (Vec3i chunkPosition : chunks) {
+            final RenderChunk renderChunk = Main.INSTANCE.getRenderer().getWorldRenderer().getRenderChunk(chunkPosition);
+            if (renderChunk != null) Main.INSTANCE.getRenderer().getWorldRenderer().queueRebuild(renderChunk); //TODO Make neater
+        }
+    }
+
+    public NaiveLightStorage getLightStorage() {
+        return lightStorage;
     }
 
     public World getWorld() {
@@ -78,7 +111,7 @@ public class Chunk implements Iterable<Voxel> {
 
             @Override
             public Voxel next() {
-                return getVoxel(fromLinearSpace(position++).add(Chunk.toWorldPosition(Chunk.this.position)));
+                return getVoxel(fromLinearSpace(position++).add(toWorldPosition(Chunk.this.position)));
             }
         };
     }

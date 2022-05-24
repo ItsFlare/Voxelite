@@ -1,6 +1,7 @@
 package edu.kit.scc.git.ggd.voxelite.world;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
+import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.generator.WorldGenerator;
@@ -17,7 +18,7 @@ public class World {
     private final WorldGenerator    generator;
     private final Map<Vec3i, Chunk> chunks = new ConcurrentHashMap<>();
 
-    private final BlockingQueue<Vec3i> loadQueue           = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Vec3i> loadQueue = new LinkedBlockingQueue<>();
     private final AsyncChunkLoader     chunkLoader;
 
     private boolean loadChunks = true;
@@ -79,7 +80,7 @@ public class World {
 
     public void frame() {
         chunkLoader.consume(chunk -> {
-            if(chunks.putIfAbsent(chunk.getPosition(), chunk) == null) new ChunkLoadEvent(chunk).fire();
+            if (chunks.putIfAbsent(chunk.getPosition(), chunk) == null) new ChunkLoadEvent(chunk).fire();
         }, buildRate);
     }
 
@@ -131,12 +132,107 @@ public class World {
     }
 
     public Voxel getVoxel(Vec3f position) {
+        return getVoxel(Chunk.toBlockPosition(position));
+    }
+
+    public Voxel getVoxel(Vec3i position) {
         final Chunk chunk = getChunk(Chunk.toChunkPosition(position));
         if (chunk == null) return null;
-        return new Voxel(chunk, Chunk.toBlockPosition(position));
+        return new Voxel(chunk, position);
     }
 
     public int getLoadQueueSize() {
         return loadQueue.size();
+    }
+
+    public Intersection traverse(Vec3f origin, Vec3f direction, float range) {
+        return traverse(origin, origin.add(direction.normalized().scale(range)));
+    }
+
+    public Intersection traverse(Vec3f origin, Vec3f target) {
+        double d0 = lerp(-1.0E-7D, target.x(), origin.x());
+        double d1 = lerp(-1.0E-7D, target.y(), origin.y());
+        double d2 = lerp(-1.0E-7D, target.z(), origin.z());
+        double d3 = lerp(-1.0E-7D, origin.x(), target.x());
+        double d4 = lerp(-1.0E-7D, origin.y(), target.y());
+        double d5 = lerp(-1.0E-7D, origin.z(), target.z());
+        int x = floor(d3);
+        int y = floor(d4);
+        int z = floor(d5);
+
+        double xLen = d0 - d3;
+        double yLen = d1 - d4;
+        double zLen = d2 - d5;
+        int signX = sign(xLen);
+        int signY = sign(yLen);
+        int signZ = sign(zLen);
+        double d9 = signX == 0 ? Double.MAX_VALUE : (double) signX / xLen;
+        double d10 = signY == 0 ? Double.MAX_VALUE : (double) signY / yLen;
+        double d11 = signZ == 0 ? Double.MAX_VALUE : (double) signZ / zLen;
+        double xt = d9 * (signX > 0 ? 1.0D - frac(d3) : frac(d3));
+        double yt = d10 * (signY > 0 ? 1.0D - frac(d4) : frac(d4));
+        double zt = d11 * (signZ > 0 ? 1.0D - frac(d5) : frac(d5));
+
+        Voxel v;
+        int normal;
+
+        do {
+            if (xt > 1.0D && yt > 1.0D && zt > 1.0D) {
+                return null;
+            }
+
+            if (xt < yt) {
+                if (xt < zt) {
+                    x += signX;
+                    xt += d9;
+                    normal = 0;
+                } else {
+                    z += signZ;
+                    zt += d11;
+                    normal = 2;
+                }
+            } else if (yt < zt) {
+                y += signY;
+                yt += d10;
+                normal = 1;
+            } else {
+                z += signZ;
+                zt += d11;
+                normal = 2;
+            }
+
+            v = getVoxel(new Vec3i(x, y, z));
+        } while (v == null || v.getBlock() == Block.AIR);
+
+        Direction normalDirection = switch (normal) {
+            case 0 -> signX == 1 ? Direction.NEG_X : Direction.POS_X;
+            case 1 -> signY == 1 ? Direction.NEG_Y : Direction.POS_Y;
+            case 2 -> signZ == 1 ? Direction.NEG_Z : Direction.POS_Z;
+            default -> throw new IllegalStateException("Unexpected value: " + normal);
+        };
+
+        return new Intersection(v, normalDirection);
+    }
+
+    public static double lerp(double d0, double d1, double d2) {
+        return d1 + d0 * (d2 - d1);
+    }
+
+    public static double frac(double d0) {
+        return d0 - (double) lfloor(d0);
+    }
+
+    public static long lfloor(double d0) {
+        long i = (long) d0;
+
+        return d0 < (double) i ? i - 1L : i;
+    }
+    public static int sign(double d0) {
+        return d0 == 0.0D ? 0 : (d0 > 0.0D ? 1 : -1);
+    }
+    public static int floor(double d0) {
+        int i = (int) d0;
+
+        return d0 < (double) i ? i - 1 : i;
     }
 }

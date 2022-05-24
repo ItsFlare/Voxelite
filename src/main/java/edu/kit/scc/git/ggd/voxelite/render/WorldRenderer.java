@@ -5,12 +5,14 @@ import edu.kit.scc.git.ggd.voxelite.texture.TextureAtlas;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.world.AsyncChunkBuilder;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
+import edu.kit.scc.git.ggd.voxelite.world.LightStorage;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.event.Listener;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
+import net.durchholz.beacon.math.Vec4f;
 import net.durchholz.beacon.render.opengl.OpenGL;
 
 import java.io.IOException;
@@ -34,7 +36,7 @@ public class WorldRenderer {
 
 
     public List<RenderChunk> renderList      = new ArrayList<>();
-    public Vec3f             lightColor      = new Vec3f(1);
+    public Vec4f             lightColor      = new Vec4f(1);
     public float             ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f;
     public int phongExponent = 32;
     public int uploadRate    = 5;
@@ -109,13 +111,14 @@ public class WorldRenderer {
                 program.mvp.set(Main.INSTANCE.getRenderer().getCamera().transform());
                 program.atlas.bind(0, atlas);
                 program.camera.set(Main.INSTANCE.getRenderer().getCamera().getPosition());
-                program.lightColor.set(lightColor);
+                program.lightColor.set(new Vec3f(lightColor.x(), lightColor.y(), lightColor.z()));
                 program.lightDirection.set(new Vec3f(0, -1, 0));
                 program.ambientStrength.set(ambientStrength);
                 program.diffuseStrength.set(diffuseStrength);
                 program.specularStrength.set(specularStrength);
                 program.phongExponent.set(phongExponent);
                 program.normalizedSpriteSize.set(atlas.getNormalizedSpriteSize());
+                program.maxLightValue.set(LightStorage.MAX_VALUE);
 
                 for (RenderChunk renderChunk : renderList) {
                     if(renderChunk.isValid()) renderChunk.render(renderType);

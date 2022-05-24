@@ -4,8 +4,9 @@ import edu.kit.scc.git.ggd.voxelite.input.InputListener;
 import edu.kit.scc.git.ggd.voxelite.render.Renderer;
 import edu.kit.scc.git.ggd.voxelite.util.TimerRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.util.VoxeliteExecutor;
+import edu.kit.scc.git.ggd.voxelite.world.Block;
 import edu.kit.scc.git.ggd.voxelite.world.World;
-import edu.kit.scc.git.ggd.voxelite.world.generator.NaturalWorldGenerator;
+import edu.kit.scc.git.ggd.voxelite.world.generator.FlatWorldGenerator;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.input.InputSystem;
 import net.durchholz.beacon.render.opengl.OpenGL;
@@ -35,8 +36,8 @@ public class Main {
     private final InputListener    inputListener;
     private final Renderer         renderer;
     private final TimerRingBuffer  profiler = new TimerRingBuffer();
-    private final World            world    = new World(new NaturalWorldGenerator(25));
     private final VoxeliteExecutor executor = new VoxeliteExecutor();
+    private World            world;
 
     static {
         System.setProperty("log4j.skipJansi", "false");
@@ -79,7 +80,14 @@ public class Main {
         renderer.init();
         EventType.addListener(inputListener);
 
+        /*
+        Initialize some classes on main thread to fail-fast.
+        Prevents errors from being suppressed in other threads.
+        */
+        Util.initialize(Block.class);
+
         //World
+        world = new World(new FlatWorldGenerator(new FlatWorldGenerator.Layer(Block.BEDROCK, 0), new FlatWorldGenerator.Layer(Block.STONE, 8)));
         world.getGenerator().setWorld(world);
     }
 

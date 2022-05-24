@@ -6,6 +6,7 @@ import edu.kit.scc.git.ggd.voxelite.world.Block;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import edu.kit.scc.git.ggd.voxelite.world.Voxel;
 import net.durchholz.beacon.math.Vec2i;
+import net.durchholz.beacon.math.Vec3i;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -43,9 +44,10 @@ public class RenderChunk {
                     if (neighbor == null || neighbor.getBlock() == Block.AIR) {
 
                         Vec2i texture = block.getTexture(direction);
+                        Vec3i light = neighbor == null ? new Vec3i() : neighbor.chunk().getLightStorage().getLight(neighbor.position());
 
                         synchronized (slice) {
-                            slice.queue.add(new ChunkProgram.Slice.QueuedQuad(direction, Chunk.toChunkSpace(voxel.position()), texture));
+                            slice.queue.add(new ChunkProgram.Slice.QueuedQuad(direction, Chunk.toChunkSpace(voxel.position()), texture, light));
                         }
                     }
                 }
