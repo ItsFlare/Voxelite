@@ -121,14 +121,13 @@ public class Chunk implements Iterable<Voxel> {
 
     public static int toLinearSpace(Vec3i position) {
         position = toChunkSpace(position);
-        return (position.x() << AREA_EXP) + (position.z() << WIDTH_EXP) + position.y(); //TODO Replace with bitwise or
+        return (position.x() << AREA_EXP) | (position.z() << WIDTH_EXP) | position.y();
     }
 
     public static Vec3i fromLinearSpace(int index) {
-        //TODO Optimize
-        int x = index / AREA;
-        int y = (index % AREA) % HEIGHT;
-        int z = (index % AREA) / WIDTH;
+        int x = index >>> AREA_EXP;
+        int y = (index & (AREA - 1)) & (HEIGHT - 1);
+        int z = (index & (AREA - 1)) >>> WIDTH_EXP;
         return new Vec3i(x, y, z);
     }
 
