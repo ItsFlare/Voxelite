@@ -63,4 +63,24 @@ public class Util {
     public static String toBinaryString(int i) {
         return String.format("%32s", Integer.toBinaryString(i)).replace(' ', '0');
     }
+
+    public static double lerp(double d0, double d1, double d2) {
+        return d1 + d0 * (d2 - d1);
+    }
+
+    public static double frac(double d0) {
+        return d0 - (double) lfloor(d0);
+    }
+
+    public static long lfloor(double d0) {
+        long i = (long) d0;
+
+        return d0 < (double) i ? i - 1L : i;
+    }
+
+    public static int floor(double d0) {
+        int i = (int) d0;
+
+        return d0 < (double) i ? i - 1 : i;
+    }
 }
