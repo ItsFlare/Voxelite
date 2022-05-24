@@ -27,6 +27,7 @@ public class SkyboxRenderer {
             new SkyboxProgram.SkyboxVertex(new Vec3f(1, 1, 1)),
     };
 
+
     private static final int[] INDICES = {
             1, 0, 4,
             4, 5, 1,

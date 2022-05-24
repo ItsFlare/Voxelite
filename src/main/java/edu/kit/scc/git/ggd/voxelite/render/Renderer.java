@@ -4,6 +4,7 @@ import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.ui.UserInterface;
 import edu.kit.scc.git.ggd.voxelite.util.Util;
 import net.durchholz.beacon.math.Matrix4f;
+import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
 import net.durchholz.beacon.util.Image;
@@ -18,6 +19,8 @@ public class Renderer {
     private final UserInterface  userInterface;
     private final WorldRenderer  worldRenderer;
     private final SkyboxRenderer skyboxRenderer = new SkyboxRenderer(loadSkybox());
+
+    private BillBoardRenderer billBoardRenderer = new BillBoardRenderer();
 
     private Viewport viewport;
 
@@ -55,8 +58,8 @@ public class Renderer {
         OpenGL.polygonMode(OpenGL.Face.BOTH, wireframe ? OpenGL.PolygonMode.LINE : OpenGL.PolygonMode.FILL);
 
         if (renderSkybox) renderSkybox();
+        renderBillBoard();
         if (renderWorld) renderWorld();
-
         if (wireframe) OpenGL.polygonMode(OpenGL.Face.BOTH, OpenGL.PolygonMode.FILL);
         if (renderUI) renderUserInterface();
     }
@@ -78,6 +81,12 @@ public class Renderer {
         final Matrix4f projection = camera.projection();
         projection.multiply(camera.view(false, true));
         skyboxRenderer.render(projection);
+    }
+
+    private void renderBillBoard() {
+        final Matrix4f projection = camera.projection();
+        projection.multiply(camera.view(false, true));
+        billBoardRenderer.render(projection, new Vec3f(0,0.1f,0));
     }
 
     private void renderWorld() {
