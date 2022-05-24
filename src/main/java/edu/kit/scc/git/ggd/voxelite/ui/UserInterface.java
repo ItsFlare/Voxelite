@@ -52,12 +52,12 @@ public class UserInterface {
                     Main.INSTANCE.getWorld().regenerate();
                 }
             });
-            var frequency = new FloatSliderElement("Frequency", 0.02f, 0, 0.1f, value -> {
+            var frequency = new FloatSliderElement("Frequency", 0.01f, 0, 0.1f, value -> {
                 if(Main.INSTANCE.getWorld().getGenerator() instanceof NaturalWorldGenerator g) {
                     g.getPasses().get(0).setFrequency(value);
                 }
             });
-            var amplitude = new IntSliderElement("Amplitude", 20, 0, 50, value -> {
+            var amplitude = new IntSliderElement("Amplitude", 30, 0, 50, value -> {
                 if(Main.INSTANCE.getWorld().getGenerator() instanceof NaturalWorldGenerator g) {
                     g.getPasses().get(0).setAmplitude(value);
                 }

@@ -18,9 +18,9 @@ public class CavePass implements GeneratorPass {
     }
 
     public void apply(Chunk chunk) {
-        int offset = -5;
-        int offset2 = -50;
-        int offset3 = -20;
+        int caveStartOffset = -10;
+        int cheeseCaveStartOffset = -50;
+        int fillAirOffset = -20;
         float range = 0.135F;
         Iterator var6 = chunk.iterator();
 
@@ -32,17 +32,17 @@ public class CavePass implements GeneratorPass {
                 }
 
                 voxel = (Voxel)var6.next();
-            } while(voxel.position().y() >= offset);
+            } while(voxel.position().y() >= caveStartOffset);
 
             Vec3f pos2 = new Vec3f((float)voxel.position().x(), (float)voxel.position().y(), (float)voxel.position().z());
             double density = this.noise.sample(pos2.scale(0.05F));
             if (Math.abs(density) <= (double)range && !this.checkWater(voxel)) {
                 voxel.setBlock(Block.AIR);
-            } else if (Math.abs(density) <= (double)range && voxel.position().y() < offset3) {
+            } else if (Math.abs(density) <= (double)range && voxel.position().y() < fillAirOffset) {
                 voxel.setBlock(Block.STONE);
             }
 
-            if (density < 0.0 && Math.abs(density) > (double)range && voxel.position().y() < offset2) {
+            if (density < 0.0 && Math.abs(density) > (double)range && voxel.position().y() < cheeseCaveStartOffset) {
                 voxel.setBlock(Block.AIR);
             }
 
