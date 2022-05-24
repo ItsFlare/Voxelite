@@ -38,7 +38,7 @@ public class CompressedLightStorage implements LightStorage {
         return decode(light);
     }
 
-    public void calculate(Voxel voxel, Block previous) {
+    public synchronized void calculate(Voxel voxel, Block previous) {
         final Block block = voxel.getBlock();
         final int range = max(get(voxel.position()));
 

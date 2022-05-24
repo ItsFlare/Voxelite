@@ -10,6 +10,7 @@ import net.durchholz.beacon.math.Vec3i;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.ForkJoinPool;
 
 public class Chunk implements Iterable<Voxel> {
 
@@ -50,11 +51,12 @@ public class Chunk implements Iterable<Voxel> {
     public void setBlock(final Vec3i position, final Block block) {
         final Voxel voxel = getVoxel(position);
         final int linear = toLinearSpace(position);
-
         final Block previous = blockStorage.getBlock(linear);
 
         blockStorage.setBlock(linear, block);
-        lightStorage.calculate(voxel, previous);
+        ForkJoinPool.commonPool().submit(() -> {
+            lightStorage.calculate(voxel, previous);
+        });
 
         //TODO Optimize?
         if (previous == Block.AIR && block != Block.AIR) blockCount += 1;
@@ -72,6 +74,7 @@ public class Chunk implements Iterable<Voxel> {
             if (neighbor != null) chunks.add(neighbor.chunk().position);
         }
 
+        //TODO Causes slight flicker because of rebuild during light update
         //Update all affected chunks
         for (Vec3i chunkPosition : chunks) {
             final RenderChunk renderChunk = Main.INSTANCE.getRenderer().getWorldRenderer().getRenderChunk(chunkPosition);
