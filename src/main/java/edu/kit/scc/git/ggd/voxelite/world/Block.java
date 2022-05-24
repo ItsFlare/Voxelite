@@ -5,8 +5,8 @@ import edu.kit.scc.git.ggd.voxelite.render.RenderType;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import net.durchholz.beacon.math.Vec2i;
 import net.durchholz.beacon.math.Vec3f;
-import net.durchholz.beacon.math.Vec3i;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
 
@@ -35,12 +35,14 @@ public enum Block {
     OAK_LOG(builder -> builder.texture("oak_log").texture("oak_log_top", Direction.POS_Y, Direction.NEG_Y)),
     GRASS(builder -> builder.texture("grass_block_side").texture("dirt", Direction.NEG_Y).texture("grass_block_top", Direction.POS_Y)),
     TNT(builder -> builder.texture("tnt_side").texture("tnt_bottom", Direction.NEG_Y).texture("tnt_top", Direction.POS_Y)),
-    RED_GLASS(builder -> builder.texture("red_stained_glass").transparent().filter(new Vec3i(1, 0, 0))),
-    GLOWSTONE(builder -> builder.texture().light(new Vec3f(1, 0, 0), 16));
+    RED_GLASS(builder -> builder.texture("red_stained_glass").transparent().filter(new Vec3f(1, 1, 0))),
+    GLOWSTONE(builder -> builder.texture().light(new Vec3f(1, 0, 0), 31));
+
+    public Vec3f light, filter;
+    public int compressedLight, compressedFilter;
 
     private final Vec2i[] quads;
-    public Vec3i light;
-    private final Vec3i filter;
+    private final int lightRange;
     private final boolean opaque, lightSource;
 
     Block() {
@@ -52,9 +54,14 @@ public enum Block {
         builder.accept(b);
 
         this.quads = b.quads;
+
         this.light = b.light;
-        this.lightSource = !b.light.equals(new Vec3i());
+        this.lightRange = b.lightRange;
+        this.lightSource = !b.light.equals(new Vec3f()) && lightRange > 0;
         this.filter = b.filter;
+        this.compressedLight = CompressedLightStorage.encode(light, lightRange);
+        this.compressedFilter = CompressedLightStorage.encode(filter, LightStorage.MAX_COMPONENT_VALUE);
+
         this.opaque = b.opaque;
     }
 
@@ -69,8 +76,25 @@ public enum Block {
     }
 
     @NotNull
-    public Vec3i getLight() {
+    public Vec3f getLight() {
         return light;
+    }
+
+    public int getLightRange() {
+        return lightRange;
+    }
+
+    public int getCompressedLight() {
+        return compressedLight;
+    }
+
+    public int getCompressedFilter() {
+        return compressedFilter;
+    }
+
+    @Nullable
+    public Vec3f getFilter() {
+        return filter;
     }
 
     public boolean isLightSource() {
@@ -85,16 +109,13 @@ public enum Block {
         return !opaque;
     }
 
-    public Vec3i getFilter() {
-        return filter;
-    }
-
     private static class Builder {
         private final String name;
         private final Vec2i[] quads = new Vec2i[Direction.values().length]; //TODO Default values
-        private Vec3i light = new Vec3i();
-        private Vec3i filter = new Vec3i(1);
+        private Vec3f light = new Vec3f();
+        private Vec3f filter = new Vec3f(1);
         private boolean opaque = true;
+        private int lightRange = 0;
 
         private Builder(String name) {
             this.name = name;
@@ -127,25 +148,21 @@ public enum Block {
             return this;
         }
 
-        public Builder light(Vec3f light, int range) {
-            if(light.min() < 0) throw new IllegalArgumentException("Light values must not be negative");
-            if(range > LightStorage.RANGE) throw new IllegalArgumentException();
-
-            int channelsR = Math.round(light.x() * (float) LightStorage.CHANNELS);
-            int channelsG = Math.round(light.y() * (float) LightStorage.CHANNELS);
-            int channelsB = Math.round(light.z() * (float) LightStorage.CHANNELS);
-
-            this.light = new Vec3i(channelsR, channelsG, channelsB);
-
-            return this;
-        }
-
         public Builder transparent() {
             this.opaque = false;
             return this;
         }
 
-        public Builder filter(Vec3i filter) {
+        public Builder light(Vec3f light, int range) {
+            if(light.min() < 0) throw new IllegalArgumentException("Light values must not be negative");
+
+            this.light = light;
+            this.lightRange = range;
+
+            return this;
+        }
+
+        public Builder filter(Vec3f filter) {
             this.filter = filter;
             return this;
         }

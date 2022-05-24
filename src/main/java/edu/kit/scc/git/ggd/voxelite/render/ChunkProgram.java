@@ -289,7 +289,7 @@ public class ChunkProgram extends Program {
         }
 
         public static int packLight(Vec3i light) {
-            assert LightStorage.MAX_VALUE < (1 << 10);
+            assert LightStorage.MAX_TOTAL_VALUE < (1 << 10);
             assert light.x() < 1024 && light.y() < 1024 && light.z() < 1024;
 
             int result = 0;

@@ -28,9 +28,9 @@ public class RenderChunk {
     }
 
     public void build() {
-        assert valid && dirty;
-
         synchronized (this) {
+            if(!valid || !dirty) return;
+
             dirty = false;
             //TODO Ensure chunk memory visible
             for (Voxel voxel : chunk) {

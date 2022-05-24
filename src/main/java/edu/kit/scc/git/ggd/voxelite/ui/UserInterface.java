@@ -9,13 +9,13 @@ import edu.kit.scc.git.ggd.voxelite.util.LongRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.util.SuppliedLongRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.world.Block;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
-import edu.kit.scc.git.ggd.voxelite.world.LightStorage;
+import edu.kit.scc.git.ggd.voxelite.world.CompressedLightStorage;
 import edu.kit.scc.git.ggd.voxelite.world.generator.ModuloChunkGenerator;
 import edu.kit.scc.git.ggd.voxelite.world.generator.NaturalWorldGenerator;
 import imgui.ImGui;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import net.durchholz.beacon.math.Vec3i;
+import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec4f;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.window.Window;
@@ -94,11 +94,11 @@ public class UserInterface {
             var mode = new DropdownElement<Consumer<Vec4f>>("Mode",
                     Map.of("sun", value -> Main.INSTANCE.getRenderer().getWorldRenderer().lightColor = value,
                             "block", value -> {
-                                int channelsR = Math.round(value.x() * (float) LightStorage.CHANNELS);
-                                int channelsG = Math.round(value.y() * (float) LightStorage.CHANNELS);
-                                int channelsB = Math.round(value.z() * (float) LightStorage.CHANNELS);
-
-                                Block.GLOWSTONE.light = new Vec3i(channelsR, channelsG, channelsB);
+                                Block.GLOWSTONE.light = new Vec3f(value.x(), value.y(), value.z());
+                                Block.GLOWSTONE.compressedLight = CompressedLightStorage.encode(Block.GLOWSTONE.light, Block.GLOWSTONE.getLightRange());
+                            }, "filter", value -> {
+                                Block.RED_GLASS.filter = new Vec3f(value.x(), value.y(), value.z());
+                                Block.RED_GLASS.compressedFilter = CompressedLightStorage.encode(Block.RED_GLASS.filter, CompressedLightStorage.MAX_COMPONENT_VALUE);
                             }
                     )
             );

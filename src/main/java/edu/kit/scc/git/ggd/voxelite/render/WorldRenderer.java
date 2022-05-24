@@ -118,7 +118,7 @@ public class WorldRenderer {
                 program.specularStrength.set(specularStrength);
                 program.phongExponent.set(phongExponent);
                 program.normalizedSpriteSize.set(atlas.getNormalizedSpriteSize());
-                program.maxLightValue.set(LightStorage.MAX_VALUE);
+                program.maxLightValue.set(LightStorage.MAX_TOTAL_VALUE);
 
                 for (RenderChunk renderChunk : renderList) {
                     if(renderChunk.isValid()) renderChunk.render(renderType);

@@ -59,4 +59,8 @@ public class Util {
     public static int log2(int n) {
         return (int) Math.ceil(Math.log(n) / Math.log(2));
     }
+
+    public static String toBinaryString(int i) {
+        return String.format("%32s", Integer.toBinaryString(i)).replace(' ', '0');
+    }
 }

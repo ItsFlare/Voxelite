@@ -9,9 +9,8 @@ public interface LightStorage {
     int RANGE    = 1 << RANGE_EXP;
     int CHANNELS = 1 << CHANNELS_EXP;
 
-    int MAX_VALUE = RANGE << CHANNELS_EXP;
+    int MAX_COMPONENT_VALUE = RANGE - 1;
+    int MAX_TOTAL_VALUE = MAX_COMPONENT_VALUE << CHANNELS_EXP;
 
     Vec3i getLight(Vec3i position);
-
-    void setLight(Vec3i position, Vec3i light, int range);
 }

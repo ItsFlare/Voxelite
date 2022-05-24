@@ -24,12 +24,13 @@ public class Chunk implements Iterable<Voxel> {
     public static final AABB  BOUNDING_BOX = new AABB(new Vec3f(), WIDTH, HEIGHT, WIDTH);
 
 
-    private final World        world;
-    private final Vec3i        position;
-    private final AABB         boundingBox;
-    private final BlockStorage blockStorage = new CompressedBlockStorage();
-    private final NaiveLightStorage lightStorage = new NaiveLightStorage(this);
-    private       int          blockCount   = 0;
+    private final World                  world;
+    private final Vec3i                  position;
+    private final AABB                   boundingBox;
+    private final BlockStorage           blockStorage = new CompressedBlockStorage();
+    private final CompressedLightStorage lightStorage = new CompressedLightStorage();
+
+    private int blockCount = 0;
 
 
     public Chunk(World world, Vec3i position) {
@@ -53,6 +54,11 @@ public class Chunk implements Iterable<Voxel> {
         final Block previous = blockStorage.getBlock(linear);
 
         blockStorage.setBlock(linear, block);
+        lightStorage.calculate(voxel, previous);
+
+        //TODO Optimize?
+        if (previous == Block.AIR && block != Block.AIR) blockCount += 1;
+        else if (previous != Block.AIR && block == Block.AIR) blockCount -= 1;
 
         //Store chunks to update
         final Set<Vec3i> chunks = new HashSet<>();
@@ -63,14 +69,8 @@ public class Chunk implements Iterable<Voxel> {
         //Add neighboring chunks
         for (Direction direction : Direction.values()) {
             final Voxel neighbor = voxel.getNeighbor(direction);
-            if(neighbor != null) chunks.add(neighbor.chunk().position);
+            if (neighbor != null) chunks.add(neighbor.chunk().position);
         }
-
-        lightStorage.calculate(voxel, previous);
-
-        //TODO Optimize?
-        if (previous == Block.AIR && block != Block.AIR) blockCount += 1;
-        else if (previous != Block.AIR && block == Block.AIR) blockCount -= 1;
 
         //Update all affected chunks
         for (Vec3i chunkPosition : chunks) {
@@ -79,7 +79,7 @@ public class Chunk implements Iterable<Voxel> {
         }
     }
 
-    public NaiveLightStorage getLightStorage() {
+    public CompressedLightStorage getLightStorage() {
         return lightStorage;
     }
 
