@@ -13,7 +13,7 @@ import java.util.Objects;
 public class RenderChunk {
     private final Chunk                chunk;
     private final ChunkProgram.Slice[] slices = new ChunkProgram.Slice[RenderType.values().length];
-    private volatile boolean valid = true;
+    private volatile boolean valid = true, dirty;
 
     public RenderChunk(Chunk chunk) {
         this.chunk = chunk;
@@ -27,9 +27,11 @@ public class RenderChunk {
     }
 
     public void build() {
-        synchronized (this) {
-            if(!valid) return;
+        assert valid && dirty;
 
+        synchronized (this) {
+            dirty = false;
+            //TODO Ensure chunk memory visible
             for (Voxel voxel : chunk) {
                 final Block block = voxel.getBlock();
                 if (block == Block.AIR) continue;
@@ -53,11 +55,12 @@ public class RenderChunk {
                 if(s != null) s.build();
             }
         }
-        Main.INSTANCE.getRenderer().getWorldRenderer().toUpload.add(this);
+        Main.INSTANCE.getRenderer().getWorldRenderer().queueUpload((this));
     }
 
     public void upload() {
-        if(!valid) return;
+        assert valid;
+
         for (ChunkProgram.Slice slice : slices) {
             if (slice == null) continue; //TODO Remove with transparency
             slice.upload();
@@ -65,7 +68,9 @@ public class RenderChunk {
     }
 
     public void render(RenderType renderType) {
-        if(!valid) return;
+        assert valid;
+
+        renderType.getProgram().chunk.set(Chunk.toWorldPosition(chunk.getPosition()));
         slices[renderType.ordinal()].render();
     }
 
@@ -84,5 +89,17 @@ public class RenderChunk {
 
     public Chunk getChunk() {
         return chunk;
+    }
+
+    public boolean isValid() {
+        return valid;
+    }
+
+    public boolean isDirty() {
+        return dirty;
+    }
+
+    public void setDirty() {
+        this.dirty = true;
     }
 }

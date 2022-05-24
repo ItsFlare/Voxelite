@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 
 public enum Block {
 
-    AIR(builder -> {}) {
+    AIR() {
         @Override
         public @NotNull Vec2i getTexture(Direction direction) {
             return thr();
@@ -35,6 +35,10 @@ public enum Block {
     TNT(builder -> builder.texture("tnt_side").texture("tnt_bottom", Direction.NEG_Y).texture("tnt_top", Direction.POS_Y));
 
     private final Vec2i[] quads;
+
+    Block() {
+        this(builder -> {});
+    }
 
     Block(Consumer<Builder> builder) {
         final Builder b = new Builder();
@@ -69,7 +73,7 @@ public enum Block {
         }
 
         public Builder texture(String name, int rotation, Direction... directions) {
-            Vec2i uv = Main.INSTANCE.getRenderer().getWorldRenderer().getAtlas().getSprite(name + ".png"); //TODO Atlas lookup
+            Vec2i uv = Main.INSTANCE.getRenderer().getWorldRenderer().getAtlas().getSprite(name + ".png");
             for (Direction direction : directions) {
                 quads[direction.ordinal()] = uv; //TODO Rotate
             }

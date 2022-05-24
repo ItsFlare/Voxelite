@@ -63,6 +63,7 @@ public class Renderer {
 
     public void tick() {
         worldRenderer.tick();
+        userInterface.tick();
     }
 
     private void updateViewport() {
@@ -73,10 +74,6 @@ public class Renderer {
         }
     }
 
-    private void renderUserInterface() {
-        userInterface.tick();
-    }
-
     private void renderSkybox() {
         final Matrix4f projection = camera.projection();
         projection.multiply(camera.view(false, true));
@@ -85,6 +82,10 @@ public class Renderer {
 
     private void renderWorld() {
         worldRenderer.render();
+    }
+
+    private void renderUserInterface() {
+        userInterface.draw();
     }
 
     private static CubemapTexture loadSkybox() throws IOException {

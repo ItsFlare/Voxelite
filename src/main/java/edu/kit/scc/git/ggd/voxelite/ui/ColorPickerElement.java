@@ -21,7 +21,7 @@ public class ColorPickerElement extends StateElement<Vec4f> {
     @Override
     public void draw() {
         super.draw();
-        ImGui.colorPicker4(title, value);
+        ImGui.colorEdit4(title, value);
     }
 
     @Override

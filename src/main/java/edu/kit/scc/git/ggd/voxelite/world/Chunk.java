@@ -46,8 +46,8 @@ public class Chunk implements Iterable<Voxel> {
         storage.setBlock(linear, block);
 
         //TODO Optimize?
-        if (previous == null && block != Block.AIR) blockCount += 1;
-        else if (previous != null && block == Block.AIR) blockCount -= 1;
+        if (previous == Block.AIR && block != Block.AIR) blockCount += 1;
+        else if (previous != Block.AIR && block == Block.AIR) blockCount -= 1;
     }
 
     public World getWorld() {

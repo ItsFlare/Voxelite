@@ -1,41 +1,36 @@
 package edu.kit.scc.git.ggd.voxelite.world;
 
+import edu.kit.scc.git.ggd.voxelite.util.ParallelRunner;
 import edu.kit.scc.git.ggd.voxelite.world.generator.WorldGenerator;
 import net.durchholz.beacon.math.Vec3i;
 
-import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
-public class AsyncChunkLoader {
-    private static final int PARALLELISM = ForkJoinPool.getCommonPoolParallelism() / 2;
+public class AsyncChunkLoader extends ParallelRunner {
 
-    private final WorldGenerator generator;
-    private final Queue<Chunk>   finished = new ConcurrentLinkedQueue<>();
+    private final WorldGenerator       generator;
+    private final BlockingQueue<Vec3i> pending;
+    private final BlockingQueue<Chunk> finished;
 
-    public AsyncChunkLoader(WorldGenerator generator, BlockingQueue<Vec3i> expected) {
+    public AsyncChunkLoader(WorldGenerator generator, BlockingQueue<Vec3i> pending, int bufferLimit, int parallelism) {
+        super("AsyncChunkLoader", parallelism);
         this.generator = generator;
-
-        for (int i = 0; i < PARALLELISM; i++) {
-            final Thread thread = new Thread(() -> {
-                try {
-                    while (!Thread.interrupted()) {
-                        finished.add(generator.generate(expected.take()));
-                    }
-                } catch (InterruptedException ignored) {
-
-                }
-            });
-            thread.setDaemon(true);
-            thread.start();
-        }
+        this.pending = pending;
+        this.finished = new LinkedBlockingQueue<>(bufferLimit);
     }
 
-    public void consume(Consumer<Chunk> consumer) {
+    @Override
+    protected void run() throws Exception {
+        final Chunk chunk = generator.generate(pending.take());
+        finished.put(chunk);
+    }
+
+    public void consume(Consumer<Chunk> consumer, int limit) {
         Chunk c;
-        while ((c = finished.poll()) != null) {
+        int i = 0;
+        while (i++ < limit && (c = finished.poll()) != null) {
             consumer.accept(c);
         }
     }
