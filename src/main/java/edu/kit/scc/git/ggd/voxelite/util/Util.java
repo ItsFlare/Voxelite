@@ -16,12 +16,16 @@ import java.util.stream.Stream;
 
 public class Util {
 
-    public static String readShaderResource(String name) throws IOException {
+    public static String readShaderResource(String name) {
         return readStringResource("shaders/" + name);
     }
 
-    public static String readStringResource(String resource) throws IOException {
-        return new String(readResource(resource).readAllBytes());
+    public static String readStringResource(String resource) {
+        try {
+            return new String(readResource(resource).readAllBytes());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static InputStream readResource(String resource) {
