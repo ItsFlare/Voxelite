@@ -149,7 +149,10 @@ public class ChunkProgram extends Program {
         }
 
         public synchronized void build() {
-            if (queue.isEmpty()) return;
+            if (queue.isEmpty()) {
+                quadCount = 0;
+                return;
+            }
 
             var queuedQuads = queue
                     .stream()
@@ -167,7 +170,6 @@ public class ChunkProgram extends Program {
 
             queue.clear();
         }
-
 
         public synchronized void upload() {
             if (nextVertices == null) return;
