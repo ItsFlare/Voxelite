@@ -275,7 +275,7 @@ public class ChunkProgram extends Program {
         }
 
         public static int packInstance(Vec3i offset, Vec2i texture) {
-            assert offset.x() < Chunk.WIDTH && offset.y() < Chunk.HEIGHT && offset.z() < Chunk.WIDTH;
+            assert offset.max() < Chunk.WIDTH;
             assert texture.x() < 256 && texture.y() < 256;
 
             int result = 0;

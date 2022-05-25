@@ -14,15 +14,20 @@ import java.util.concurrent.ForkJoinPool;
 
 public class Chunk implements Iterable<Voxel> {
 
-    public static final int   WIDTH_EXP    = 5;
-    public static final int   HEIGHT_EXP   = 5;
-    public static final int   AREA_EXP     = WIDTH_EXP << 1;
-    public static final int   WIDTH        = 1 << WIDTH_EXP;
-    public static final int   HEIGHT       = 1 << HEIGHT_EXP;
-    public static final int   AREA         = 1 << AREA_EXP;
-    public static final int   VOLUME       = AREA << HEIGHT_EXP;
-    public static final Vec3i CENTER       = new Vec3i(WIDTH >> 1, HEIGHT >> 1, WIDTH >> 1);
-    public static final AABB  BOUNDING_BOX = new AABB(new Vec3f(), WIDTH, HEIGHT, WIDTH);
+    public static final int WIDTH_EXP  = 5;
+    public static final int AREA_EXP   = WIDTH_EXP << 1;
+
+    public static final int WIDTH  = 1 << WIDTH_EXP;
+    public static final int AREA   = 1 << AREA_EXP;
+    public static final int VOLUME = AREA << WIDTH_EXP;
+
+    public static final int MAX_WIDTH  = Chunk.WIDTH - 1;
+    public static final int MAX_AREA   = Chunk.AREA - 1;
+    public static final int MAX_VOLUME = Chunk.VOLUME - 1;
+
+    public static final Vec3i EXTENT       = new Vec3i(MAX_WIDTH);
+    public static final Vec3i CENTER       = new Vec3i(WIDTH >> 1);
+    public static final AABB  BOUNDING_BOX = new AABB(new Vec3f(), WIDTH, WIDTH, WIDTH);
 
 
     private final World                  world;
@@ -124,25 +129,34 @@ public class Chunk implements Iterable<Voxel> {
         return (position.x() << AREA_EXP) | (position.z() << WIDTH_EXP) | position.y();
     }
 
-    public static Vec3i fromLinearSpace(int index) {
-        int x = index >>> AREA_EXP;
-        int y = (index & (AREA - 1)) & (HEIGHT - 1);
-        int z = (index & (AREA - 1)) >>> WIDTH_EXP;
-        return new Vec3i(x, y, z);
+    public static Vec3i fromLinearSpace(int linear) {
+        return new Vec3i(x(linear), y(linear), z(linear));
+    }
+
+    public static int x(int linear) {
+        return linear >>> AREA_EXP;
+    }
+
+    public static int y(int linear) {
+        return linear & MAX_WIDTH;
+    }
+
+    public static int z(int linear) {
+        return (linear >>> WIDTH_EXP) & MAX_WIDTH;
     }
 
     public static Vec3i toChunkSpace(Vec3i position) {
         return new Vec3i(
-                position.x() & (WIDTH - 1),
-                position.y() & (HEIGHT - 1),
-                position.z() & (WIDTH - 1)
+                position.x() & MAX_WIDTH,
+                position.y() & MAX_WIDTH,
+                position.z() & MAX_WIDTH
         );
     }
 
     public static Vec3i toChunkPosition(Vec3i worldPosition) {
         return new Vec3i(
                 worldPosition.x() >> WIDTH_EXP,
-                worldPosition.y() >> HEIGHT_EXP,
+                worldPosition.y() >> WIDTH_EXP,
                 worldPosition.z() >> WIDTH_EXP
         );
     }
@@ -161,7 +175,7 @@ public class Chunk implements Iterable<Voxel> {
     public static Vec3i toWorldPosition(Vec3i chunkPosition) {
         return new Vec3i(
                 chunkPosition.x() << WIDTH_EXP,
-                chunkPosition.y() << HEIGHT_EXP,
+                chunkPosition.y() << WIDTH_EXP,
                 chunkPosition.z() << WIDTH_EXP
         );
     }
