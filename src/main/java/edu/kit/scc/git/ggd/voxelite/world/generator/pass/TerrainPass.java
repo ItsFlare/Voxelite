@@ -69,7 +69,7 @@ public class TerrainPass implements GeneratorPass {
                 voxel.setBlock(Block.STONE);
             }
             if ((voxel.position().y() > height) && (voxel.position().y() < waterLevel)) {
-                voxel.setBlock(Block.COBBLESTONE);
+                voxel.setBlock(Block.WATER);
             }
 
         }
