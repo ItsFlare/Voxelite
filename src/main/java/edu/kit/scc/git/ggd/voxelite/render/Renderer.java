@@ -2,8 +2,10 @@ package edu.kit.scc.git.ggd.voxelite.render;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.ui.UserInterface;
+import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.util.Util;
 import net.durchholz.beacon.math.Matrix4f;
+import net.durchholz.beacon.math.Quaternion;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
@@ -19,8 +21,7 @@ public class Renderer {
     private final UserInterface  userInterface;
     private final WorldRenderer  worldRenderer;
     private final SkyboxRenderer skyboxRenderer = new SkyboxRenderer(loadSkybox());
-
-    private BillBoardRenderer billBoardRenderer = new BillBoardRenderer();
+    private final QuadRenderer   quadRenderer   = new QuadRenderer();
 
     private Viewport viewport;
 
@@ -57,8 +58,11 @@ public class Renderer {
         updateViewport();
         OpenGL.polygonMode(OpenGL.Face.BOTH, wireframe ? OpenGL.PolygonMode.LINE : OpenGL.PolygonMode.FILL);
 
-        if (renderSkybox) renderSkybox();
-        renderBillBoard();
+        if (renderSkybox) {
+            renderSkybox();
+            renderSun();
+        }
+        
         if (renderWorld) renderWorld();
         if (wireframe) OpenGL.polygonMode(OpenGL.Face.BOTH, OpenGL.PolygonMode.FILL);
         if (renderUI) renderUserInterface();
@@ -83,10 +87,20 @@ public class Renderer {
         skyboxRenderer.render(projection);
     }
 
-    private void renderBillBoard() {
+    private void renderSun() {
+        final Quaternion quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), 90).normalized();
+        final Matrix4f model = Matrix4f.identity();
+        model.scale(0.1f);
+        model.multiply(Matrix4f.rotation(quaternion));
+
+        final Vec3f quadNormal = new Vec3f(Direction.POS_Z.getAxis());
+        model.translate(quadNormal.rotate(quaternion));
+
+        final Matrix4f view = camera.view(false, true);
         final Matrix4f projection = camera.projection();
-        projection.multiply(camera.view(false, true));
-        billBoardRenderer.render(projection, new Vec3f(0,0.1f,0));
+        view.multiply(model);
+        projection.multiply(view);
+        quadRenderer.render(projection);
     }
 
     private void renderWorld() {

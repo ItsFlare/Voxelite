@@ -13,22 +13,21 @@ import net.durchholz.beacon.render.opengl.shader.Uniform;
 
 import java.io.IOException;
 
-public class BillBoardProgram extends Program {
+public class QuadProgram extends Program {
 
-    public BillBoardProgram() throws IOException {
-        super(Shader.vertex(Util.readShaderResource("sun.vs")), Shader.fragment(Util.readShaderResource("sun.fs")));
+    public QuadProgram() throws IOException {
+        super(Shader.vertex(Util.readShaderResource("quad.vs")), Shader.fragment(Util.readShaderResource("quad.fs")));
     }
 
     public final Attribute<Vec3f> pos = attribute("pos", OpenGL.Type.FLOAT, 3);
 
-    public final Uniform<Matrix4f> vp = uniMatrix4f("vp", true);
-    public final Uniform<Vec3f> center = uniVec3f("center");
+    public final Uniform<Matrix4f> mvp = uniMatrix4f("mvp", true);
 
     //public final Sampler skybox = sampler("skybox");
 
-    record BillBoardVertex(Vec3f position) implements Vertex {
-        public static final VertexLayout<BillBoardProgram.BillBoardVertex> LAYOUT = new VertexLayout<>(BillBoardProgram.BillBoardVertex.class);
-        public static final VertexAttribute<Vec3f> POSITION = LAYOUT.vec3f(false);
+    record QuadVertex(Vec3f position) implements Vertex {
+        public static final VertexLayout<QuadVertex> LAYOUT   = new VertexLayout<>(QuadVertex.class);
+        public static final VertexAttribute<Vec3f>   POSITION = LAYOUT.vec3f(false);
 
         @Override
         public VertexLayout<?> getLayout() {
