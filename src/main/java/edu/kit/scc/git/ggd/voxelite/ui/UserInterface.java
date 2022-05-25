@@ -56,6 +56,7 @@ public class UserInterface {
         }
 
         {
+            var time = new TextElement(() -> "Time: " + Time.getTime());
             var load = new CheckboxElement("Load Chunks", true, value -> Main.INSTANCE.getWorld().setLoadChunks(value));
             var radius = new IntSliderElement("Chunk radius", 4, 0, 50, value -> Main.INSTANCE.getWorld().setChunkRadius(value));
             var modulo = new IntSliderElement("Block gen modulo", ModuloChunkGenerator.DEFAULT_MOD, 1, 50, value -> {
@@ -78,7 +79,7 @@ public class UserInterface {
             var uploadRate = new IntSliderElement("Build rate", 8, 0, 64, value -> Main.INSTANCE.getWorld().buildRate = value);
             var rebuild = new ButtonElement("Force rebuild", () -> Main.INSTANCE.getRenderer().getWorldRenderer().queueAll());
             var regenerate = new ButtonElement("Force regenerate", () -> Main.INSTANCE.getWorld().regenerate());
-            this.world = new Accordion("World", true, load, radius, modulo, frequency, amplitude, buildRate, uploadRate, rebuild, ImGui::sameLine, regenerate);
+            this.world = new Accordion("World", true, time, load, radius, modulo, frequency, amplitude, buildRate, uploadRate, rebuild, ImGui::sameLine, regenerate);
         }
 
         {
@@ -145,6 +146,7 @@ public class UserInterface {
         ImGui.begin("Settings");
 
         drawProfiler();
+
         camera.draw();
         render.draw();
         world.draw();

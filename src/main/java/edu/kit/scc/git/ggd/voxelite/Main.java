@@ -2,6 +2,7 @@ package edu.kit.scc.git.ggd.voxelite;
 
 import edu.kit.scc.git.ggd.voxelite.input.InputListener;
 import edu.kit.scc.git.ggd.voxelite.render.Renderer;
+import edu.kit.scc.git.ggd.voxelite.ui.Time;
 import edu.kit.scc.git.ggd.voxelite.util.TimerRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.util.VoxeliteExecutor;
 import edu.kit.scc.git.ggd.voxelite.world.World;
@@ -37,6 +38,8 @@ public class Main {
     private final TimerRingBuffer  profiler = new TimerRingBuffer();
     private final World            world    = new World(new NaturalWorldGenerator(25));
     private final VoxeliteExecutor executor = new VoxeliteExecutor();
+
+    private final Time time = new Time();
 
     static {
         System.setProperty("log4j.skipJansi", "false");
@@ -95,7 +98,6 @@ public class Main {
             inputSystem.poll();
             inputSystem.tick();
             inputListener.move(deltaTime / (float) NS_PER_SECOND);
-
             while (accumulator >= NS_PER_TICK) {
                 simulate();
                 accumulator -= NS_PER_TICK;
@@ -103,6 +105,7 @@ public class Main {
 
             world.frame();
             renderer.render();
+            time.time();
 
             window.swapBuffers();
             OpenGL.clearAll();
