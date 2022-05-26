@@ -146,48 +146,51 @@ public class World {
         return loadQueue.size();
     }
 
-    public Intersection traverse(Vec3f origin, Vec3f direction, float range) {
-        return traverse(origin, origin.add(direction.normalized().scale(range)), block -> block != Block.AIR);
+    public final Intersection traverse(Vec3f origin, Vec3f direction, float range) {
+        return traverse(origin, origin.add(direction.normalized().scale(range)));
     }
 
-    public Intersection traverse(Vec3f origin, Vec3f direction, float range, Predicate<Block> hitPredicate) {
+    public final Intersection traverse(Vec3f origin, Vec3f direction, float range, Predicate<Voxel> hitPredicate) {
         return traverse(origin, origin.add(direction.normalized().scale(range)), hitPredicate);
     }
-    public Intersection traverse(Vec3f origin, Vec3f target) {
-        return traverse(origin, target, block -> block != Block.AIR);
+
+    public final Intersection traverse(Vec3f origin, Vec3f target) {
+        return traverse(origin, target, voxel -> voxel.getBlock() != Block.AIR);
     }
 
-    public Intersection traverse(Vec3f origin, Vec3f target, Predicate<Block> hitPredicate) {
+    public final Intersection traverse(Vec3f origin, Vec3f target, Predicate<Voxel> hitPredicate) {
         /*
         Amanatides and Woo. A Fast Voxel Traversal Algorithm for Ray Tracing. 1987.
          */
 
-        final double d0 = Util.lerp(-1.0E-7D, target.x(), origin.x());
-        final double d1 = Util.lerp(-1.0E-7D, target.y(), origin.y());
-        final double d2 = Util.lerp(-1.0E-7D, target.z(), origin.z());
-        final double d3 = Util.lerp(-1.0E-7D, origin.x(), target.x());
-        final double d4 = Util.lerp(-1.0E-7D, origin.y(), target.y());
-        final double d5 = Util.lerp(-1.0E-7D, origin.z(), target.z());
+        //Move slightly inwards in case coordinates are flat
+        final float alpha = 1.0E-6f;
+        origin = origin.interpolate(target, alpha);
+        target = target.interpolate(origin, alpha);
 
-        final double lenX = d0 - d3;
-        final double lenY = d1 - d4;
-        final double lenZ = d2 - d5;
+        final double lenX = target.x() - origin.x();
+        final double lenY = target.y() - origin.y();
+        final double lenZ = target.z() - origin.z();
+
         final int signX = Double.compare(lenX, 0);
         final int signY = Double.compare(lenY, 0);
         final int signZ = Double.compare(lenZ, 0);
+
         final Direction dirX = signX == 1 ? Direction.NEG_X : Direction.POS_X;
         final Direction dirY = signY == 1 ? Direction.NEG_Y : Direction.POS_Y;
         final Direction dirZ = signZ == 1 ? Direction.NEG_Z : Direction.POS_Z;
+
         final double tDeltaX = signX == 0 ? Double.MAX_VALUE : (double) signX / lenX;
         final double tDeltaY = signY == 0 ? Double.MAX_VALUE : (double) signY / lenY;
         final double tDeltaZ = signZ == 0 ? Double.MAX_VALUE : (double) signZ / lenZ;
 
-        double tMaxX = tDeltaX * (signX > 0 ? 1 - Util.frac(d3) : Util.frac(d3));
-        double tMaxY = tDeltaY * (signY > 0 ? 1 - Util.frac(d4) : Util.frac(d4));
-        double tMaxZ = tDeltaZ * (signZ > 0 ? 1 - Util.frac(d5) : Util.frac(d5));
-        int x = Util.floor(d3);
-        int y = Util.floor(d4);
-        int z = Util.floor(d5);
+        double tMaxX = tDeltaX * (signX > 0 ? 1 - Util.frac(origin.x()) : Util.frac(origin.x()));
+        double tMaxY = tDeltaY * (signY > 0 ? 1 - Util.frac(origin.y()) : Util.frac(origin.y()));
+        double tMaxZ = tDeltaZ * (signZ > 0 ? 1 - Util.frac(origin.z()) : Util.frac(origin.z()));
+
+        int x = (int) Math.floor(origin.x());
+        int y = (int) Math.floor(origin.y());
+        int z = (int) Math.floor(origin.z());
 
         Voxel v;
         Direction normal;
@@ -218,7 +221,7 @@ public class World {
             }
 
             v = getVoxel(new Vec3i(x, y, z));
-        } while (v == null || !hitPredicate.test(v.getBlock()));
+        } while (v == null || !hitPredicate.test(v));
 
         return new Intersection(v, normal);
     }

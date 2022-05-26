@@ -1,6 +1,7 @@
 package edu.kit.scc.git.ggd.voxelite.util;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
+import net.durchholz.beacon.math.Vec3i;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -11,6 +12,10 @@ import java.net.URL;
 import java.nio.file.*;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.function.Consumer;
+import java.util.function.IntFunction;
+import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -64,23 +69,56 @@ public class Util {
         return String.format("%32s", Integer.toBinaryString(i)).replace(' ', '0');
     }
 
-    public static double lerp(double d0, double d1, double d2) {
-        return d1 + d0 * (d2 - d1);
+    public static double frac(float f) {
+        return f - Math.floor(f);
     }
 
-    public static double frac(double d0) {
-        return d0 - (double) lfloor(d0);
+    public static <T> T init(T t, Consumer<T> consumer) {
+        consumer.accept(t);
+        return t;
     }
 
-    public static long lfloor(double d0) {
-        long i = (long) d0;
-
-        return d0 < (double) i ? i - 1L : i;
+    public static <T> T init(IntFunction<T> constructor, IntSupplier supplier, Consumer<T> consumer) {
+        final T t = constructor.apply(supplier.getAsInt());
+        consumer.accept(t);
+        return t;
     }
 
-    public static int floor(double d0) {
-        int i = (int) d0;
+    public static Iterable<Vec3i> cuboid(Vec3i a, Vec3i b) {
+        final Vec3i origin = Vec3i.min(a, b);
+        final Vec3i target = Vec3i.max(a, b);
+        final Vec3i diff = target.subtract(origin).add(1);
+        final int maxIndex = diff.x() * diff.y() * diff.z();
 
-        return d0 < (double) i ? i - 1 : i;
+        return () -> new Iterator<>() {
+            private int index = 0;
+            private int x = origin.x(), y = origin.y(), z = origin.y();
+
+            @Override
+            public boolean hasNext() {
+                return index < maxIndex;
+            }
+
+            @Override
+            public Vec3i next() {
+                Vec3i next = new Vec3i(x, y, z);
+
+                if (y++ == target.y()) {
+                    y = origin.y();
+
+                    if (z++ == target.z()) {
+                        z = origin.z();
+
+                        if (x++ == target.x()) {
+                            x = origin.x();
+                        }
+                    }
+                }
+
+                index++;
+
+                return next;
+            }
+        };
     }
 }
