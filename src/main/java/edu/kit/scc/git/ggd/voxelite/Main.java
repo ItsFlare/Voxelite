@@ -39,6 +39,9 @@ public class Main {
     private final World            world    = new World(new NaturalWorldGenerator(25));
     private final VoxeliteExecutor executor = new VoxeliteExecutor();
 
+    private long tick;
+    public static final long tickPerDay = 2000;
+
     private final Time time = new Time();
 
     static {
@@ -123,6 +126,7 @@ public class Main {
     private void simulate() {
         world.tick();
         renderer.tick();
+        tick++;
     }
 
     public Window getWindow() {
@@ -151,6 +155,10 @@ public class Main {
 
     public VoxeliteExecutor getExecutor() {
         return executor;
+    }
+
+    public long getTick() {
+        return tick;
     }
 
     public static void main(String[] args) {

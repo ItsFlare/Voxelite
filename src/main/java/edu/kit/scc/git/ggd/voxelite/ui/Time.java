@@ -9,14 +9,16 @@ public class Time {
     long counter = 0;
     boolean addOnce = true;
 
+
+
     public Time() {
-        hour = 6;
+        hour = 12;
         minute = 0;
         start = System.currentTimeMillis();
     }
 
     public void time() {
-        long secPerSecond = 10;
+        long secPerSecond = 2;
         deltaTime = (System.currentTimeMillis() - start) / 1000;
 
         if (counter == 0 && addOnce) {
@@ -37,7 +39,7 @@ public class Time {
         }
     }
 
-    public static String getTime() {
+    public static String timeToString() {
         String h = String.valueOf(hour);
         String min = String.valueOf(minute);
         if (hour < 10) {
@@ -47,5 +49,13 @@ public class Time {
             min = "0" + min;
         }
         return h + ":" + min;
+    }
+
+    public static int getHour() {
+        return hour;
+    }
+
+    public static int getMinute() {
+        return minute;
     }
 }
