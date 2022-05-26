@@ -3,9 +3,7 @@ package edu.kit.scc.git.ggd.voxelite.render;
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.texture.TextureAtlas;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
-import edu.kit.scc.git.ggd.voxelite.world.AsyncChunkBuilder;
-import edu.kit.scc.git.ggd.voxelite.world.Chunk;
-import edu.kit.scc.git.ggd.voxelite.world.LightStorage;
+import edu.kit.scc.git.ggd.voxelite.world.*;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import net.durchholz.beacon.event.EventType;
@@ -31,15 +29,15 @@ public class WorldRenderer {
     private final TextureAtlas            atlas;
 
     private final BlockingQueue<RenderChunk> buildQueue        = new PriorityBlockingQueue<>(128, DISTANCE_COMPARATOR);
-    private final  BlockingQueue<RenderChunk> uploadQueue       = new PriorityBlockingQueue<>(128, DISTANCE_COMPARATOR);
+    private final BlockingQueue<RenderChunk> uploadQueue       = new PriorityBlockingQueue<>(128, DISTANCE_COMPARATOR);
     private final AsyncChunkBuilder          asyncChunkBuilder = new AsyncChunkBuilder(buildQueue, uploadQueue, ForkJoinPool.getCommonPoolParallelism() / 4 + 1);
 
 
     public List<RenderChunk> renderList      = new ArrayList<>();
     public Vec4f             lightColor      = new Vec4f(1);
     public float             ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f;
-    public int phongExponent = 32;
-    public int uploadRate    = 5;
+    public int phongExponent = 32, uploadRate = 5;
+    public boolean frustumCull, caveCull;
 
     public WorldRenderer() {
         EventType.addListener(this);
@@ -91,7 +89,6 @@ public class WorldRenderer {
         buildQueue.add(renderChunk);
     }
 
-    static boolean init = true;
     public void render() {
         upload(uploadRate);
         OpenGL.depthTest(true);
@@ -121,14 +118,107 @@ public class WorldRenderer {
                 program.maxLightValue.set(LightStorage.MAX_TOTAL_VALUE);
 
                 for (RenderChunk renderChunk : renderList) {
-                    if(renderChunk.isValid()) renderChunk.render(renderType);
+
+                    if (renderChunk.isValid()) renderChunk.render(renderType);
                 }
             });
         }
     }
+    public record VisibilityNode(RenderChunk renderChunk, Direction source, int directions) {
+        public boolean hasDirection(Direction direction) {
+            return (this.directions & (1 << direction.ordinal())) == 1;
+        }
+    }
+
+    private Set<RenderChunk> caveCull() {
+        /*
+        Tommaso Checchi et al. Advanced Cave Culling Algorithm. 2014.
+         */
+
+        final Set<RenderChunk> result = new HashSet<>();
+        final Queue<VisibilityNode> queue = new ArrayDeque<>();
+
+        final Camera camera = Main.INSTANCE.getRenderer().getCamera();
+        final var cameraBlockPosition = Chunk.toBlockPosition(camera.getPosition());
+        final RenderChunk currentChunk = renderChunks.get(Chunk.toChunkPosition(cameraBlockPosition));
+
+        if (currentChunk != null) {
+            if(currentChunk.getChunk().isOpaque(cameraBlockPosition)) return result;
+
+            final VisibilityNode node = new VisibilityNode(currentChunk, null, 0);
+            final Set<Direction> visibleDirections = this.floodFill(cameraBlockPosition);
+
+            if (visibleDirections.size() == 1) {
+                //Check if camera is looking in opposite direction
+                Vec3f cameraOrientation = camera.getOrientation();
+                Direction cameraDirection = Direction.getNearest(cameraOrientation);
+                visibleDirections.remove(cameraDirection.getOpposite());
+            }
+
+            if (visibleDirections.isEmpty()) {
+                //Failed to escape current chunk
+                result.add(node.renderChunk);
+            } else {
+                //Flood fill neighboring chunks
+                queue.add(node);
+            }
+        } else {
+            //TODO Fix
+            List<VisibilityNode> list = new ArrayList<>();
+
+            for (RenderChunk renderChunk : renderChunks.values()) {
+                list.add(new VisibilityNode(renderChunk, null, 0));
+            }
+
+            //Sort by distance
+            list.sort(Comparator.comparingInt(node -> cameraBlockPosition.subtract(node.renderChunk.getChunk().getPosition().add(Chunk.CENTER)).magnitudeSq()));
+
+            queue.addAll(list);
+        }
+
+        VisibilityNode node;
+        while ((node = queue.poll()) != null) {
+            if(!result.add(node.renderChunk)) continue;
+
+            for (Direction direction : Direction.values()) {
+                final RenderChunk neighbor = renderChunks.get(node.renderChunk.getChunk().getPosition().add(direction.getAxis()));
+
+                if (neighbor != null) {
+                    final Direction sourceDirection = node.source;
+                    boolean backwards = node.hasDirection(direction.getOpposite());
+                    boolean connected = sourceDirection == null || node.renderChunk.getHullSet().contains(sourceDirection.getOpposite(), direction);
+
+                    if(!backwards && connected) {
+                        VisibilityNode neighborNode = new VisibilityNode(neighbor, direction, node.directions);
+                        queue.add(neighborNode);
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private Set<Direction> floodFill(Vec3i position) {
+        final Chunk chunk = Main.INSTANCE
+                .getWorld()
+                .getChunk(Chunk.toChunkPosition(position));
+        final VisibilityStorage visibilityStorage = new VisibilityStorage();
+
+        for (Voxel voxel : chunk) {
+            if(voxel.isOpaque()) visibilityStorage.set(voxel.position(), true);
+        }
+
+        return visibilityStorage.floodFill(position);
+    }
 
     public void tick() {
-        renderList = renderChunks.values().stream().filter(renderChunk -> renderChunk.getQuadCount() > 0).collect(Collectors.toList());
+        //TODO Make neater
+        if(caveCull) {
+            renderList = caveCull().stream().filter(renderChunk -> renderChunk.getQuadCount() > 0).collect(Collectors.toList());
+        } else {
+            renderList = renderChunks.values().stream().filter(renderChunk -> renderChunk.getQuadCount() > 0).collect(Collectors.toList());
+        }
     }
 
     public Collection<RenderChunk> getRenderChunks() {
@@ -155,7 +245,7 @@ public class WorldRenderer {
         RenderChunk r;
         int i = 0;
         while (i < limit && (r = uploadQueue.poll()) != null) {
-            if(r.isValid()) {
+            if (r.isValid()) {
                 r.upload();
                 i++;
             }

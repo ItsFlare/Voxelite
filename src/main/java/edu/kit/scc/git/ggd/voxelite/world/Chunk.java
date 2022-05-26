@@ -3,6 +3,7 @@ package edu.kit.scc.git.ggd.voxelite.world;
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.render.RenderChunk;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
+import edu.kit.scc.git.ggd.voxelite.util.Util;
 import net.durchholz.beacon.math.AABB;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
@@ -33,8 +34,14 @@ public class Chunk implements Iterable<Voxel> {
     private final World                  world;
     private final Vec3i                  position;
     private final AABB                   boundingBox;
-    private final BlockStorage           blockStorage = new CompressedBlockStorage();
-    private final CompressedLightStorage lightStorage = new CompressedLightStorage();
+    private final BlockStorage           blockStorage      = new CompressedBlockStorage();
+    private final CompressedLightStorage lightStorage      = new CompressedLightStorage();
+    private final VisibilityStorage      visibilityStorage = new VisibilityStorage() {
+        @Override
+        public Set<Direction> floodFill(int linear) {
+            throw new IllegalStateException("Use copy for flood-fill"); //TODO Make neater, also copy class != class
+        }
+    };
 
     private int blockCount = 0;
 
@@ -59,8 +66,10 @@ public class Chunk implements Iterable<Voxel> {
         final Block previous = blockStorage.getBlock(linear);
 
         blockStorage.setBlock(linear, block);
+        visibilityStorage.set(linear, block.isOpaque());
+
         ForkJoinPool.commonPool().submit(() -> {
-            lightStorage.calculate(voxel, previous);
+            lightStorage.calculate(voxel, previous); //TODO Batch light updates?
         });
 
         //TODO Optimize?
@@ -89,6 +98,14 @@ public class Chunk implements Iterable<Voxel> {
 
     public CompressedLightStorage getLightStorage() {
         return lightStorage;
+    }
+
+    public VisibilityStorage getVisibilityStorage() {
+        return visibilityStorage;
+    }
+
+    public boolean isOpaque(Vec3i position) {
+        return visibilityStorage.get(position);
     }
 
     public World getWorld() {
@@ -122,6 +139,10 @@ public class Chunk implements Iterable<Voxel> {
                 return getVoxel(fromLinearSpace(position++).add(toWorldPosition(Chunk.this.position)));
             }
         };
+    }
+
+    public static Iterable<Vec3i> iterate() {
+        return Util.cuboid(new Vec3i(), EXTENT);
     }
 
     public static int toLinearSpace(Vec3i position) {

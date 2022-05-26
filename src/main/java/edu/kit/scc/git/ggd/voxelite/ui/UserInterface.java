@@ -61,7 +61,13 @@ public class UserInterface {
             var wireframe = new CheckboxElement("Wireframe", false, value -> Main.INSTANCE.getRenderer().wireframe = value);
             var directionCulling = new CheckboxElement("Direction Culling", true, value -> ChunkProgram.directionCulling = value);
             var backfaceCulling = new CheckboxElement("Backface Culling", true, OpenGL::cull);
-            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, vsync, ImGui::sameLine, wireframe, directionCulling, ImGui::sameLine, backfaceCulling);
+            var frustumCulling = new CheckboxElement("Frustum Culling", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().frustumCull = value);
+            var caveCulling = new CheckboxElement("Cave Culling", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().caveCull = value);
+            this.render = new Accordion("Render", true,
+                    skybox, ImGui::sameLine, world,
+                    vsync, ImGui::sameLine, wireframe,
+                    directionCulling, ImGui::sameLine, backfaceCulling,
+                    frustumCulling, ImGui::sameLine, caveCulling);
         }
 
         {

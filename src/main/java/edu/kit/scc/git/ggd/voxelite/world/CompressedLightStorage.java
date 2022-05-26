@@ -100,7 +100,7 @@ public class CompressedLightStorage implements LightStorage {
             for (Direction direction : Direction.values()) {
                 final Voxel neighbor = v.getNeighbor(direction);
                 if (neighbor == null) continue; //Neighbor not loaded
-                if (neighbor.getBlock().isOpaque()) continue;
+                if (neighbor.isOpaque()) continue;
 
                 final var neighborStorage = neighbor.chunk().getLightStorage();
                 final int neighborIndex = toLinearSpace(neighbor.position());

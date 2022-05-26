@@ -6,7 +6,7 @@ import edu.kit.scc.git.ggd.voxelite.util.TimerRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.util.VoxeliteExecutor;
 import edu.kit.scc.git.ggd.voxelite.world.Block;
 import edu.kit.scc.git.ggd.voxelite.world.World;
-import edu.kit.scc.git.ggd.voxelite.world.generator.FlatWorldGenerator;
+import edu.kit.scc.git.ggd.voxelite.world.generator.NaturalWorldGenerator;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.input.InputSystem;
 import net.durchholz.beacon.render.opengl.OpenGL;
@@ -87,7 +87,7 @@ public class Main {
         Util.initialize(Block.class);
 
         //World
-        world = new World(new FlatWorldGenerator(new FlatWorldGenerator.Layer(Block.BEDROCK, 0), new FlatWorldGenerator.Layer(Block.STONE, 8)));
+        world = new World(new NaturalWorldGenerator(0));
         world.getGenerator().setWorld(world);
     }
 
