@@ -118,7 +118,6 @@ public class WorldRenderer {
                 program.maxLightValue.set(LightStorage.MAX_TOTAL_VALUE);
 
                 for (RenderChunk renderChunk : renderList) {
-
                     if (renderChunk.isValid()) renderChunk.render(renderType);
                 }
             });
@@ -130,7 +129,7 @@ public class WorldRenderer {
         }
     }
 
-    private Set<RenderChunk> caveCull() {
+    private Collection<RenderChunk> caveCull() {
         /*
         Tommaso Checchi et al. Advanced Cave Culling Algorithm. 2014.
          */
@@ -142,49 +141,43 @@ public class WorldRenderer {
         final var cameraBlockPosition = Chunk.toBlockPosition(camera.getPosition());
         final RenderChunk currentChunk = renderChunks.get(Chunk.toChunkPosition(cameraBlockPosition));
 
-        if (currentChunk != null) {
-            if(currentChunk.getChunk().isOpaque(cameraBlockPosition)) return result;
+        //Outside loaded area
+        if(currentChunk == null) return renderChunks.values();
 
-            final VisibilityNode node = new VisibilityNode(currentChunk, null, 0);
-            final Set<Direction> visibleDirections = this.floodFill(cameraBlockPosition);
+        //Inside opaque block
+        if(currentChunk.getChunk().isOpaque(cameraBlockPosition)) return result;
 
-            if (visibleDirections.size() == 1) {
-                //Check if camera is looking in opposite direction
-                Vec3f cameraOrientation = camera.getOrientation();
-                Direction cameraDirection = Direction.getNearest(cameraOrientation);
-                visibleDirections.remove(cameraDirection.getOpposite());
-            }
+        //Always render current chunk
+        result.add(currentChunk);
 
-            if (visibleDirections.isEmpty()) {
-                //Failed to escape current chunk
-                result.add(node.renderChunk);
-            } else {
-                //Flood fill neighboring chunks
-                queue.add(node);
-            }
-        } else {
-            //TODO Fix
-            List<VisibilityNode> list = new ArrayList<>();
+        //Calculate which neighbors are reachable
+        final Set<Direction> visibleDirections = this.floodFill(cameraBlockPosition);
 
-            for (RenderChunk renderChunk : renderChunks.values()) {
-                list.add(new VisibilityNode(renderChunk, null, 0));
-            }
-
-            //Sort by distance
-            list.sort(Comparator.comparingInt(node -> cameraBlockPosition.subtract(node.renderChunk.getChunk().getPosition().add(Chunk.CENTER)).magnitudeSq()));
-
-            queue.addAll(list);
+        if (visibleDirections.size() == 1) {
+            //Check if camera is looking in opposite direction
+            Vec3f cameraOrientation = camera.getOrientation();
+            Direction cameraDirection = Direction.getNearest(cameraOrientation);
+            visibleDirections.remove(cameraDirection.getOpposite());
         }
 
+        if (!visibleDirections.isEmpty()) {
+            //Flood fill neighboring chunks
+            for (Direction direction : visibleDirections) {
+                final RenderChunk neighbor = renderChunks.get(currentChunk.getChunk().getPosition().add(direction.getAxis()));
+                if(neighbor != null) queue.add(new VisibilityNode(neighbor, direction, 0));
+            }
+        }
+
+        //Flood-fill chunk grid based on directional connectivity
         VisibilityNode node;
         while ((node = queue.poll()) != null) {
             if(!result.add(node.renderChunk)) continue;
+            final Direction sourceDirection = node.source;
 
             for (Direction direction : Direction.values()) {
                 final RenderChunk neighbor = renderChunks.get(node.renderChunk.getChunk().getPosition().add(direction.getAxis()));
 
                 if (neighbor != null) {
-                    final Direction sourceDirection = node.source;
                     boolean backwards = node.hasDirection(direction.getOpposite());
                     boolean connected = sourceDirection == null || node.renderChunk.getHullSet().contains(sourceDirection.getOpposite(), direction);
 
@@ -215,9 +208,18 @@ public class WorldRenderer {
     public void tick() {
         //TODO Make neater
         if(caveCull) {
-            renderList = caveCull().stream().filter(renderChunk -> renderChunk.getQuadCount() > 0).collect(Collectors.toList());
+            renderList = caveCull()
+                    .stream()
+                    .filter(renderChunk -> renderChunk.getQuadCount() > 0)
+                    .sorted(DISTANCE_COMPARATOR)
+                    .collect(Collectors.toList());
         } else {
-            renderList = renderChunks.values().stream().filter(renderChunk -> renderChunk.getQuadCount() > 0).collect(Collectors.toList());
+            renderList = renderChunks
+                    .values()
+                    .stream()
+                    .filter(renderChunk -> renderChunk.getQuadCount() > 0)
+                    .sorted(DISTANCE_COMPARATOR)
+                    .collect(Collectors.toList());
         }
     }
 
