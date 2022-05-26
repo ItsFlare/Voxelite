@@ -7,18 +7,14 @@ import edu.kit.scc.git.ggd.voxelite.world.generator.noise.Noise;
 import edu.kit.scc.git.ggd.voxelite.world.generator.noise.SimplexNoise;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec3f;
-import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
-import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 
 public class TerrainPass implements GeneratorPass {
     private final Noise noise;
     private float startFrequency;
     private double startAmplitude;
-    private PolynomialSplineFunction function;
 
     public TerrainPass(long seed) {
         this.noise = new SimplexNoise(seed);
-        setSplineFunction();
     }
 
     @Override
@@ -65,17 +61,6 @@ public class TerrainPass implements GeneratorPass {
             noiseValue += noise.sample(pos.scale(startFrequency * frequency)) * amplitude * startAmplitude;
         }
         return noiseValue;
-    }
-
-    //TODO alternative height with splines
-    private void setSplineFunction() {
-        SplineInterpolator splineInterpolator = new SplineInterpolator();
-        double[] x = {-1 , -0.3, 0.4, 1};
-        double[] y = {1, 0, 1, 2};
-        function = splineInterpolator.interpolate(x, y);
-       /* for (double i = -1; i < 1; i = i + 0.1) {
-            System.out.println(i + ";"+ function.value(i));
-        }*/
     }
 
     @Override

@@ -14,8 +14,8 @@ import java.util.concurrent.ForkJoinPool;
 
 public class Chunk implements Iterable<Voxel> {
 
-    public static final int WIDTH_EXP  = 5;
-    public static final int AREA_EXP   = WIDTH_EXP << 1;
+    public static final int WIDTH_EXP = 5;
+    public static final int AREA_EXP  = WIDTH_EXP << 1;
 
     public static final int WIDTH  = 1 << WIDTH_EXP;
     public static final int AREA   = 1 << AREA_EXP;
@@ -27,7 +27,7 @@ public class Chunk implements Iterable<Voxel> {
 
     public static final Vec3i EXTENT       = new Vec3i(MAX_WIDTH);
     public static final Vec3i CENTER       = new Vec3i(WIDTH >> 1);
-    public static final AABB  BOUNDING_BOX = new AABB(new Vec3f(), WIDTH, WIDTH, WIDTH);
+    public static final AABB  BOUNDING_BOX = new AABB(new Vec3f(), new Vec3f(WIDTH));
 
 
     private final World                  world;

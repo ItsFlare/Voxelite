@@ -84,13 +84,13 @@ public class InputListener {
         if (Main.INSTANCE.getWindow().getCursorMode() != Window.CursorMode.DISABLED) return;
         if(event.action() == GLFW.GLFW_RELEASE) return;
         final Camera camera = Main.INSTANCE.getRenderer().getCamera();
-        final Intersection intersection = Main.INSTANCE.getWorld().traverse(camera.getPosition(), new Vec3f(0, 0, -1).rotate(camera.getRotation()), 100);
+        final Intersection intersection = Main.INSTANCE.getWorld().traverse(camera.getPosition(), new Vec3f(0, 0, -1).rotate(camera.getRotation()), 200);
         if(intersection == null) return;
 
         switch (event.button()) {
             case GLFW.GLFW_MOUSE_BUTTON_LEFT -> intersection.voxel().setBlock(Block.AIR);
-            case GLFW.GLFW_MOUSE_BUTTON_MIDDLE -> intersection.voxel().getNeighbor(intersection.normal()).setBlock(Block.GLOWSTONE);
-            case GLFW.GLFW_MOUSE_BUTTON_RIGHT -> intersection.voxel().getNeighbor(intersection.normal()).setBlock(Block.RED_GLASS);
+            case GLFW.GLFW_MOUSE_BUTTON_MIDDLE -> intersection.voxel().getNeighbor(intersection.normal()).setBlock(Block.RED_GLASS);
+            case GLFW.GLFW_MOUSE_BUTTON_RIGHT -> intersection.voxel().getNeighbor(intersection.normal()).setBlock(Block.GLOWSTONE);
         }
     }
 }

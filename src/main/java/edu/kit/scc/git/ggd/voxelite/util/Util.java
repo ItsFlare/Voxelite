@@ -39,7 +39,7 @@ public class Util {
 
     public static Collection<Path> listResourceFolder(String folder, int depth) throws URISyntaxException, IOException {
         final URL url = Util.class.getResource(folder);
-        if(url == null) throw new FileNotFoundException(folder + " not found");
+        if (url == null) throw new FileNotFoundException(folder + " not found");
 
         final URI uri = url.toURI();
         Path path;
@@ -51,7 +51,7 @@ public class Util {
             path = fs.getPath(folder);
         }
 
-        try(Stream<Path> walk = Files.walk(path, depth)) {
+        try (Stream<Path> walk = Files.walk(path, depth)) {
             return walk.collect(Collectors.toList());
         }
     }

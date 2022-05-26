@@ -55,7 +55,7 @@ class ChunkTest {
     @Test
     void toLinearSpace() {
         assertEquals(0, Chunk.toLinearSpace(new Vec3i(0)));
-        assertEquals(Chunk.MAX_VOLUME, Chunk.toLinearSpace(new Vec3i(Chunk.MAX_WIDTH, Chunk.MAX_WIDTH, Chunk.MAX_WIDTH)));
+        assertEquals(Chunk.MAX_VOLUME, Chunk.toLinearSpace(new Vec3i(Chunk.MAX_WIDTH)));
 
         for (int x = 0; x < Chunk.WIDTH; x++) {
             for (int y = 0; y < Chunk.WIDTH; y++) {
