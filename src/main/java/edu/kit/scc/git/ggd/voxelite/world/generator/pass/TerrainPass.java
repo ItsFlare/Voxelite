@@ -10,8 +10,6 @@ import edu.kit.scc.git.ggd.voxelite.world.generator.noisemap.ErosionMap;
 import edu.kit.scc.git.ggd.voxelite.world.generator.noisemap.PVMap;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec3f;
-import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
-import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 
 public class TerrainPass implements GeneratorPass {
     private final Noise noise;
