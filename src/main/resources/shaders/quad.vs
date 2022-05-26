@@ -1,13 +1,15 @@
 #version 410 core
 in vec3 pos;
+in vec2 uv;
+
+out vec2 TexCoord;
 
 uniform mat4 mvp;
-
-out vec4 vertexColor;
+uniform vec2 sprite;
+uniform float normalizedSpriteSize;
 
 void main()
 {
     gl_Position = mvp * vec4(pos, 1.0f);
-
-    vertexColor = vec4(0.5, 0.0, 0.0, 1.0);
+    TexCoord = (uv + sprite) * normalizedSpriteSize;
 }

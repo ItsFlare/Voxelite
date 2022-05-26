@@ -1,11 +1,13 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
+import edu.kit.scc.git.ggd.voxelite.ui.Time;
 import edu.kit.scc.git.ggd.voxelite.ui.UserInterface;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.util.Util;
 import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Quaternion;
+import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
@@ -88,7 +90,7 @@ public class Renderer {
     }
 
     private void renderSun() {
-        final Quaternion quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), 90).normalized();
+        Quaternion quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotation()).normalized();
         final Matrix4f model = Matrix4f.identity();
         model.scale(0.1f);
         model.multiply(Matrix4f.rotation(quaternion));
@@ -100,7 +102,8 @@ public class Renderer {
         final Matrix4f projection = camera.projection();
         view.multiply(model);
         projection.multiply(view);
-        quadRenderer.render(projection);
+        quadRenderer.render(projection, "glowstone.png");
+
     }
 
     private void renderWorld() {
@@ -119,4 +122,11 @@ public class Renderer {
 
         return SkyboxRenderer.createCubemap(images);
     }
+
+    private float getRotation() {
+        float num = (Main.INSTANCE.getTick() % Main.tickPerDay) / (float) Main.tickPerDay;
+        return num * 360;
+    }
+
+
 }

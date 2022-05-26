@@ -1,6 +1,9 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
+import edu.kit.scc.git.ggd.voxelite.Main;
 import net.durchholz.beacon.math.Matrix4f;
+import net.durchholz.beacon.math.Vec2f;
+import net.durchholz.beacon.math.Vec2i;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.buffers.BufferLayout;
@@ -26,15 +29,19 @@ public class QuadRenderer {
             1, 2, 3    // second triangle
     };
 
-    private final VertexArray                          va  = new VertexArray();
-    private final VertexBuffer<QuadProgram.QuadVertex> vb  = new VertexBuffer<>(QuadProgram.QuadVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.STATIC_DRAW);
-    private final IBO                                  ibo = new IBO();
+    private final VertexArray va = new VertexArray();
+    private final VertexBuffer<QuadProgram.QuadVertex> vb = new VertexBuffer<>(QuadProgram.QuadVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.STATIC_DRAW);
+    private final IBO ibo = new IBO();
 
     public QuadRenderer() throws IOException {
-        OpenGL.use(va, vb, ibo, () -> {
-            vb.data(VERTICES);
+        OpenGL.use(va, ibo, () -> {
+            vb.use(() -> {
+                vb.data(VERTICES);
+                va.set(program.pos, QuadProgram.QuadVertex.POSITION, vb, 0);
+                va.set(program.uv, QuadProgram.QuadVertex.UV, vb, 0);
+            });
+
             ibo.data(OpenGL.Usage.STATIC_DRAW, INDICES);
-            va.set(program.pos, QuadProgram.QuadVertex.POSITION, vb, 0);
         });
     }
 
@@ -45,6 +52,13 @@ public class QuadRenderer {
 
         OpenGL.use(program, va, () -> {
             program.mvp.set(matrix);
+
+            var atlas =  Main.INSTANCE.getRenderer().getWorldRenderer().getAtlas();
+            program.sampler.bind(0, atlas);
+            program.normalizedSpriteSize.set(atlas.getNormalizedSpriteSize());
+
+            Vec2i sprite = atlas.getSprite(name);
+            program.sprite.set(new Vec2f(sprite.x(), sprite.y()));
 
             OpenGL.drawIndexed(OpenGL.Mode.TRIANGLES, INDICES.length, OpenGL.Type.UNSIGNED_INT);
         });
