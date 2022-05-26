@@ -24,12 +24,15 @@ public class QuadProgram extends Program {
     public final Attribute<Vec2f> uv = attribute("uv", OpenGL.Type.FLOAT, 2);
 
     public final Uniform<Matrix4f> mvp = uniMatrix4f("mvp", true);
+    public final Uniform<Vec2f> sprite = uniVec2f("sprite");
+    public final Uniform<Float> normalizedSpriteSize = uniFloat("normalizedSpriteSize");
 
     public final Sampler sampler = sampler("sampler");
 
-    record QuadVertex(Vec3f position) implements Vertex {
+    record QuadVertex(Vec3f position, Vec2f uv) implements Vertex {
         public static final VertexLayout<QuadVertex> LAYOUT   = new VertexLayout<>(QuadVertex.class);
         public static final VertexAttribute<Vec3f>   POSITION = LAYOUT.vec3f(false);
+        public static final VertexAttribute<Vec2f>   UV = LAYOUT.vec2f(false);
 
         @Override
         public VertexLayout<?> getLayout() {

@@ -18,15 +18,15 @@ public class QuadRenderer {
     private final QuadProgram program = new QuadProgram();
 
     private static final QuadProgram.QuadVertex[] VERTICES = {
-            new QuadProgram.QuadVertex(new Vec3f(0.5f, 0.5f, 0.0f)),
-            new QuadProgram.QuadVertex(new Vec3f(0.5f, -0.5f, 0.0f)),
-            new QuadProgram.QuadVertex(new Vec3f(-0.5f, -0.5f, 0.0f)),
-            new QuadProgram.QuadVertex(new Vec3f(-0.5f, 0.5f, 0.0f)),
+            new QuadProgram.QuadVertex(new Vec3f(0.5f, 0.5f, 0.0f), new Vec2f(1, 1)),
+            new QuadProgram.QuadVertex(new Vec3f(0.5f, -0.5f, 0.0f), new Vec2f(1, 0)),
+            new QuadProgram.QuadVertex(new Vec3f(-0.5f, -0.5f, 0.0f), new Vec2f(0, 0)),
+            new QuadProgram.QuadVertex(new Vec3f(-0.5f, 0.5f, 0.0f), new Vec2f(0, 1)),
     };
 
-    private static final int[] INDICES = {  // note that we start from 0!
-            0, 1, 3,   // first triangle
-            1, 2, 3    // second triangle
+    private static final int[] INDICES = {
+            0, 1, 3,
+            1, 2, 3
     };
 
     private final VertexArray va = new VertexArray();
@@ -45,7 +45,7 @@ public class QuadRenderer {
         });
     }
 
-    public void render(Matrix4f matrix) {
+    public void render(Matrix4f matrix, String name) {
         OpenGL.depthTest(false);
         OpenGL.depthMask(false);
         OpenGL.cull(false);
