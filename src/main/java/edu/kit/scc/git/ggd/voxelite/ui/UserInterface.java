@@ -80,12 +80,12 @@ public class UserInterface {
                 }
             });
             var frequency = new FloatSliderElement("Frequency", 0.02f, 0, 0.1f, value -> {
-                if (Main.INSTANCE.getWorld().getGenerator() instanceof NaturalWorldGenerator g) {
+                if(Main.INSTANCE.getWorld().getGenerator() instanceof NaturalWorldGenerator g) {
                     g.getPasses().get(0).setFrequency(value);
                 }
             });
             var amplitude = new IntSliderElement("Amplitude", 20, 0, 50, value -> {
-                if (Main.INSTANCE.getWorld().getGenerator() instanceof NaturalWorldGenerator g) {
+                if(Main.INSTANCE.getWorld().getGenerator() instanceof NaturalWorldGenerator g) {
                     g.getPasses().get(0).setAmplitude(value);
                 }
             });
@@ -123,18 +123,18 @@ public class UserInterface {
             final String overlay = "CUR %d | MIN %d | MAX %d";
 
             var generate = new PlotElement(
-                    "Generate", 
+                    "Generate",
                     PlotElement.Type.LINES,
-                    height, 
+                    height,
                     () -> loadQueueRingBuffer.toArray(true),
                     () -> overlay.formatted(loadQueueRingBuffer.get(), loadQueueRingBuffer.min(), loadQueueRingBuffer.max())
             );
 
             var build = new PlotElement(
-                    "Build", 
-                    PlotElement.Type.LINES, 
+                    "Build",
+                    PlotElement.Type.LINES,
                     height,
-                    () -> buildRingBuffer.toArray(true), 
+                    () -> buildRingBuffer.toArray(true),
                     () -> overlay.formatted(buildRingBuffer.get(), buildRingBuffer.min(), buildRingBuffer.max())
             );
 
