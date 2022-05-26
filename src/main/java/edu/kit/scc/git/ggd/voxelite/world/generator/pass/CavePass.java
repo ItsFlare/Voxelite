@@ -73,7 +73,7 @@ public class CavePass implements GeneratorPass {
 
         for(int i = 0; i < range; ++i) {
             if (voxelPosX != null) {
-                if (voxelPosX.getBlock().equals(Block.COBBLESTONE)) {
+                if (voxelPosX.getBlock().equals(Block.WATER)) {
                     return true;
                 }
 
@@ -81,7 +81,7 @@ public class CavePass implements GeneratorPass {
             }
 
             if (voxelPosY != null) {
-                if (voxelPosY.getBlock().equals(Block.COBBLESTONE)) {
+                if (voxelPosY.getBlock().equals(Block.WATER)) {
                     return true;
                 }
 
@@ -89,7 +89,7 @@ public class CavePass implements GeneratorPass {
             }
 
             if (voxelPosZ != null) {
-                if (voxelPosZ.getBlock().equals(Block.COBBLESTONE)) {
+                if (voxelPosZ.getBlock().equals(Block.WATER)) {
                     return true;
                 }
 
@@ -97,7 +97,7 @@ public class CavePass implements GeneratorPass {
             }
 
             if (voxelNegX != null) {
-                if (voxelNegX.getBlock().equals(Block.COBBLESTONE)) {
+                if (voxelNegX.getBlock().equals(Block.WATER)) {
                     return true;
                 }
 
@@ -105,7 +105,7 @@ public class CavePass implements GeneratorPass {
             }
 
             if (voxelNegY != null) {
-                if (voxelNegY.getBlock().equals(Block.COBBLESTONE)) {
+                if (voxelNegY.getBlock().equals(Block.WATER)) {
                     return true;
                 }
 
@@ -113,7 +113,7 @@ public class CavePass implements GeneratorPass {
             }
 
             if (voxelNegZ != null) {
-                if (voxelNegZ.getBlock().equals(Block.COBBLESTONE)) {
+                if (voxelNegZ.getBlock().equals(Block.WATER)) {
                     return true;
                 }
 
