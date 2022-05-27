@@ -161,6 +161,10 @@ public class Main {
         return tick;
     }
 
+    public static float getDayPercentage() {
+        return (Main.INSTANCE.getTick() % Main.tickPerDay) / (float) Main.tickPerDay;
+    }
+
     public static void main(String[] args) {
         INSTANCE.run();
     }

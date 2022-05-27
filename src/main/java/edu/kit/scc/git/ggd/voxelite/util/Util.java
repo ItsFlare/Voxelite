@@ -55,4 +55,8 @@ public class Util {
     public static int log2(int n) {
         return (int) Math.ceil(Math.log(n) / Math.log(2));
     }
+
+    public static float clamp(float val, float min, float max) {
+        return Math.max(min, Math.min(max, val));
+    }
 }
