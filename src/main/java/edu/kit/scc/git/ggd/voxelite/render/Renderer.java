@@ -5,25 +5,31 @@ import edu.kit.scc.git.ggd.voxelite.ui.Time;
 import edu.kit.scc.git.ggd.voxelite.ui.UserInterface;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.util.Util;
-import net.durchholz.beacon.math.Matrix4f;
-import net.durchholz.beacon.math.Quaternion;
-import net.durchholz.beacon.math.Vec2f;
-import net.durchholz.beacon.math.Vec3f;
+import edu.kit.scc.git.ggd.voxelite.world.generator.noise.Noise;
+import edu.kit.scc.git.ggd.voxelite.world.generator.noise.SimplexNoise;
+import net.durchholz.beacon.math.*;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
+import net.durchholz.beacon.render.opengl.textures.Texture2D;
 import net.durchholz.beacon.util.Image;
 import net.durchholz.beacon.window.Viewport;
 import net.durchholz.beacon.window.Window;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
+
+import static java.lang.Math.cos;
+import static java.lang.Math.sin;
 
 public class Renderer {
 
     private final Camera         camera;
     private final UserInterface  userInterface;
     private final WorldRenderer  worldRenderer;
-    private final SkyboxRenderer skyboxRenderer = new SkyboxRenderer(loadSkybox());
-    private final QuadRenderer   quadRenderer   = new QuadRenderer();
+    private final SkyRenderer skyRenderer = new SkyRenderer();
 
     private Viewport viewport;
 
@@ -61,8 +67,8 @@ public class Renderer {
         OpenGL.polygonMode(OpenGL.Face.BOTH, wireframe ? OpenGL.PolygonMode.LINE : OpenGL.PolygonMode.FILL);
 
         if (renderSkybox) {
-            renderSkybox();
-            renderSun();
+            //renderSkybox();
+            renderSky();
         }
         
         if (renderWorld) renderWorld();
@@ -86,24 +92,16 @@ public class Renderer {
     private void renderSkybox() {
         final Matrix4f projection = camera.projection();
         projection.multiply(camera.view(false, true));
-        skyboxRenderer.render(projection);
+        //skyboxRenderer.render(projection);
     }
 
-    private void renderSun() {
-        Quaternion quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotation()).normalized();
-        final Matrix4f model = Matrix4f.identity();
-        model.scale(0.1f);
-        model.multiply(Matrix4f.rotation(quaternion));
+    private void renderSky() {
+        Vec3f blueSky = new Vec3f(0.3f,0.55f,0.8f);
+        Vec3f nightSky = new Vec3f();
 
-        final Vec3f quadNormal = new Vec3f(Direction.POS_Z.getAxis());
-        model.translate(quadNormal.rotate(quaternion));
-
-        final Matrix4f view = camera.view(false, true);
-        final Matrix4f projection = camera.projection();
-        view.multiply(model);
-        projection.multiply(view);
-        quadRenderer.render(projection, "glowstone.png");
-
+        skyRenderer.render(nightSky.interpolate(blueSky, Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.5f, 0, 1)));
+        skyRenderer.renderNightSkyBox(camera.view(false, true), camera.projection());
+        skyRenderer.renderSun(camera.view(false, true), camera.projection());
     }
 
     private void renderWorld() {
@@ -122,11 +120,5 @@ public class Renderer {
 
         return SkyboxRenderer.createCubemap(images);
     }
-
-    private float getRotation() {
-        float num = (Main.INSTANCE.getTick() % Main.tickPerDay) / (float) Main.tickPerDay;
-        return num * 360;
-    }
-
 
 }
