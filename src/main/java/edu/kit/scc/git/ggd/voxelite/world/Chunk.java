@@ -49,7 +49,7 @@ public class Chunk implements Iterable<Voxel> {
     public Chunk(World world, Vec3i position) {
         this.world = world;
         this.position = position;
-        this.boundingBox = BOUNDING_BOX.translate(position);
+        this.boundingBox = BOUNDING_BOX.translate(Chunk.toWorldPosition(position));
     }
 
     public Voxel getVoxel(Vec3i position) {

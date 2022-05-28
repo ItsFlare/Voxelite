@@ -3,11 +3,13 @@ package edu.kit.scc.git.ggd.voxelite.render;
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.texture.TextureAtlas;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
+import edu.kit.scc.git.ggd.voxelite.util.Frustum;
 import edu.kit.scc.git.ggd.voxelite.world.*;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.event.Listener;
+import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 import net.durchholz.beacon.math.Vec4f;
@@ -37,7 +39,8 @@ public class WorldRenderer {
     public Vec4f             lightColor      = new Vec4f(1);
     public float             ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f;
     public int phongExponent = 32, uploadRate = 5;
-    public boolean frustumCull, caveCull;
+    public  boolean frustumCull, caveCull;
+    public int emptyCount, frustumCullCount, caveCullCount, totalCullCount;
 
     public WorldRenderer() {
         EventType.addListener(this);
@@ -94,6 +97,27 @@ public class WorldRenderer {
         OpenGL.depthTest(true);
         OpenGL.depthMask(true);
 
+        final Camera camera = Main.INSTANCE.getRenderer().getCamera();
+
+        final Matrix4f view = camera.view(false, true);
+        final Matrix4f projection = camera.projection();
+        projection.multiply(view);
+
+        final Frustum frustum = new Frustum(camera.getPosition(), projection);
+
+        frustumCullCount = 0;
+        final var frameRenderList = renderList
+                .stream()
+                .filter(RenderChunk::isValid)
+                .filter(frustumCull ? renderChunk -> {
+                    boolean intersects = frustum.intersects(renderChunk.getChunk().getBoundingBox());
+                    if(!intersects) frustumCullCount++;
+                    return intersects;
+                } : renderChunk -> true)
+                .toList();
+
+        totalCullCount = emptyCount + frustumCullCount + caveCullCount;
+
         final RenderType[] renderTypes = RenderType.values();
         for (int i = 0; i < renderTypes.length; i++) {
             if (i > 0) return; //TODO Remove with transparency
@@ -105,9 +129,9 @@ public class WorldRenderer {
                 OpenGL.primitiveRestart(true);
                 OpenGL.primitiveRestartIndex(ChunkProgram.PRIMITIVE_RESET_INDEX);
 
-                program.mvp.set(Main.INSTANCE.getRenderer().getCamera().transform());
+                program.mvp.set(camera.transform());
                 program.atlas.bind(0, atlas);
-                program.camera.set(Main.INSTANCE.getRenderer().getCamera().getPosition());
+                program.camera.set(camera.getPosition());
                 program.lightColor.set(new Vec3f(lightColor.x(), lightColor.y(), lightColor.z()));
                 program.lightDirection.set(new Vec3f(0, -1, 0));
                 program.ambientStrength.set(ambientStrength);
@@ -117,12 +141,13 @@ public class WorldRenderer {
                 program.normalizedSpriteSize.set(atlas.getNormalizedSpriteSize());
                 program.maxLightValue.set(LightStorage.MAX_TOTAL_VALUE);
 
-                for (RenderChunk renderChunk : renderList) {
-                    if (renderChunk.isValid()) renderChunk.render(renderType);
+                for (RenderChunk renderChunk : frameRenderList) {
+                    renderChunk.render(renderType);
                 }
             });
         }
     }
+
     public record VisibilityNode(RenderChunk renderChunk, Direction source, int directions) {
         public boolean hasDirection(Direction direction) {
             return (this.directions & (1 << direction.ordinal())) == 1;
@@ -164,24 +189,25 @@ public class WorldRenderer {
             //Flood fill neighboring chunks
             for (Direction direction : visibleDirections) {
                 final RenderChunk neighbor = renderChunks.get(currentChunk.getChunk().getPosition().add(direction.getAxis()));
-                if(neighbor != null) queue.add(new VisibilityNode(neighbor, direction, 0));
+                if (neighbor != null) queue.add(new VisibilityNode(neighbor, direction, 0));
             }
         }
 
         //Flood-fill chunk grid based on directional connectivity
         VisibilityNode node;
         while ((node = queue.poll()) != null) {
-            if(!result.add(node.renderChunk)) continue;
+            if (!result.add(node.renderChunk)) continue;
             final Direction sourceDirection = node.source;
 
             for (Direction direction : Direction.values()) {
                 final RenderChunk neighbor = renderChunks.get(node.renderChunk.getChunk().getPosition().add(direction.getAxis()));
 
                 if (neighbor != null) {
+                    boolean empty = node.renderChunk.getQuadCount() == 0;
                     boolean backwards = node.hasDirection(direction.getOpposite());
-                    boolean connected = sourceDirection == null || node.renderChunk.getHullSet().contains(sourceDirection.getOpposite(), direction);
+                    boolean connected = empty || sourceDirection == null || node.renderChunk.getHullSet().contains(sourceDirection.getOpposite(), direction);
 
-                    if(!backwards && connected) {
+                    if (!backwards && connected) {
                         VisibilityNode neighborNode = new VisibilityNode(neighbor, direction, node.directions);
                         queue.add(neighborNode);
                     }
@@ -199,7 +225,7 @@ public class WorldRenderer {
         final VisibilityStorage visibilityStorage = new VisibilityStorage();
 
         for (Voxel voxel : chunk) {
-            if(voxel.isOpaque()) visibilityStorage.set(voxel.position(), true);
+            if (voxel.isOpaque()) visibilityStorage.set(voxel.position(), true);
         }
 
         return visibilityStorage.floodFill(position);
@@ -207,19 +233,31 @@ public class WorldRenderer {
 
     public void tick() {
         //TODO Make neater
-        if(caveCull) {
+        //TODO Immediately add back chunks going from empty to non-empty
+        emptyCount = 0;
+        if (caveCull) {
             renderList = caveCull()
                     .stream()
-                    .filter(renderChunk -> renderChunk.getQuadCount() > 0)
+                    .filter(renderChunk -> {
+                        boolean empty = renderChunk.getQuadCount() == 0;
+                        if(empty) emptyCount++;
+                        return !empty;
+                    })
                     .sorted(DISTANCE_COMPARATOR)
                     .collect(Collectors.toList());
+            caveCullCount = renderChunks.size() - renderList.size() - emptyCount;
         } else {
             renderList = renderChunks
                     .values()
                     .stream()
-                    .filter(renderChunk -> renderChunk.getQuadCount() > 0)
+                    .filter(renderChunk -> {
+                        boolean empty = renderChunk.getQuadCount() == 0;
+                        if(empty) emptyCount++;
+                        return !empty;
+                    })
                     .sorted(DISTANCE_COMPARATOR)
                     .collect(Collectors.toList());
+            caveCullCount = 0;
         }
     }
 
