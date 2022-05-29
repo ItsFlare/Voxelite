@@ -20,6 +20,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class SkyRenderer {
 
@@ -67,6 +68,8 @@ public class SkyRenderer {
     }
 
     public void renderSun(Matrix4f v, Matrix4f p) {
+        OpenGL.blend(false);
+
         Quaternion quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotation()).normalized();
         final Matrix4f model = Matrix4f.identity();
         model.scale(0.1f);
@@ -87,37 +90,48 @@ public class SkyRenderer {
         return Main.getDayPercentage() * 360;
     }
 
-    public void renderNightSkyBox(Matrix4f v, Matrix4f p) {
-        final Matrix4f projection = p;
-        projection.multiply(v);
-        skyboxRenderer.render(projection);
+    public void renderNightSkyBox(Matrix4f v, Matrix4f p, float a) {
+        Quaternion quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotation()).normalized();
+        final Matrix4f model = Matrix4f.identity();
+        model.multiply(Matrix4f.rotation(quaternion));
+
+        v.multiply(model);
+        p.multiply(v);
+        skyboxRenderer.render(p, a);
     }
 
     private CubemapTexture loadNightSkyBox() throws IOException {
         final Image[] images = new Image[6];
         Noise noise = new SimplexNoise();
-        int width = 256;
-        int height = 256;
+        int size = 512;
+        int center = size / 2;
 
-        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage bufferedImage = new BufferedImage(size , size , BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = bufferedImage.createGraphics();
 
-        for(int x = 0; x < width; x++) {
-            for(int y = 0; y < height; y++) {
+        for(int x = 0; x < size; x++) {
+            for(int y = 0; y < size; y++) {
                 double noiseValue = noise.sample(new Vec2f(x,y));
-                g2d.setColor(Color.BLACK);
-                if (noiseValue > 0.9) {
-                    g2d.setColor(Color.WHITE);
+                double distance = getDistance(center, center, x, y);
+
+                if (noiseValue > 0.9 && distance <= center) {
+                    g2d.setColor(new Color(1f,1f,1f, 1 - ThreadLocalRandom.current().nextFloat(0.7f)));
+                } else {
+                    g2d.setColor(new Color(0,0,0,0));
                 }
                 g2d.drawLine(x, y, x, y);
             }
         }
         g2d.dispose();
-        ImageIO.write(bufferedImage, "png", new File("src/main/resources/textures/skybox/myimage.png"));
+        ImageIO.write(bufferedImage, "png", new File("src/main/resources/textures/skybox/nightsky.png"));
         for (int i = 0; i < 6; i++) {
-            images[i] = new Image(Util.readResource("textures/skybox/myimage.png"));
+            images[i] = new Image(Util.readResource("textures/skybox/nightsky.png"));
         }
         return SkyboxRenderer.createCubemap(images);
+    }
+
+    private double getDistance(int x1, int y1, int x2, int y2) {
+        return Math.sqrt(Math.pow(x1-x2, 2) + Math.pow(y1 - y2, 2));
     }
 
 }
