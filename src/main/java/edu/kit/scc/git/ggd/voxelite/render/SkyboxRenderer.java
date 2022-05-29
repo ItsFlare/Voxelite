@@ -13,6 +13,7 @@ import net.durchholz.beacon.util.Image;
 import java.io.IOException;
 
 import static net.durchholz.beacon.render.opengl.textures.GLTexture.*;
+import static org.lwjgl.opengl.GL41.*;
 
 public class SkyboxRenderer {
 
@@ -69,17 +70,21 @@ public class SkyboxRenderer {
         this.skybox = skybox;
     }
 
-    public void render(Matrix4f matrix) {
+    public void render(Matrix4f matrix, float a) {
         OpenGL.depthTest(false);
         OpenGL.depthMask(false);
+        OpenGL.blend(true);
+        OpenGL.blendFunction(OpenGL.BlendFunction.SOURCE_ALPHA, OpenGL.BlendFunction.ONE_MINUS_SOURCE_ALPHA);
 
         OpenGL.use(program, va, skybox, () -> {
             program.mvp.set(matrix);
+            program.alpha.set(a);
 
             program.skybox.bind(0, skybox);
 
             OpenGL.drawIndexed(OpenGL.Mode.TRIANGLES, INDICES.length, OpenGL.Type.UNSIGNED_INT);
         });
+
     }
 
     public static CubemapTexture createCubemap(Image[] images) {

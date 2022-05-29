@@ -92,6 +92,7 @@ public class WorldRenderer {
     static boolean init = true;
     public void render() {
         upload(uploadRate);
+        OpenGL.blend(false);
         OpenGL.depthTest(true);
         OpenGL.depthMask(true);
 
