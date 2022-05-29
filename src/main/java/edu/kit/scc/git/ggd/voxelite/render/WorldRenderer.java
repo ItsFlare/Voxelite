@@ -168,7 +168,7 @@ public class WorldRenderer {
         final Queue<VisibilityNode> queue = new ArrayDeque<>();
 
         final Camera camera = Main.INSTANCE.getRenderer().getCamera();
-        final var cameraBlockPosition = Chunk.toBlockPosition(camera.getPosition());
+        final Vec3i cameraBlockPosition = Chunk.toBlockPosition(camera.getPosition());
         final RenderChunk currentChunk = renderChunks.get(Chunk.toChunkPosition(cameraBlockPosition));
 
         //Outside loaded area
@@ -183,19 +183,13 @@ public class WorldRenderer {
         //Calculate which neighbors are reachable
         final Set<Direction> visibleDirections = this.floodFill(cameraBlockPosition);
 
-        if (visibleDirections.size() == 1) {
-            //Check if camera is looking in opposite direction
-            Vec3f cameraOrientation = camera.getDirection();
-            Direction cameraDirection = Direction.getNearest(cameraOrientation);
-            visibleDirections.remove(cameraDirection.getOpposite());
-        }
+        //Remove direction behind camera
+        visibleDirections.remove(Direction.getNearest(camera.getDirection()).getOpposite());
 
-        if (!visibleDirections.isEmpty()) {
-            //Flood fill neighboring chunks
-            for (Direction direction : visibleDirections) {
-                final RenderChunk neighbor = renderChunks.get(currentChunk.getChunk().getPosition().add(direction.getAxis()));
-                if (neighbor != null) queue.add(new VisibilityNode(neighbor, direction, 0));
-            }
+        //Flood fill reached neighbors
+        for (Direction direction : visibleDirections) {
+            final RenderChunk neighbor = renderChunks.get(currentChunk.getChunk().getPosition().add(direction.getAxis()));
+            if (neighbor != null) queue.add(new VisibilityNode(neighbor, direction, 0));
         }
 
         //Flood-fill chunk grid based on directional connectivity
