@@ -24,6 +24,8 @@ public class SkyboxProgram extends Program {
     public final Uniform<Matrix4f> mvp = uniMatrix4f("mvp", true);
     public final Sampler skybox = sampler("skybox");
 
+    public final Uniform<Float> alpha = uniFloat("alpha");
+
     record SkyboxVertex(Vec3f position) implements Vertex {
         public static final VertexLayout<SkyboxVertex> LAYOUT = new VertexLayout<>(SkyboxVertex.class);
         public static final VertexAttribute<Vec3f> POSITION = LAYOUT.vec3f(false);
