@@ -69,14 +69,14 @@ public class Camera {
         return Matrix4f.perspective(fov, window.getViewport().aspectRatio(), NEAR_PLANE, FAR_PLANE);
     }
 
-    public Matrix4f transform() {
+    public Matrix4f transform(boolean translate, boolean rotate) {
         final Matrix4f projection = projection();
-        projection.multiply(view(true, true));
+        projection.multiply(view(translate, rotate));
 
         return projection;
     }
 
-    public Vec3f getOrientation() {
-        return new Vec3f(0, 0, -1).rotate(getRotation());
+    public Vec3f getDirection() {
+        return new Vec3f(0, 0, -1).rotate(rotation);
     }
 }

@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 public class WorldRenderer {
 
     private static final Comparator<RenderChunk> DISTANCE_COMPARATOR = Comparator.comparingInt(rc -> Chunk.toWorldPosition(rc.getChunk().getPosition()).subtract(new Vec3i(Main.INSTANCE.getRenderer().getCamera().getPosition())).magnitudeSq());
+    private static final int SHADOW_MAP_SIZE = 1 << 10;
 
     private final Map<Vec3i, RenderChunk> renderChunks = new HashMap<>();
     private final TextureAtlas            atlas;
@@ -33,13 +34,13 @@ public class WorldRenderer {
     private final BlockingQueue<RenderChunk> buildQueue        = new PriorityBlockingQueue<>(128, DISTANCE_COMPARATOR);
     private final BlockingQueue<RenderChunk> uploadQueue       = new PriorityBlockingQueue<>(128, DISTANCE_COMPARATOR);
     private final AsyncChunkBuilder          asyncChunkBuilder = new AsyncChunkBuilder(buildQueue, uploadQueue, ForkJoinPool.getCommonPoolParallelism() / 4 + 1);
-
+    private final ShadowMapRenderer          shadowMapRenderer = new ShadowMapRenderer(SHADOW_MAP_SIZE);
 
     public List<RenderChunk> renderList      = new ArrayList<>();
     public Vec4f             lightColor      = new Vec4f(1);
     public float             ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f;
     public int phongExponent = 32, uploadRate = 5;
-    public  boolean frustumCull, caveCull;
+    public boolean frustumCull = true, caveCull = true, shadows = true, shadowTransform = false;
     public int emptyCount, frustumCullCount, caveCullCount, totalCullCount;
 
     public WorldRenderer() {
@@ -96,14 +97,15 @@ public class WorldRenderer {
         upload(uploadRate);
         OpenGL.depthTest(true);
         OpenGL.depthMask(true);
+        OpenGL.blend(false);
 
         final Camera camera = Main.INSTANCE.getRenderer().getCamera();
 
-        final Matrix4f view = camera.view(false, true);
-        final Matrix4f projection = camera.projection();
-        projection.multiply(view);
+        final Frustum frustum = new Frustum(camera.getPosition(), camera.transform(false, true));
 
-        final Frustum frustum = new Frustum(camera.getPosition(), projection);
+        final Vec3f lightDirection = camera.getDirection();
+        if(shadows) shadowMapRenderer.render(frustum, lightDirection);
+        final Matrix4f lightTransform = ShadowMapRenderer.lightTransform(frustum, lightDirection);
 
         frustumCullCount = 0;
         final var frameRenderList = renderList
@@ -111,7 +113,7 @@ public class WorldRenderer {
                 .filter(RenderChunk::isValid)
                 .filter(frustumCull ? renderChunk -> {
                     boolean intersects = frustum.intersects(renderChunk.getChunk().getBoundingBox());
-                    if(!intersects) frustumCullCount++;
+                    if (!intersects) frustumCullCount++;
                     return intersects;
                 } : renderChunk -> true)
                 .toList();
@@ -126,23 +128,26 @@ public class WorldRenderer {
             final ChunkProgram program = renderType.getProgram();
 
             program.use(() -> {
-                OpenGL.primitiveRestart(true);
-                OpenGL.primitiveRestartIndex(ChunkProgram.PRIMITIVE_RESET_INDEX);
 
-                program.mvp.set(camera.transform());
+                program.mvp.set(shadowTransform ? lightTransform : camera.transform(true, true));
                 program.atlas.bind(0, atlas);
                 program.camera.set(camera.getPosition());
                 program.lightColor.set(new Vec3f(lightColor.x(), lightColor.y(), lightColor.z()));
-                program.lightDirection.set(new Vec3f(0, -1, 0));
+                program.lightDirection.set(lightDirection);
                 program.ambientStrength.set(ambientStrength);
                 program.diffuseStrength.set(diffuseStrength);
                 program.specularStrength.set(specularStrength);
                 program.phongExponent.set(phongExponent);
                 program.normalizedSpriteSize.set(atlas.getNormalizedSpriteSize());
                 program.maxLightValue.set(LightStorage.MAX_TOTAL_VALUE);
+                program.shadowMap.bind(1, shadowMapRenderer.getTexture());
+                program.lightTransform.set(lightTransform);
+                program.shadows.set(shadows ? 1 : 0);
 
                 for (RenderChunk renderChunk : frameRenderList) {
-                    renderChunk.render(renderType);
+                    program.chunk.set(Chunk.toWorldPosition(renderChunk.getChunk().getPosition()));
+
+                    renderChunk.render(renderType, shadowTransform ? camera.getPosition().add(lightDirection.scale(-1000)): camera.getPosition());
                 }
             });
         }
@@ -167,10 +172,10 @@ public class WorldRenderer {
         final RenderChunk currentChunk = renderChunks.get(Chunk.toChunkPosition(cameraBlockPosition));
 
         //Outside loaded area
-        if(currentChunk == null) return renderChunks.values();
+        if (currentChunk == null) return renderChunks.values();
 
         //Inside opaque block
-        if(currentChunk.getChunk().isOpaque(cameraBlockPosition)) return result;
+        if (currentChunk.getChunk().isOpaque(cameraBlockPosition)) return result;
 
         //Always render current chunk
         result.add(currentChunk);
@@ -180,7 +185,7 @@ public class WorldRenderer {
 
         if (visibleDirections.size() == 1) {
             //Check if camera is looking in opposite direction
-            Vec3f cameraOrientation = camera.getOrientation();
+            Vec3f cameraOrientation = camera.getDirection();
             Direction cameraDirection = Direction.getNearest(cameraOrientation);
             visibleDirections.remove(cameraDirection.getOpposite());
         }
@@ -240,7 +245,7 @@ public class WorldRenderer {
                     .stream()
                     .filter(renderChunk -> {
                         boolean empty = renderChunk.getQuadCount() == 0;
-                        if(empty) emptyCount++;
+                        if (empty) emptyCount++;
                         return !empty;
                     })
                     .sorted(DISTANCE_COMPARATOR)
@@ -252,7 +257,7 @@ public class WorldRenderer {
                     .stream()
                     .filter(renderChunk -> {
                         boolean empty = renderChunk.getQuadCount() == 0;
-                        if(empty) emptyCount++;
+                        if (empty) emptyCount++;
                         return !empty;
                     })
                     .sorted(DISTANCE_COMPARATOR)

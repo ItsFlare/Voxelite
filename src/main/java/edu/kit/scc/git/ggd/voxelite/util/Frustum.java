@@ -1,17 +1,19 @@
 package edu.kit.scc.git.ggd.voxelite.util;
 
-import net.durchholz.beacon.math.AABB;
-import net.durchholz.beacon.math.Matrix4f;
-import net.durchholz.beacon.math.Vec3f;
-import net.durchholz.beacon.math.Vec4f;
+import net.durchholz.beacon.math.*;
 
-public record Frustum(Vec3f position, Vec4f[] normals) {
+import java.util.Arrays;
+
+public record Frustum(Vec3f position, Vec4f[] normals, AABB boundingBox) {
+
+    private static final AABB UNIT = new AABB(new Vec3i(-1), new Vec3i(1));
 
     public Frustum(Vec3f position, Matrix4f viewProjection) {
-        this(position, extractNormals(viewProjection));
+        this(position, extractNormals(viewProjection), extractBoundingBox(viewProjection));
     }
 
     public boolean intersects(AABB aabb) {
+        //TODO Check if aabb intersects with frustum aabb?
         final AABB relative = aabb.translate(position.scale(-1));
 
         final float minX = relative.min().x();
@@ -57,5 +59,34 @@ public record Frustum(Vec3f position, Vec4f[] normals) {
         normals[5] = viewProjection.row(3).subtract(viewProjection.row(2));
 
         return normals;
+    }
+    
+    private static AABB extractBoundingBox(Matrix4f viewProjection) {
+        float minX = Float.POSITIVE_INFINITY,
+                minY = Float.POSITIVE_INFINITY,
+                minZ = Float.POSITIVE_INFINITY,
+                maxX = Float.NEGATIVE_INFINITY,
+                maxY = Float.NEGATIVE_INFINITY,
+                maxZ = Float.NEGATIVE_INFINITY;
+
+        var inverseViewProjection = viewProjection.clone();
+        inverseViewProjection.invert();
+
+        //TODO Optimize
+        for (Vec4f corner : Arrays.stream(UNIT.corners()).map(vec3f -> {
+            Vec4f transform = vec3f.extend(1).transform(inverseViewProjection);
+            transform = transform.divide(transform.w());
+            return transform;
+        }).toArray(Vec4f[]::new)) {
+            if(corner.x() < minX) minX = corner.x();
+            if(corner.y() < minY) minY = corner.y();
+            if(corner.z() < minZ) minZ = corner.z();
+
+            if(corner.x() > maxX) maxX = corner.x();
+            if(corner.y() > maxY) maxY = corner.y();
+            if(corner.z() > maxZ) maxZ = corner.z();
+        }
+
+        return new AABB(new Vec3f(minX, minY, minZ), new Vec3f(maxX, maxY, maxZ));
     }
 }

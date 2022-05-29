@@ -59,9 +59,10 @@ public class UserInterface {
             var world = new CheckboxElement("World", true, value -> Main.INSTANCE.getRenderer().renderWorld = value);
             var vsync = new CheckboxElement("VSync", true, value -> Window.swapInterval(value ? 1 : 0));
             var wireframe = new CheckboxElement("Wireframe", false, value -> Main.INSTANCE.getRenderer().wireframe = value);
+            var shadows = new CheckboxElement("Shadows", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().shadows = value);
+            var shadowTransform = new CheckboxElement("Shadow Transform", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().shadowTransform = value);
 
-
-            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe);
+            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe, shadows, ImGui::sameLine, shadowTransform);
         }
 
         {

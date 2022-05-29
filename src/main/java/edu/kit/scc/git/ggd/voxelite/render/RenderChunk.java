@@ -7,6 +7,7 @@ import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import edu.kit.scc.git.ggd.voxelite.world.HullSet;
 import edu.kit.scc.git.ggd.voxelite.world.Voxel;
 import net.durchholz.beacon.math.Vec2i;
+import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 
 import java.util.Arrays;
@@ -26,7 +27,7 @@ public class RenderChunk {
         for (int i = 0; i < renderTypes.length; i++) {
             if (i > 0) continue; //TODO Remove with transparency
             RenderType renderType = renderTypes[i];
-            slices[i] = renderType.getProgram().new Slice(chunk.getPosition(), renderType);
+            slices[i] = new ChunkProgram.Slice(chunk.getPosition(), renderType);
         }
     }
 
@@ -73,11 +74,16 @@ public class RenderChunk {
         }
     }
 
-    public void render(RenderType renderType) {
+    public void render(RenderType renderType, Vec3f cameraPosition) {
         assert valid;
 
-        renderType.getProgram().chunk.set(Chunk.toWorldPosition(chunk.getPosition()));
-        slices[renderType.ordinal()].render();
+        slices[renderType.ordinal()].render(cameraPosition);
+    }
+
+    public void renderShadow(RenderType renderType, int visibilityBitset) {
+        assert valid;
+
+        slices[renderType.ordinal()].renderShadow(visibilityBitset);
     }
 
     public void delete() {
