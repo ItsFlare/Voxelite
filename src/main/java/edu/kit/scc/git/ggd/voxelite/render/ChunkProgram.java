@@ -4,10 +4,7 @@ import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import edu.kit.scc.git.ggd.voxelite.world.LightStorage;
 import net.durchholz.beacon.data.IntVector;
-import net.durchholz.beacon.math.Matrix4f;
-import net.durchholz.beacon.math.Vec2i;
-import net.durchholz.beacon.math.Vec3f;
-import net.durchholz.beacon.math.Vec3i;
+import net.durchholz.beacon.math.*;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.buffers.*;
 import net.durchholz.beacon.render.opengl.shader.Program;
@@ -66,8 +63,11 @@ public class ChunkProgram extends Program {
     public final Uniform<Integer>  phongExponent        = uniInteger("phongExponent");
     public final Uniform<Float>    normalizedSpriteSize = uniFloat("normalizedSpriteSize");
     public final Uniform<Integer>  maxLightValue        = uniInteger("maxLightValue");
-    public final Uniform<Matrix4f> lightTransform       = uniMatrix4f("lightTransform", true);
+    public final Uniform<Matrix4f> lightView            = uniMatrix4f("lightView", true);
     public final Uniform<Integer>  shadows              = uniInteger("shadows");
+    public final Uniform<Vec4f[]>  cascadeScales        = uniVec4fArray("cascades", "scale", 4);
+    public final Uniform<Float[]>  cascadeFar           = uniFloatArray("cascades", "far", 4);
+    public final Uniform<Integer>  kernel               = uniInteger("kernel");
 
     public record QuadVertex(Vec3f position, Vec2i texture, Vec3f normal) implements Vertex {
         public static final VertexLayout<QuadVertex> LAYOUT   = new VertexLayout<>(QuadVertex.class);
@@ -115,11 +115,11 @@ public class ChunkProgram extends Program {
         protected final Vec3i position, worldPosition;
         protected final RenderType renderType;
 
-        protected final VertexArray                  vertexArray       = new VertexArray();
-        protected final VertexArray                  shadowVertexArray = new VertexArray();
-        protected final VertexBuffer<InstanceVertex> instanceBuffer    = new VertexBuffer<>(InstanceVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
-        protected final VertexBuffer<InstanceLightVertex> lightBuffer    = new VertexBuffer<>(InstanceLightVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
-        protected final List<QueuedQuad>                  queue          = new ArrayList<>();
+        protected final VertexArray                       vertexArray       = new VertexArray();
+        protected final VertexArray                       shadowVertexArray = new VertexArray();
+        protected final VertexBuffer<InstanceVertex>      instanceBuffer    = new VertexBuffer<>(InstanceVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
+        protected final VertexBuffer<InstanceLightVertex> lightBuffer       = new VertexBuffer<>(InstanceLightVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
+        protected final List<QueuedQuad>                  queue             = new ArrayList<>();
 
         protected final    Command[]                                   commands = new Command[1 << Direction.values().length];
         protected          OpenGL.DrawMultiElementsIndirectCommand[][] nextCommands;

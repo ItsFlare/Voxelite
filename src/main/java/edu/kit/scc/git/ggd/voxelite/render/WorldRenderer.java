@@ -9,7 +9,6 @@ import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.event.Listener;
-import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 import net.durchholz.beacon.math.Vec4f;
@@ -26,7 +25,8 @@ import java.util.stream.Collectors;
 public class WorldRenderer {
 
     private static final Comparator<RenderChunk> DISTANCE_COMPARATOR = Comparator.comparingInt(rc -> Chunk.toWorldPosition(rc.getChunk().getPosition()).subtract(new Vec3i(Main.INSTANCE.getRenderer().getCamera().getPosition())).magnitudeSq());
-    private static final int SHADOW_MAP_SIZE = 1 << 10;
+    private static final int SHADOW_MAP_SIZE = 1 << 13;
+    public static int frustumNumber = 0;
 
     private final Map<Vec3i, RenderChunk> renderChunks = new HashMap<>();
     private final TextureAtlas            atlas;
@@ -34,7 +34,7 @@ public class WorldRenderer {
     private final BlockingQueue<RenderChunk> buildQueue        = new PriorityBlockingQueue<>(128, DISTANCE_COMPARATOR);
     private final BlockingQueue<RenderChunk> uploadQueue       = new PriorityBlockingQueue<>(128, DISTANCE_COMPARATOR);
     private final AsyncChunkBuilder          asyncChunkBuilder = new AsyncChunkBuilder(buildQueue, uploadQueue, ForkJoinPool.getCommonPoolParallelism() / 4 + 1);
-    private final ShadowMapRenderer          shadowMapRenderer = new ShadowMapRenderer(SHADOW_MAP_SIZE);
+    private final ShadowMapRenderer          shadowMapRenderer = new ShadowMapRenderer(SHADOW_MAP_SIZE, 4);
 
     public List<RenderChunk> renderList      = new ArrayList<>();
     public Vec4f             lightColor      = new Vec4f(1);
@@ -101,11 +101,10 @@ public class WorldRenderer {
 
         final Camera camera = Main.INSTANCE.getRenderer().getCamera();
 
-        final Frustum frustum = new Frustum(camera.getPosition(), camera.transform(false, true));
+        final Frustum frustum = new Frustum(camera.getPosition(), camera.transform(true, true));
 
         final Vec3f lightDirection = camera.getDirection();
-        if(shadows) shadowMapRenderer.render(frustum, lightDirection);
-        final Matrix4f lightTransform = ShadowMapRenderer.lightTransform(frustum, lightDirection);
+        if(shadows) shadowMapRenderer.render(lightDirection);
 
         frustumCullCount = 0;
         final var frameRenderList = renderList
@@ -116,7 +115,7 @@ public class WorldRenderer {
                     if (!intersects) frustumCullCount++;
                     return intersects;
                 } : renderChunk -> true)
-                .toList();
+                .toArray(RenderChunk[]::new);
 
         totalCullCount = emptyCount + frustumCullCount + caveCullCount;
 
@@ -129,7 +128,7 @@ public class WorldRenderer {
 
             program.use(() -> {
 
-                program.mvp.set(shadowTransform ? lightTransform : camera.transform(true, true));
+                program.mvp.set(shadowTransform ? shadowMapRenderer.lightTransform(frustumNumber, lightDirection) : camera.transform(true, true));
                 program.atlas.bind(0, atlas);
                 program.camera.set(camera.getPosition());
                 program.lightColor.set(new Vec3f(lightColor.x(), lightColor.y(), lightColor.z()));
@@ -141,8 +140,10 @@ public class WorldRenderer {
                 program.normalizedSpriteSize.set(atlas.getNormalizedSpriteSize());
                 program.maxLightValue.set(LightStorage.MAX_TOTAL_VALUE);
                 program.shadowMap.bind(1, shadowMapRenderer.getTexture());
-                program.lightTransform.set(lightTransform);
-                program.shadows.set(shadows ? 1 : 0);
+                program.lightView.set(shadowMapRenderer.lightView);
+                program.shadows.set(shadows && ! shadowTransform ? 1 : 0);
+                program.cascadeFar.set(shadowMapRenderer.cascadeFar);
+                program.cascadeScales.set(shadowMapRenderer.cascadeScale);
 
                 for (RenderChunk renderChunk : frameRenderList) {
                     program.chunk.set(Chunk.toWorldPosition(renderChunk.getChunk().getPosition()));
@@ -297,5 +298,9 @@ public class WorldRenderer {
 
     public int getUploadQueueSize() {
         return uploadQueue.size();
+    }
+
+    public ShadowMapRenderer getShadowMapRenderer() {
+        return shadowMapRenderer;
     }
 }

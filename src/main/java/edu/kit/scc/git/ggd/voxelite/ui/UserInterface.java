@@ -2,9 +2,7 @@ package edu.kit.scc.git.ggd.voxelite.ui;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.input.InputListener;
-import edu.kit.scc.git.ggd.voxelite.render.Camera;
-import edu.kit.scc.git.ggd.voxelite.render.ChunkProgram;
-import edu.kit.scc.git.ggd.voxelite.render.RenderChunk;
+import edu.kit.scc.git.ggd.voxelite.render.*;
 import edu.kit.scc.git.ggd.voxelite.util.LongRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.util.SuppliedLongRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.world.Block;
@@ -61,8 +59,28 @@ public class UserInterface {
             var wireframe = new CheckboxElement("Wireframe", false, value -> Main.INSTANCE.getRenderer().wireframe = value);
             var shadows = new CheckboxElement("Shadows", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().shadows = value);
             var shadowTransform = new CheckboxElement("Shadow Transform", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().shadowTransform = value);
+            var frustumNumber = new IntSliderElement("Frustum Number", 0, 0, 3, value -> WorldRenderer.frustumNumber = value);
+            var frustumCount = new IntSliderElement("Frustum Count", 4, 1, 4, value -> {
+                Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().cascades = value;
+                Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().allocate();
+            });
+            var kernel = new IntSliderElement("PCF Kernel", 0, 0, 10, value -> {
+                RenderType.OPAQUE.getProgram().use(() -> {
+                    RenderType.OPAQUE.getProgram().kernel.set(value);
+                });
+            });
+            var resolution = new IntSliderElement("Resolution Exponent", 12, 5, 16, value -> {
+                final ShadowMapRenderer shadowMapRenderer = Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer();
+                shadowMapRenderer.resolution = 1 << value;
+                shadowMapRenderer.allocate();
+            });
 
-            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe, shadows, ImGui::sameLine, shadowTransform);
+            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe,
+                    shadows, ImGui::sameLine, shadowTransform,
+                    frustumCount,
+                    frustumNumber,
+                    kernel,
+                    resolution);
         }
 
         {
@@ -77,7 +95,8 @@ public class UserInterface {
                     Main.INSTANCE.getRenderer().getWorldRenderer().totalCullCount, 100 * Main.INSTANCE.getRenderer().getWorldRenderer().totalCullCount / (float) Main.INSTANCE.getWorld().getChunks().size()
             ));
 
-            this.cull = new Accordion("Culling", false, directionCull, ImGui::sameLine, backfaceCull, ImGui::sameLine, caveCull, ImGui::sameLine, frustumCull, cullStats);
+            this.cull = new Accordion("Culling", false, directionCull, ImGui::sameLine, backfaceCull, ImGui::sameLine, caveCull, ImGui::sameLine, frustumCull,
+                    cullStats);
         }
 
         {

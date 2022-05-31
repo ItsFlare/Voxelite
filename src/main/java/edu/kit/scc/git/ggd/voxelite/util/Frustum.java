@@ -4,25 +4,24 @@ import net.durchholz.beacon.math.*;
 
 import java.util.Arrays;
 
-public record Frustum(Vec3f position, Vec4f[] normals, AABB boundingBox) {
+public record Frustum(Vec3f position, Vec4f[] normals, Vec3f[] corners) {
 
     private static final AABB UNIT = new AABB(new Vec3i(-1), new Vec3i(1));
 
     public Frustum(Vec3f position, Matrix4f viewProjection) {
-        this(position, extractNormals(viewProjection), extractBoundingBox(viewProjection));
+        this(position, extractNormals(viewProjection), extractCorners(viewProjection));
     }
 
     public boolean intersects(AABB aabb) {
         //TODO Check if aabb intersects with frustum aabb?
-        final AABB relative = aabb.translate(position.scale(-1));
 
-        final float minX = relative.min().x();
-        final float minY = relative.min().y();
-        final float minZ = relative.min().z();
+        final float minX = aabb.min().x();
+        final float minY = aabb.min().y();
+        final float minZ = aabb.min().z();
 
-        final float maxX = relative.max().x();
-        final float maxY = relative.max().y();
-        final float maxZ = relative.max().z();
+        final float maxX = aabb.max().x();
+        final float maxY = aabb.max().y();
+        final float maxZ = aabb.max().z();
 
         for (Vec4f normal : normals) {
             //If all corners are behind the plane it can't intersect
@@ -60,33 +59,14 @@ public record Frustum(Vec3f position, Vec4f[] normals, AABB boundingBox) {
 
         return normals;
     }
-    
-    private static AABB extractBoundingBox(Matrix4f viewProjection) {
-        float minX = Float.POSITIVE_INFINITY,
-                minY = Float.POSITIVE_INFINITY,
-                minZ = Float.POSITIVE_INFINITY,
-                maxX = Float.NEGATIVE_INFINITY,
-                maxY = Float.NEGATIVE_INFINITY,
-                maxZ = Float.NEGATIVE_INFINITY;
 
-        var inverseViewProjection = viewProjection.clone();
-        inverseViewProjection.invert();
-
-        //TODO Optimize
-        for (Vec4f corner : Arrays.stream(UNIT.corners()).map(vec3f -> {
-            Vec4f transform = vec3f.extend(1).transform(inverseViewProjection);
+    public static Vec3f[] extractCorners(Matrix4f viewProjection) {
+        var clone = viewProjection.clone();
+        clone.invert();
+        return Arrays.stream(UNIT.corners()).map(vec3f -> {
+            Vec4f transform = vec3f.extend(1).transform(clone);
             transform = transform.divide(transform.w());
-            return transform;
-        }).toArray(Vec4f[]::new)) {
-            if(corner.x() < minX) minX = corner.x();
-            if(corner.y() < minY) minY = corner.y();
-            if(corner.z() < minZ) minZ = corner.z();
-
-            if(corner.x() > maxX) maxX = corner.x();
-            if(corner.y() > maxY) maxY = corner.y();
-            if(corner.z() > maxZ) maxZ = corner.z();
-        }
-
-        return new AABB(new Vec3f(minX, minY, minZ), new Vec3f(maxX, maxY, maxZ));
+            return new Vec3f(transform.x(), transform.y(), transform.z());
+        }).toArray(Vec3f[]::new);
     }
 }

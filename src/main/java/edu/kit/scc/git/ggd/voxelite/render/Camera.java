@@ -9,7 +9,7 @@ import net.durchholz.beacon.window.Window;
 public class Camera {
     public static final int   DEFAULT_FOV = 120;
     public static final float NEAR_PLANE  = 0.2f;
-    public static final float FAR_PLANE   = 500f;
+    public static final float FAR_PLANE   = 150f;
 
     private final Window window;
 
