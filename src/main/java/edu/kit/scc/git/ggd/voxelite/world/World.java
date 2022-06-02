@@ -1,6 +1,8 @@
 package edu.kit.scc.git.ggd.voxelite.world;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
+import edu.kit.scc.git.ggd.voxelite.util.Direction;
+import edu.kit.scc.git.ggd.voxelite.util.Util;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.generator.WorldGenerator;
@@ -17,7 +19,7 @@ public class World {
     private final WorldGenerator    generator;
     private final Map<Vec3i, Chunk> chunks = new ConcurrentHashMap<>();
 
-    private final BlockingQueue<Vec3i> loadQueue           = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Vec3i> loadQueue = new LinkedBlockingQueue<>();
     private final AsyncChunkLoader     chunkLoader;
 
     private boolean loadChunks = true;
@@ -79,7 +81,7 @@ public class World {
 
     public void frame() {
         chunkLoader.consume(chunk -> {
-            if(chunks.putIfAbsent(chunk.getPosition(), chunk) == null) new ChunkLoadEvent(chunk).fire();
+            if (chunks.putIfAbsent(chunk.getPosition(), chunk) == null) new ChunkLoadEvent(chunk).fire();
         }, buildRate);
     }
 
@@ -131,12 +133,97 @@ public class World {
     }
 
     public Voxel getVoxel(Vec3f position) {
+        return getVoxel(Chunk.toBlockPosition(position));
+    }
+
+    public Voxel getVoxel(Vec3i position) {
         final Chunk chunk = getChunk(Chunk.toChunkPosition(position));
         if (chunk == null) return null;
-        return new Voxel(chunk, Chunk.toBlockPosition(position));
+        return new Voxel(chunk, position);
     }
 
     public int getLoadQueueSize() {
         return loadQueue.size();
     }
+
+    public final Intersection traverse(Vec3f origin, Vec3f direction, float range) {
+        return traverse(origin, origin.add(direction.normalized().scale(range)));
+    }
+
+    public final Intersection traverse(Vec3f origin, Vec3f direction, float range, Predicate<Voxel> hitPredicate) {
+        return traverse(origin, origin.add(direction.normalized().scale(range)), hitPredicate);
+    }
+
+    public final Intersection traverse(Vec3f origin, Vec3f target) {
+        return traverse(origin, target, voxel -> voxel.getBlock() != Block.AIR);
+    }
+
+    public final Intersection traverse(Vec3f origin, Vec3f target, Predicate<Voxel> hitPredicate) {
+        /*
+        Amanatides and Woo. A Fast Voxel Traversal Algorithm for Ray Tracing. 1987.
+         */
+
+        //Move slightly inwards in case coordinates are flat
+        final float alpha = 1.0E-6f;
+        origin = origin.interpolate(target, alpha);
+        target = target.interpolate(origin, alpha);
+
+        final double lenX = target.x() - origin.x();
+        final double lenY = target.y() - origin.y();
+        final double lenZ = target.z() - origin.z();
+
+        final int signX = Double.compare(lenX, 0);
+        final int signY = Double.compare(lenY, 0);
+        final int signZ = Double.compare(lenZ, 0);
+
+        final Direction dirX = signX == 1 ? Direction.NEG_X : Direction.POS_X;
+        final Direction dirY = signY == 1 ? Direction.NEG_Y : Direction.POS_Y;
+        final Direction dirZ = signZ == 1 ? Direction.NEG_Z : Direction.POS_Z;
+
+        final double tDeltaX = signX == 0 ? Double.MAX_VALUE : (double) signX / lenX;
+        final double tDeltaY = signY == 0 ? Double.MAX_VALUE : (double) signY / lenY;
+        final double tDeltaZ = signZ == 0 ? Double.MAX_VALUE : (double) signZ / lenZ;
+
+        double tMaxX = tDeltaX * (signX > 0 ? 1 - Util.frac(origin.x()) : Util.frac(origin.x()));
+        double tMaxY = tDeltaY * (signY > 0 ? 1 - Util.frac(origin.y()) : Util.frac(origin.y()));
+        double tMaxZ = tDeltaZ * (signZ > 0 ? 1 - Util.frac(origin.z()) : Util.frac(origin.z()));
+
+        int x = (int) Math.floor(origin.x());
+        int y = (int) Math.floor(origin.y());
+        int z = (int) Math.floor(origin.z());
+
+        Voxel v;
+        Direction normal;
+
+        do {
+            if (tMaxX > 1 && tMaxY > 1 && tMaxZ > 1) {
+                return null;
+            }
+
+            if (tMaxX < tMaxY) {
+                if (tMaxX < tMaxZ) {
+                    x += signX;
+                    tMaxX += tDeltaX;
+                    normal = dirX;
+                } else {
+                    z += signZ;
+                    tMaxZ += tDeltaZ;
+                    normal = dirZ;
+                }
+            } else if (tMaxY < tMaxZ) {
+                y += signY;
+                tMaxY += tDeltaY;
+                normal = dirY;
+            } else {
+                z += signZ;
+                tMaxZ += tDeltaZ;
+                normal = dirZ;
+            }
+
+            v = getVoxel(new Vec3i(x, y, z));
+        } while (v == null || !hitPredicate.test(v));
+
+        return new Intersection(v, normal);
+    }
+
 }

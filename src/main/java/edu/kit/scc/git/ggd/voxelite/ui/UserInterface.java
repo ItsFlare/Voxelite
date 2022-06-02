@@ -7,8 +7,10 @@ import edu.kit.scc.git.ggd.voxelite.render.ChunkProgram;
 import edu.kit.scc.git.ggd.voxelite.render.RenderChunk;
 import edu.kit.scc.git.ggd.voxelite.util.LongRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.util.SuppliedLongRingBuffer;
+import edu.kit.scc.git.ggd.voxelite.world.Block;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import edu.kit.scc.git.ggd.voxelite.world.generator.ModuloChunkGenerator;
+import edu.kit.scc.git.ggd.voxelite.world.CompressedLightStorage;
 import edu.kit.scc.git.ggd.voxelite.world.generator.NaturalWorldGenerator;
 import imgui.ImGui;
 import imgui.gl3.ImGuiImplGl3;
@@ -18,17 +20,21 @@ import net.durchholz.beacon.math.Vec4f;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.window.Window;
 
+import java.util.Map;
+import java.util.function.Consumer;
+
 public class UserInterface {
     private static final boolean SAVE_GUI = true;
 
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private final ImGuiImplGl3  imGuiGl3  = new ImGuiImplGl3();
 
-    private final Accordion camera, world, render, light, perf;
-    
+    private final Accordion camera, world, render, cull, light, perf;
+
     private final LongRingBuffer loadQueueRingBuffer = new SuppliedLongRingBuffer(() -> Main.INSTANCE.getWorld().getLoadQueueSize());
-    private final LongRingBuffer buildRingBuffer = new SuppliedLongRingBuffer(() -> Main.INSTANCE.getRenderer().getWorldRenderer().getBuildQueueSize());
-    private final LongRingBuffer uploadRingBuffer = new SuppliedLongRingBuffer(() -> Main.INSTANCE.getRenderer().getWorldRenderer().getUploadQueueSize());
+    private final LongRingBuffer buildRingBuffer     = new SuppliedLongRingBuffer(() -> Main.INSTANCE.getRenderer().getWorldRenderer().getBuildQueueSize());
+    private final LongRingBuffer uploadRingBuffer    = new SuppliedLongRingBuffer(() -> Main.INSTANCE.getRenderer().getWorldRenderer().getUploadQueueSize());
+    private final LongRingBuffer memoryRingBuffer    = new SuppliedLongRingBuffer(() -> (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1_000_000);
 
     public UserInterface() {
         {
@@ -36,13 +42,17 @@ public class UserInterface {
             var chunkPos = new TextElement(() -> "Chunk: " + Chunk.toChunkPosition(Main.INSTANCE.getRenderer().getCamera().getPosition()));
             var block = new TextElement(() -> {
                 var voxel = Main.INSTANCE.getWorld().getVoxel(Main.INSTANCE.getRenderer().getCamera().getPosition());
-                return "Block: " +  (voxel == null ? "null" : voxel.getBlock());
+                return "Block: " + (voxel == null ? "null" : voxel.getBlock());
+            });
+            var blockLight = new TextElement(() -> {
+                var voxel = Main.INSTANCE.getWorld().getVoxel(Main.INSTANCE.getRenderer().getCamera().getPosition());
+                return "Light: " + (voxel == null ? "null" : voxel.chunk().getLightStorage().getLight(voxel.position()));
             });
 
             var fov = new IntSliderElement("FOV", Camera.DEFAULT_FOV, 5, 180, value -> Main.INSTANCE.getRenderer().getCamera().setFOV(value));
             var sensitivity = new FloatSliderElement("Sensitivity", InputListener.DEFAULT_SENSITIVITY, 0f, 5f, value -> Main.INSTANCE.getInputListener().sensitivity = value);
             var speed = new IntSliderElement("Speed", InputListener.DEFAULT_CAMERA_SPEED, 1, 300, value -> Main.INSTANCE.getInputListener().cameraSpeed = value);
-            this.camera = new Accordion("Camera", true, blockPos, chunkPos, block, fov, sensitivity, speed);
+            this.camera = new Accordion("Camera", true, blockPos, chunkPos, block, blockLight, fov, sensitivity, speed);
         }
 
         {
@@ -50,21 +60,29 @@ public class UserInterface {
             var world = new CheckboxElement("World", true, value -> Main.INSTANCE.getRenderer().renderWorld = value);
             var vsync = new CheckboxElement("VSync", true, value -> Window.swapInterval(value ? 1 : 0));
             var wireframe = new CheckboxElement("Wireframe", false, value -> Main.INSTANCE.getRenderer().wireframe = value);
-            var directionCulling = new CheckboxElement("Direction Culling", true, value -> ChunkProgram.directionCulling = value);
-            var backfaceCulling = new CheckboxElement("Backface Culling", true, OpenGL::cull);
-            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, vsync, ImGui::sameLine, wireframe, directionCulling, ImGui::sameLine, backfaceCulling);
+
+
+            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe);
         }
 
         {
-            //var time = new TextElement(() -> "Time: " + Time.timeToString());
-            var load = new CheckboxElement("Load Chunks", true, value -> Main.INSTANCE.getWorld().setLoadChunks(value));
+            var directionCull = new CheckboxElement("Direction", true, value -> ChunkProgram.directionCulling = value);
+            var backfaceCull = new CheckboxElement("Backface", true, OpenGL::cull);
+            var caveCull = new CheckboxElement("Cave", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().caveCull = value);
+            var frustumCull = new CheckboxElement("Frustum", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().frustumCull = value);
+            var cullStats = new TextElement(() -> "Cave: %d (%.1f%%) | Empty: %d (%.1f%%) %nFrustum: %d (%.1f%%) | Total: %d (%.1f%%)".formatted(
+                    Main.INSTANCE.getRenderer().getWorldRenderer().caveCullCount, 100 * Main.INSTANCE.getRenderer().getWorldRenderer().caveCullCount / (float) Main.INSTANCE.getWorld().getChunks().size(),
+                    Main.INSTANCE.getRenderer().getWorldRenderer().emptyCount, 100 * Main.INSTANCE.getRenderer().getWorldRenderer().emptyCount / (float) Main.INSTANCE.getWorld().getChunks().size(),
+                    Main.INSTANCE.getRenderer().getWorldRenderer().frustumCullCount, 100 * Main.INSTANCE.getRenderer().getWorldRenderer().frustumCullCount / (float) Main.INSTANCE.getWorld().getChunks().size(),
+                    Main.INSTANCE.getRenderer().getWorldRenderer().totalCullCount, 100 * Main.INSTANCE.getRenderer().getWorldRenderer().totalCullCount / (float) Main.INSTANCE.getWorld().getChunks().size()
+            ));
+
+            this.cull = new Accordion("Culling", false, directionCull, ImGui::sameLine, backfaceCull, ImGui::sameLine, caveCull, ImGui::sameLine, frustumCull, cullStats);
+        }
+
+        {
+            var load = new CheckboxElement("Update Area", true, value -> Main.INSTANCE.getWorld().setLoadChunks(value));
             var radius = new IntSliderElement("Chunk radius", 4, 0, 50, value -> Main.INSTANCE.getWorld().setChunkRadius(value));
-            var modulo = new IntSliderElement("Block gen modulo", ModuloChunkGenerator.DEFAULT_MOD, 1, 50, value -> {
-                if (Main.INSTANCE.getWorld().getGenerator() instanceof ModuloChunkGenerator r) {
-                    r.modulo = value;
-                    Main.INSTANCE.getWorld().regenerate();
-                }
-            });
             var frequency = new FloatSliderElement("Frequency", 0.02f, 0, 0.1f, value -> {
                 if(Main.INSTANCE.getWorld().getGenerator() instanceof NaturalWorldGenerator g) {
                     g.getPasses().get(0).setFrequency(value);
@@ -79,16 +97,28 @@ public class UserInterface {
             var uploadRate = new IntSliderElement("Build rate", 8, 0, 64, value -> Main.INSTANCE.getWorld().buildRate = value);
             var rebuild = new ButtonElement("Force rebuild", () -> Main.INSTANCE.getRenderer().getWorldRenderer().queueAll());
             var regenerate = new ButtonElement("Force regenerate", () -> Main.INSTANCE.getWorld().regenerate());
-            this.world = new Accordion("World", true, load, radius, modulo, frequency, amplitude, buildRate, uploadRate, rebuild, ImGui::sameLine, regenerate);
+            this.world = new Accordion("World", true, load, radius, frequency, amplitude, buildRate, uploadRate, rebuild, ImGui::sameLine, regenerate);
         }
 
         {
-            var color = new ColorPickerElement("Light", new Vec4f(1), value -> Main.INSTANCE.getRenderer().getWorldRenderer().lightColor = new Vec3f(value.x(), value.y(), value.z()));
+            var mode = new DropdownElement<Consumer<Vec4f>>("Mode",
+                    Map.of("sun", value -> Main.INSTANCE.getRenderer().getWorldRenderer().lightColor = value,
+                            "block", value -> {
+                                Block.GLOWSTONE.light = new Vec3f(value.x(), value.y(), value.z());
+                                Block.GLOWSTONE.compressedLight = CompressedLightStorage.encode(Block.GLOWSTONE.light, Block.GLOWSTONE.getLightRange());
+                            }, "filter", value -> {
+                                Block.RED_GLASS.filter = new Vec3f(value.x(), value.y(), value.z());
+                                Block.RED_GLASS.compressedFilter = CompressedLightStorage.encode(Block.RED_GLASS.filter, CompressedLightStorage.MAX_COMPONENT_VALUE);
+                            }
+                    )
+            );
+
+            var color = new ColorPickerElement("Light", new Vec4f(1), value -> mode.read().accept(value));
             var ambient = new FloatSliderElement("Ambient", 0.4f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().ambientStrength = value);
             var diffuse = new FloatSliderElement("Diffuse", 0.7f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().diffuseStrength = value);
             var specular = new FloatSliderElement("Specular", 0.2f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().specularStrength = value);
             var exponent = new IntSliderElement("Exponent", 32, 1, 128, value -> Main.INSTANCE.getRenderer().getWorldRenderer().phongExponent = value);
-            this.light = new Accordion("Light", false, color, ambient, diffuse, specular, exponent);
+            this.light = new Accordion("Light", false, mode, color, ambient, diffuse, specular, exponent);
         }
 
         {
@@ -119,7 +149,17 @@ public class UserInterface {
                     () -> overlay.formatted(uploadRingBuffer.get(), uploadRingBuffer.min(), uploadRingBuffer.max())
             );
 
-            this.perf = new Accordion("Performance Graphs", false, generate, build, upload);
+            var memory = new PlotElement(
+                    "Memory (MB)",
+                    PlotElement.Type.LINES,
+                    height,
+                    () -> memoryRingBuffer.toArray(true),
+                    () -> overlay.formatted(memoryRingBuffer.get(), memoryRingBuffer.min(), memoryRingBuffer.max())
+            );
+
+            var gc = new ButtonElement("Run GC", System::gc);
+
+            this.perf = new Accordion("Performance Graphs", false, generate, build, upload, memory, gc);
         }
     }
 
@@ -138,6 +178,7 @@ public class UserInterface {
         loadQueueRingBuffer.tick();
         buildRingBuffer.tick();
         uploadRingBuffer.tick();
+        memoryRingBuffer.tick();
     }
 
     public void draw() {
@@ -146,9 +187,9 @@ public class UserInterface {
         ImGui.begin("Settings");
 
         drawProfiler();
-
         camera.draw();
         render.draw();
+        cull.draw();
         world.draw();
         light.draw();
         perf.draw();

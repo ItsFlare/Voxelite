@@ -6,9 +6,12 @@ import edu.kit.scc.git.ggd.voxelite.ui.UserInterface;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.util.LinearInterpolation;
 import edu.kit.scc.git.ggd.voxelite.util.Util;
+import net.durchholz.beacon.math.Matrix4f;
+import net.durchholz.beacon.math.*;
 import edu.kit.scc.git.ggd.voxelite.world.generator.noise.Noise;
 import edu.kit.scc.git.ggd.voxelite.world.generator.noise.SimplexNoise;
-import net.durchholz.beacon.math.*;
+import net.durchholz.beacon.math.Vec2f;
+import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
 import net.durchholz.beacon.render.opengl.textures.Texture2D;
@@ -32,6 +35,7 @@ public class Renderer {
     private final UserInterface  userInterface;
     private final WorldRenderer  worldRenderer;
     private final SkyRenderer skyRenderer = new SkyRenderer();
+    private final SpriteRenderer crosshairRenderer = new SpriteRenderer(new Image(Util.readResource("textures/crosshair.png")));
 
     private Viewport viewport;
 
@@ -68,14 +72,14 @@ public class Renderer {
         updateViewport();
         OpenGL.polygonMode(OpenGL.Face.BOTH, wireframe ? OpenGL.PolygonMode.LINE : OpenGL.PolygonMode.FILL);
 
-        if (renderSkybox) {
-            //renderSkybox();
-            renderSky();
-        }
-        
+        if (renderSkybox) renderSky();
         if (renderWorld) renderWorld();
+
         if (wireframe) OpenGL.polygonMode(OpenGL.Face.BOTH, OpenGL.PolygonMode.FILL);
-        if (renderUI) renderUserInterface();
+        if (renderUI) {
+            renderCrosshair();
+            renderUserInterface();
+        }
     }
 
     public void tick() {
@@ -119,6 +123,13 @@ public class Renderer {
         userInterface.draw();
     }
 
+    private void renderCrosshair() {
+        SpriteRenderer.PROGRAM.use(() -> {
+            crosshairRenderer.update(new Vec2f(), 2, new Vec3f().extend(0.6f), true, true);
+            crosshairRenderer.render();
+        });
+    }
+
     private static CubemapTexture loadSkybox() throws IOException {
         final Image[] images = new Image[6];
         for (int i = 0; i < 6; i++) {
@@ -127,5 +138,4 @@ public class Renderer {
 
         return SkyboxRenderer.createCubemap(images);
     }
-
 }

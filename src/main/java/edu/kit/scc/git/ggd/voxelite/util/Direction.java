@@ -1,6 +1,7 @@
 package edu.kit.scc.git.ggd.voxelite.util;
 
 import edu.kit.scc.git.ggd.voxelite.render.QuadMesh;
+import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 
 public enum Direction {
@@ -26,4 +27,29 @@ public enum Direction {
     public QuadMesh getUnitQuad() {
         return unitQuad;
     }
+
+    public Direction getOpposite() {
+        int ordinal = ordinal() + ((ordinal() & 1) == 0 ? 1 : -1);
+        return values()[ordinal];
+    }
+
+    public static Direction getNearest(Vec3f direction) {
+        if(direction.equals(new Vec3f())) throw new IllegalArgumentException("Zero vector is not a valid direction");
+        direction = direction.normalized();
+
+        Direction nearest = null;
+        float max = 0;
+
+        for (Direction d : values()) {
+            float dot = direction.dot(d.axis);
+
+            if (dot > max) {
+                max = dot;
+                nearest = d;
+            }
+        }
+
+        return nearest;
+    }
+
 }

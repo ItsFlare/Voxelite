@@ -79,4 +79,8 @@ public class Camera {
     public Vec3f getDirection() {
         return new Vec3f(0, 0, -1).rotate(rotation);
     }
+
+    public Vec3f getOrientation() {
+        return new Vec3f(0, 0, -1).rotate(getRotation());
+    }
 }

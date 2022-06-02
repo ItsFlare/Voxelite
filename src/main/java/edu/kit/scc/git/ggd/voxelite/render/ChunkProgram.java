@@ -3,6 +3,7 @@ package edu.kit.scc.git.ggd.voxelite.render;
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
+import edu.kit.scc.git.ggd.voxelite.world.LightStorage;
 import net.durchholz.beacon.data.IntVector;
 import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec2i;
@@ -54,6 +55,7 @@ public class ChunkProgram extends Program {
     public final Attribute<Vec2i>   texture  = attribute("tex", OpenGL.Type.INT, 2);
     public final Attribute<Vec3f>   normal   = attribute("normal", OpenGL.Type.FLOAT, 3);
     public final Attribute<Integer> data     = attribute("data", OpenGL.Type.INT, 1);
+    public final Attribute<Integer> light    = attribute("light", OpenGL.Type.INT, 1);
 
     public final Uniform<Matrix4f> mvp                  = uniMatrix4f("mvp", true);
     public final Uniform<Vec3i>    chunk                = uniVec3i("chunk");
@@ -66,6 +68,7 @@ public class ChunkProgram extends Program {
     public final Uniform<Float>    specularStrength     = uniFloat("specularStrength");
     public final Uniform<Integer>  phongExponent        = uniInteger("phongExponent");
     public final Uniform<Float>    normalizedSpriteSize = uniFloat("normalizedSpriteSize");
+    public final Uniform<Integer>  maxLightValue        = uniInteger("maxLightValue");
 
     public record QuadVertex(Vec3f position, Vec2i texture, Vec3f normal) implements Vertex {
         public static final VertexLayout<QuadVertex> LAYOUT   = new VertexLayout<>(QuadVertex.class);
@@ -89,11 +92,21 @@ public class ChunkProgram extends Program {
         }
     }
 
+    public record InstanceLightVertex(int light) implements Vertex {
+        public static final VertexLayout<InstanceLightVertex> LAYOUT = new VertexLayout<>(InstanceLightVertex.class);
+        public static final VertexAttribute<Integer>          LIGHT  = LAYOUT.primitive(false);
+
+        @Override
+        public VertexLayout<InstanceLightVertex> getLayout() {
+            return LAYOUT;
+        }
+    }
+
     //TODO Subclass per RenderType?
     public class Slice {
 
 
-        record QueuedQuad(Direction direction, Vec3i position, Vec2i texture) {}
+        record QueuedQuad(Direction direction, Vec3i position, Vec2i texture, Vec3i light) {}
 
         record Command(VBO buffer, int commands) {
             public static final int STRIDE = 20; //5 ints (see OpenGL.DrawMultiElementsIndirectCommand)
@@ -102,14 +115,16 @@ public class ChunkProgram extends Program {
         protected final Vec3i position, worldPosition;
         protected final RenderType renderType;
 
-        protected final VertexArray                  vertexArray    = new VertexArray();
-        protected final VertexBuffer<InstanceVertex> instanceBuffer = new VertexBuffer<>(InstanceVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
-        protected final List<QueuedQuad>             queue          = new ArrayList<>();
+        protected final VertexArray                       vertexArray    = new VertexArray();
+        protected final VertexBuffer<InstanceVertex>      instanceBuffer = new VertexBuffer<>(InstanceVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
+        protected final VertexBuffer<InstanceLightVertex> lightBuffer    = new VertexBuffer<>(InstanceLightVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
+        protected final List<QueuedQuad>                  queue          = new ArrayList<>();
 
-        protected final Command[]        commands = new Command[1 << Direction.values().length];
-        protected OpenGL.DrawMultiElementsIndirectCommand[][] nextCommands;
-        protected InstanceVertex[] nextVertices;
-        protected volatile int              quadCount;
+        protected final    Command[]                                   commands = new Command[1 << Direction.values().length];
+        protected          OpenGL.DrawMultiElementsIndirectCommand[][] nextCommands;
+        protected          InstanceVertex[]                            nextVertices;
+        protected          InstanceLightVertex[]                       nextLightVertices;
+        protected volatile int                                         quadCount;
 
         public Slice(Vec3i position, RenderType renderType) {
             this.position = position;
@@ -126,29 +141,46 @@ public class ChunkProgram extends Program {
                 instanceBuffer.use(() -> {
                     vertexArray.set(ChunkProgram.this.data, InstanceVertex.DATA, instanceBuffer, 1);
                 });
+
+                lightBuffer.use(() -> {
+                    vertexArray.set(ChunkProgram.this.light, InstanceLightVertex.LIGHT, lightBuffer, 1);
+                });
             });
         }
 
         public synchronized void build() {
-            if (queue.isEmpty()) return;
+            if (queue.isEmpty()) {
+                quadCount = 0;
+                return;
+            }
 
-            this.nextVertices = queue
+            var queuedQuads = queue
                     .stream()
-                    .sorted(Comparator.comparingInt(value -> value.direction.ordinal()))
+                    .sorted(Comparator.comparingInt(value -> value.direction.ordinal())).toList();
+
+            this.nextVertices = queuedQuads.stream()
                     .map(queuedQuad -> new InstanceVertex(packInstance(queuedQuad.position(), queuedQuad.texture())))
                     .toArray(InstanceVertex[]::new);
+
+            this.nextLightVertices = queuedQuads.stream()
+                    .map(queuedQuad -> new InstanceLightVertex(packLight(queuedQuad.light())))
+                    .toArray(InstanceLightVertex[]::new);
 
             this.nextCommands = generateCommands();
 
             queue.clear();
         }
 
-
         public synchronized void upload() {
-            if(nextVertices == null) return;
+            if (nextVertices == null) return;
+            assert nextVertices.length == nextLightVertices.length;
 
             instanceBuffer.use(() -> {
                 instanceBuffer.data(nextVertices);
+            });
+
+            lightBuffer.use(() -> {
+                lightBuffer.data(nextLightVertices);
             });
 
             for (int i = 0; i < nextCommands.length; i++) {
@@ -160,6 +192,7 @@ public class ChunkProgram extends Program {
 
             this.quadCount = nextVertices.length;
             this.nextVertices = null;
+            this.nextLightVertices = null;
             this.nextCommands = null;
         }
 
@@ -228,9 +261,9 @@ public class ChunkProgram extends Program {
                 visibilityBitset = (1 << 6) - 1;
             }
 
-            if(visibilityBitset == 0) return;
+            if (visibilityBitset == 0) return;
             final var cmd = commands[visibilityBitset];
-            if(cmd.commands == 0) return;
+            if (cmd.commands == 0) return;
 
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, cmd.buffer.id());
             vertexArray.use(() -> glMultiDrawElementsIndirect(GL_TRIANGLE_STRIP, GL_UNSIGNED_SHORT, 0L, cmd.commands, Command.STRIDE));
@@ -242,7 +275,7 @@ public class ChunkProgram extends Program {
         }
 
         public static int packInstance(Vec3i offset, Vec2i texture) {
-            assert offset.x() < Chunk.WIDTH && offset.y() < Chunk.HEIGHT && offset.z() < Chunk.WIDTH;
+            assert offset.max() < Chunk.WIDTH;
             assert texture.x() < 256 && texture.y() < 256;
 
             int result = 0;
@@ -253,6 +286,19 @@ public class ChunkProgram extends Program {
 
             result |= texture.x() << 8;
             result |= texture.y();
+
+            return result;
+        }
+
+        public static int packLight(Vec3i light) {
+            assert LightStorage.MAX_TOTAL_VALUE < (1 << 10);
+            assert light.x() < 1024 && light.y() < 1024 && light.z() < 1024;
+
+            int result = 0;
+
+            result |= light.x() << 20;
+            result |= light.y() << 10;
+            result |= light.z();
 
             return result;
         }

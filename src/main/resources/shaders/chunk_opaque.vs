@@ -4,14 +4,17 @@ in ivec2 tex;
 in vec3 pos;
 in vec3 normal;
 in uint data;
+in uint light;
 
 out vec2 Tex;
 out vec3 Pos;
 out vec3 Normal;
+out vec4 BlockLight;
 
 uniform mat4 mvp;
 uniform ivec3 chunk;
 uniform float normalizedSpriteSize;
+uniform int maxLightValue;
 
 void main() {
     uint x = data >> 27;
@@ -27,4 +30,5 @@ void main() {
     Tex = vec2(ivec2(u, v) + tex) * normalizedSpriteSize;
     Pos = vp;
     Normal = normal;
+    BlockLight = vec4(light >> 20, (light >> 10) & uint(0x3ff), light & uint(0x3ff), 0) / maxLightValue;
 }

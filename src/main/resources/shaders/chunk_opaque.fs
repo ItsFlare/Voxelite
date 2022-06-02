@@ -2,6 +2,7 @@
 in vec2 Tex;
 in vec3 Pos;
 in vec3 Normal;
+in vec4 BlockLight;
 
 out vec4 FragColor;
 
@@ -38,5 +39,6 @@ vec3 DirectionalLight(Light light, vec3 normal, vec3 viewDirection)
 }
 
 void main() {
-    FragColor = vec4(DirectionalLight(light, Normal, normalize(camera - Pos)), 1) * texture(atlas, Tex);
+    vec4 t = texture(atlas, Tex);
+    FragColor = vec4(DirectionalLight(light, Normal, normalize(camera - Pos)), 1) * t + BlockLight * t;
 }

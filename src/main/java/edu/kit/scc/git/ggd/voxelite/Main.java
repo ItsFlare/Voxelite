@@ -5,6 +5,7 @@ import edu.kit.scc.git.ggd.voxelite.render.Renderer;
 import edu.kit.scc.git.ggd.voxelite.ui.Time;
 import edu.kit.scc.git.ggd.voxelite.util.TimerRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.util.VoxeliteExecutor;
+import edu.kit.scc.git.ggd.voxelite.world.Block;
 import edu.kit.scc.git.ggd.voxelite.world.World;
 import edu.kit.scc.git.ggd.voxelite.world.generator.NaturalWorldGenerator;
 import net.durchholz.beacon.event.EventType;
@@ -36,8 +37,8 @@ public class Main {
     private final InputListener    inputListener;
     private final Renderer         renderer;
     private final TimerRingBuffer  profiler = new TimerRingBuffer();
-    private final World            world    = new World(new NaturalWorldGenerator(25));
     private final VoxeliteExecutor executor = new VoxeliteExecutor();
+    private World            world;
 
     private long tick;
     public static final long tickPerDay = 2000;
@@ -85,7 +86,14 @@ public class Main {
         renderer.init();
         EventType.addListener(inputListener);
 
+        /*
+        Initialize some classes on main thread to fail-fast.
+        Prevents errors from being suppressed in other threads.
+        */
+        Util.initialize(Block.class);
+
         //World
+        world = new World(new NaturalWorldGenerator(0));
         world.getGenerator().setWorld(world);
     }
 

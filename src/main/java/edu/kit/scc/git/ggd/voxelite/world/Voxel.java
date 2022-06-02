@@ -14,6 +14,10 @@ public record Voxel(Chunk chunk, Vec3i position) {
         chunk.setBlock(position, block);
     }
 
+    public boolean isOpaque() {
+        return chunk.isOpaque(position);
+    }
+
     @Nullable
     public Voxel getRelative(Vec3i relative) {
         final Vec3i relativePosition = position.add(relative);
