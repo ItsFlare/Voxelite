@@ -4,6 +4,7 @@ import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.ui.Time;
 import edu.kit.scc.git.ggd.voxelite.ui.UserInterface;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
+import edu.kit.scc.git.ggd.voxelite.util.LinearInterpolation;
 import edu.kit.scc.git.ggd.voxelite.util.Util;
 import edu.kit.scc.git.ggd.voxelite.world.generator.noise.Noise;
 import edu.kit.scc.git.ggd.voxelite.world.generator.noise.SimplexNoise;
@@ -23,6 +24,7 @@ import java.io.IOException;
 
 import static java.lang.Math.cos;
 import static java.lang.Math.sin;
+import static org.lwjgl.opengl.GL41.*;
 
 public class Renderer {
 
@@ -99,8 +101,12 @@ public class Renderer {
         Vec3f blueSky = new Vec3f(0.3f,0.55f,0.8f);
         Vec3f nightSky = new Vec3f();
         float dayPercentage = Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.5f, 0, 1);
+        Vec2f viewportRes = new Vec2f(viewport.width(),viewport.height());
 
-        skyRenderer.render(nightSky.interpolate(blueSky, dayPercentage));
+        //System.out.println(camera.getDirection());
+        //System.out.println(dayPercentage);
+        //System.out.println(camera.view(false, true));
+        skyRenderer.render(nightSky.interpolate(blueSky, dayPercentage),  camera.getDirection(), viewportRes, dayPercentage);
         skyRenderer.renderNightSkyBox(camera.view(false, true), camera.projection(), -1 *dayPercentage + 1);
         skyRenderer.renderSun(camera.view(false, true), camera.projection());
     }

@@ -24,6 +24,14 @@ public class SkyProgram extends Program {
 
     public final Uniform<Vec3f> color = uniVec3f("color");
 
+    public final Uniform<Vec3f> direction = uniVec3f("direction");
+
+    public final Uniform<Vec2f> viewportResolution = uniVec2f("viewPortResolution");
+
+    public final Uniform<Float> dayPercentage = uniFloat("dayPercentage");
+
+    //public final Uniform<Vec3f> sunPos = uniVec3f("sunPos");
+
     record SkyVertex(Vec2f vec2f) implements Vertex {
         public static final VertexLayout<SkyProgram.SkyVertex> LAYOUT   = new VertexLayout<>(SkyProgram.SkyVertex.class);
 

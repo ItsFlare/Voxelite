@@ -56,12 +56,17 @@ public class SkyRenderer {
         });
     }
 
-    public void render(Vec3f color) {
+    public void render(Vec3f color, Vec3f direction, Vec2f viewportRes, float dayPercentage) {
         OpenGL.depthMask(false);
         OpenGL.depthTest(false);
 
         OpenGL.use(program, va,  () -> {
             program.color.set(color);
+            program.direction.set(direction);
+            program.viewportResolution.set(viewportRes);
+            program.dayPercentage.set(dayPercentage);
+
+            //program.sunPos.set(sunPos);
 
             OpenGL.drawIndexed(OpenGL.Mode.TRIANGLES, INDICES.length, OpenGL.Type.UNSIGNED_INT);
         });
