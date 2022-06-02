@@ -60,12 +60,27 @@ public class SkyRenderer {
         OpenGL.depthMask(false);
         OpenGL.depthTest(false);
 
+        Quaternion quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotation()).normalized();
+        final Matrix4f model = Matrix4f.identity();
+        model.scale(0.1f);
+        model.multiply(Matrix4f.rotation(quaternion));
+
+        final Vec3f quadNormal = new Vec3f(Direction.POS_Z.getAxis());
+        model.translate(quadNormal.rotate(quaternion));
+
+        Matrix4f matrix4f = new Matrix4f(0.0f, 0,0,0,0.0f,0,0,0,0,0,0,0,1,0,0,0);
+        model.multiply(matrix4f);
+
+        Vec3f sunPos = new Vec3f(model.get(0,0), model.get(1,0),model.get(2,0));
+        double angleToSun = (Math.acos(sunPos.dot(direction) / (sunPos.magnitude() * direction.magnitude())) * (180 / Math.PI));
+        //System.out.println(angleToSun);
+        //System.out.println(direction);
+
         OpenGL.use(program, va,  () -> {
             program.color.set(color);
             program.direction.set(direction);
             program.viewportResolution.set(viewportRes);
             program.dayPercentage.set(dayPercentage);
-
             //program.sunPos.set(sunPos);
 
             OpenGL.drawIndexed(OpenGL.Mode.TRIANGLES, INDICES.length, OpenGL.Type.UNSIGNED_INT);

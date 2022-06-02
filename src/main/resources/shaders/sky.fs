@@ -19,16 +19,11 @@ void main()
     vec2 pixelCoord = -1 + 2 * viewPortCoord;
     vec3 col;
 
-    //vec3 lightSourceCoord = sunPos;
     float sundot = 0.2;
 
     vec3 redSky = vec3(0.8,0.8,0.6);
 
     col =  color;
-
-    // sun
-    //col += 0.1*vec3(0.9, 0.3, 0.9)*pow(sundot, 0.5);
-    //col += 0.2*vec3(1., 0.7, 0.7)*pow(sundot, 1.);
 
     float num = clamp(-2 * pow(direction.y,3), -1.,0.);
     col = mix(white, color, -num );
