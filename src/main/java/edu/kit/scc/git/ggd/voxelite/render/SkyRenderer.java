@@ -56,7 +56,7 @@ public class SkyRenderer {
         });
     }
 
-    public void render(Vec3f color, Vec3f direction, Vec2f viewportRes, float dayPercentage) {
+    public void render(Vec3f color, Vec3f direction, Vec2f viewportRes, float dayPercentage, float fov, Matrix3f rotation) {
         OpenGL.depthMask(false);
         OpenGL.depthTest(false);
 
@@ -72,16 +72,19 @@ public class SkyRenderer {
         model.multiply(matrix4f);
 
         Vec3f sunPos = new Vec3f(model.get(0,0), model.get(1,0),model.get(2,0));
-        double angleToSun = (Math.acos(sunPos.dot(direction) / (sunPos.magnitude() * direction.magnitude())) * (180 / Math.PI));
-        //System.out.println(angleToSun);
+        //System.out.println(sunPos);
         //System.out.println(direction);
 
+
         OpenGL.use(program, va,  () -> {
+            program.sunPos.set(sunPos);
             program.color.set(color);
             program.direction.set(direction);
             program.viewportResolution.set(viewportRes);
             program.dayPercentage.set(dayPercentage);
-            //program.sunPos.set(sunPos);
+            program.fov.set(fov);
+            program.rotation.set(rotation);
+
 
             OpenGL.drawIndexed(OpenGL.Mode.TRIANGLES, INDICES.length, OpenGL.Type.UNSIGNED_INT);
         });
