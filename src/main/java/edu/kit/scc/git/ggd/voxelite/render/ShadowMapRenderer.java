@@ -170,7 +170,6 @@ public class ShadowMapRenderer {
                     final float min = Math.min(abs, 1);
                     final double acos = Math.acos(min);
                     final double tan = Math.tan(acos);
-                    System.out.printf("Angle: %.5f | Tan: %.5f | Bias: %.5f%n", Math.toDegrees(acos), tan, tan * scale);
                 }
 
                 if (frustumCull) {

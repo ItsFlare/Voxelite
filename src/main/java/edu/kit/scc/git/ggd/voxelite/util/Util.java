@@ -2,6 +2,8 @@ package edu.kit.scc.git.ggd.voxelite.util;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
 import net.durchholz.beacon.math.Vec3i;
+import net.durchholz.beacon.render.opengl.shader.Shader;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -10,9 +12,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.*;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.IntSupplier;
@@ -37,6 +37,38 @@ public class Util {
         return Main.class.getClassLoader().getResourceAsStream(resource);
     }
 
+    public static Shader[] loadShaders(String name) {
+        final List<Shader> shaders = new ArrayList<>();
+        try {
+            for (Path path : listResourceFolder("/shaders")) {
+                final String fileName = path.getFileName().toString();
+                if(fileName.equals("shaders")) continue; //Exclude directory
+                final String[] split = fileName.split("\\.");
+
+                if(split.length != 2) {
+                    LoggerFactory.getLogger(Util.class).warn("Malformed shader file name: %s".formatted(fileName));
+                    continue;
+                }
+
+                if(split[0].equalsIgnoreCase(name)) {
+                    String extension = split[1];
+                    Shader.Type type = switch (extension) {
+                        case "vs" -> Shader.Type.VERTEX;
+                        case "gs" -> Shader.Type.GEOMETRY;
+                        case "fs" -> Shader.Type.FRAGMENT;
+                        case "cs" -> Shader.Type.COMPUTE;
+                        default -> throw new IllegalStateException("Unexpected value: " + extension);
+                    };
+                    shaders.add(new Shader(type, readShaderResource(name + "." + extension)));
+                }
+            }
+        } catch (URISyntaxException | IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        if(shaders.isEmpty()) throw new RuntimeException("Shader not found: %s".formatted(name));
+        return shaders.toArray(Shader[]::new);
+    }
 
     public static Collection<Path> listResourceFolder(String folder) throws URISyntaxException, IOException {
         return listResourceFolder(folder, 1);

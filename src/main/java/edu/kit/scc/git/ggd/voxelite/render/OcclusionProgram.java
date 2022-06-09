@@ -8,7 +8,6 @@ import net.durchholz.beacon.render.opengl.buffers.Vertex;
 import net.durchholz.beacon.render.opengl.buffers.VertexAttribute;
 import net.durchholz.beacon.render.opengl.buffers.VertexLayout;
 import net.durchholz.beacon.render.opengl.shader.Program;
-import net.durchholz.beacon.render.opengl.shader.Shader;
 import net.durchholz.beacon.render.opengl.shader.Uniform;
 
 public class OcclusionProgram extends Program {
@@ -21,7 +20,7 @@ public class OcclusionProgram extends Program {
     public final StorageBuffer     occlusion = storageBuffer("occlusionBuffer", 0);
 
     public OcclusionProgram() {
-        super(Shader.vertex(Util.readShaderResource("occlusion.vs")), Shader.fragment(Util.readShaderResource("occlusion.fs")));
+        super(Util.loadShaders("occlusion"));
     }
 
     public record CubeVertex(Vec3f position) implements Vertex {
