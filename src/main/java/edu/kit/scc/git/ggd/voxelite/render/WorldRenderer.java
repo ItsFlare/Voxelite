@@ -9,6 +9,7 @@ import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.event.Listener;
+import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 import net.durchholz.beacon.math.Vec4f;
@@ -25,8 +26,8 @@ import java.util.stream.Collectors;
 public class WorldRenderer {
 
     private static final Comparator<RenderChunk> DISTANCE_COMPARATOR = Comparator.comparingInt(rc -> Chunk.toWorldPosition(rc.getChunk().getPosition()).subtract(new Vec3i(Main.INSTANCE.getRenderer().getCamera().getPosition())).magnitudeSq());
-    private static final int SHADOW_MAP_SIZE = 1 << 13;
-    public static int frustumNumber = 0;
+    private static final int                     SHADOW_MAP_SIZE     = 1 << 13;
+    public static        int                     frustumNumber       = 0;
 
     private final Map<Vec3i, RenderChunk> renderChunks = new HashMap<>();
     private final TextureAtlas            atlas;
@@ -35,13 +36,15 @@ public class WorldRenderer {
     private final BlockingQueue<RenderChunk> uploadQueue       = new PriorityBlockingQueue<>(128, DISTANCE_COMPARATOR);
     private final AsyncChunkBuilder          asyncChunkBuilder = new AsyncChunkBuilder(buildQueue, uploadQueue, ForkJoinPool.getCommonPoolParallelism() / 4 + 1);
     private final ShadowMapRenderer          shadowMapRenderer = new ShadowMapRenderer(SHADOW_MAP_SIZE, 4);
+    private final OcclusionRenderer          occlusionRenderer = new OcclusionRenderer();
 
     public List<RenderChunk> renderList      = new ArrayList<>();
     public Vec4f             lightColor      = new Vec4f(1);
     public float             ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f;
     public int phongExponent = 32, uploadRate = 5;
-    public boolean frustumCull = true, caveCull = true, shadows = true, shadowTransform = false;
-    public int emptyCount, frustumCullCount, caveCullCount, totalCullCount;
+    public boolean frustumCull = true, caveCull = true, occlusionCull = false, shadows = true, shadowTransform = false;
+    public int emptyCount, frustumCullCount, caveCullCount, occlusionCullCount, totalCullCount;
+    public int occlusionCullThreshold;
 
     public WorldRenderer() {
         EventType.addListener(this);
@@ -95,16 +98,16 @@ public class WorldRenderer {
 
     public void render() {
         upload(uploadRate);
-        OpenGL.depthTest(true);
-        OpenGL.depthMask(true);
-        OpenGL.blend(false);
 
         final Camera camera = Main.INSTANCE.getRenderer().getCamera();
 
-        final Frustum frustum = new Frustum(camera.getPosition(), camera.transform(true, true));
+        final Matrix4f mvp = camera.transform(true, true);
+        final Frustum frustum = new Frustum(camera.getPosition(), mvp);
 
         final Vec3f lightDirection = camera.getDirection();
-        if(shadows) shadowMapRenderer.render(lightDirection);
+        if (shadows) shadowMapRenderer.render(lightDirection);
+        final Vec3f cameraPosition = shadowTransform ? camera.getPosition().add(lightDirection.scale(-1000)) : camera.getPosition();
+        final RenderChunk currentChunk = getRenderChunk(Chunk.toChunkPosition(cameraPosition));
 
         frustumCullCount = 0;
         final var frameRenderList = renderList
@@ -115,22 +118,48 @@ public class WorldRenderer {
                     if (!intersects) frustumCullCount++;
                     return intersects;
                 } : renderChunk -> true)
-                .toArray(RenderChunk[]::new);
+                .collect(Collectors.toList());
 
-        totalCullCount = emptyCount + frustumCullCount + caveCullCount;
+        occlusionCullCount = 0;
+        if(occlusionCull) {
+            final int frame = Main.INSTANCE.getRenderer().getFrame();
+            occlusionRenderer.read();
+
+            final OcclusionRenderer.Query[] queries = frameRenderList.stream()
+                    .filter(renderChunk -> renderChunk != currentChunk) //Don't cull current chunk because AABB sides are back-facing
+                    .filter(renderChunk -> renderChunk.getQuadCount() > occlusionCullThreshold) //Don't cull chunks that are cheap to render
+                    .map(renderChunk -> new OcclusionRenderer.Query(renderChunk.getChunk().getBoundingBox(), b -> renderChunk.setOccluded(b, frame)))
+                    .toArray(OcclusionRenderer.Query[]::new);
+            occlusionRenderer.render(mvp, queries);
+
+            final int previous = frameRenderList.size();
+            frameRenderList.removeIf(RenderChunk::isOccluded);
+            occlusionCullCount = previous - frameRenderList.size();
+        }
+
+        totalCullCount = emptyCount + frustumCullCount + caveCullCount + occlusionCullCount;
+
+        OpenGL.depthMask(true);
+        OpenGL.clearDepth();
+        OpenGL.colorMask(true);
+
+        OpenGL.depthTest(true);
+        OpenGL.blend(false);
+        OpenGL.cull(true);
 
         final RenderType[] renderTypes = RenderType.values();
         for (int i = 0; i < renderTypes.length; i++) {
-            if (i > 0) return; //TODO Remove with transparency
+            if (i > 0) continue; //TODO Remove with transparency
 
             final RenderType renderType = renderTypes[i];
             final ChunkProgram program = renderType.getProgram();
 
             program.use(() -> {
 
-                program.mvp.set(shadowTransform ? shadowMapRenderer.lightTransform(frustumNumber, lightDirection) : camera.transform(true, true));
+                //TODO Set on demand
+                program.mvp.set(shadowTransform ? shadowMapRenderer.lightTransform(frustumNumber, lightDirection) : mvp);
                 program.atlas.bind(0, atlas);
-                program.camera.set(camera.getPosition());
+                program.camera.set(cameraPosition);
                 program.lightColor.set(new Vec3f(lightColor.x(), lightColor.y(), lightColor.z()));
                 program.lightDirection.set(lightDirection);
                 program.ambientStrength.set(ambientStrength);
@@ -149,7 +178,7 @@ public class WorldRenderer {
                 for (RenderChunk renderChunk : frameRenderList) {
                     program.chunk.set(Chunk.toWorldPosition(renderChunk.getChunk().getPosition()));
 
-                    renderChunk.render(renderType, shadowTransform ? camera.getPosition().add(lightDirection.scale(-1000)): camera.getPosition());
+                    renderChunk.render(renderType, cameraPosition);
                 }
             });
         }

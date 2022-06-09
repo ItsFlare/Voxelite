@@ -19,6 +19,8 @@ public class RenderChunk {
 
     private volatile boolean valid = true, dirty;
     private HullSet hullSet = new HullSet();
+    private boolean occluded;
+    private int occlusionFrame;
 
     public RenderChunk(Chunk chunk) {
         this.chunk = chunk;
@@ -117,5 +119,14 @@ public class RenderChunk {
 
     public HullSet getHullSet() {
         return hullSet;
+    }
+
+    public void setOccluded(boolean occluded, int frame) {
+        this.occluded = occluded;
+        this.occlusionFrame = frame;
+    }
+
+    public boolean isOccluded() {
+        return occluded && occlusionFrame == Main.INSTANCE.getRenderer().getFrame() - 1;
     }
 }

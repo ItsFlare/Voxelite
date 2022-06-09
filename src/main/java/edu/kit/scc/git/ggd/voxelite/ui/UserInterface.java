@@ -120,14 +120,23 @@ public class UserInterface {
             var backfaceCull = new CheckboxElement("Backface", true, OpenGL::cull);
             var caveCull = new CheckboxElement("Cave", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().caveCull = value);
             var frustumCull = new CheckboxElement("Frustum", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().frustumCull = value);
-            var cullStats = new TextElement(() -> "Cave: %d (%.1f%%) | Empty: %d (%.1f%%) %nFrustum: %d (%.1f%%) | Total: %d (%.1f%%)".formatted(
-                    Main.INSTANCE.getRenderer().getWorldRenderer().caveCullCount, 100 * Main.INSTANCE.getRenderer().getWorldRenderer().caveCullCount / (float) Main.INSTANCE.getWorld().getChunks().size(),
-                    Main.INSTANCE.getRenderer().getWorldRenderer().emptyCount, 100 * Main.INSTANCE.getRenderer().getWorldRenderer().emptyCount / (float) Main.INSTANCE.getWorld().getChunks().size(),
-                    Main.INSTANCE.getRenderer().getWorldRenderer().frustumCullCount, 100 * Main.INSTANCE.getRenderer().getWorldRenderer().frustumCullCount / (float) Main.INSTANCE.getWorld().getChunks().size(),
-                    Main.INSTANCE.getRenderer().getWorldRenderer().totalCullCount, 100 * Main.INSTANCE.getRenderer().getWorldRenderer().totalCullCount / (float) Main.INSTANCE.getWorld().getChunks().size()
-            ));
+            var occlusionCull = new CheckboxElement("Occlusion", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCull = value);
+            var occlusionCullThreshold = new IntSliderElement("Occlusion Threshold", 4096, 0, (Chunk.VOLUME * 6) / 2, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCullThreshold = value);
+            var cullStats = new TextElement(() -> {
+                final float chunks = Main.INSTANCE.getWorld().getChunks().size();
+                final WorldRenderer renderer = Main.INSTANCE.getRenderer().getWorldRenderer();
 
-            this.cull = new Accordion("Culling", false, directionCull, ImGui::sameLine, backfaceCull, ImGui::sameLine, caveCull, ImGui::sameLine, frustumCull,
+                return "Cave: %d (%.1f%%) | Empty: %d (%.1f%%) %nFrustum: %d (%.1f%%) | Occlusion: %d (%.1f%%) %nTotal: %d (%.1f%%)".formatted(
+                        renderer.caveCullCount, 100 * renderer.caveCullCount / chunks,
+                        renderer.emptyCount, 100 * renderer.emptyCount / chunks,
+                        renderer.frustumCullCount, 100 * renderer.frustumCullCount / chunks,
+                        renderer.occlusionCullCount, 100 * renderer.occlusionCullCount / chunks,
+                        renderer.totalCullCount, 100 * renderer.totalCullCount / chunks
+                );
+            });
+
+            this.cull = new Accordion("Culling", false, directionCull, ImGui::sameLine, backfaceCull, ImGui::sameLine, caveCull, ImGui::sameLine, frustumCull, ImGui::sameLine, occlusionCull,
+                    occlusionCullThreshold,
                     cullStats);
         }
 

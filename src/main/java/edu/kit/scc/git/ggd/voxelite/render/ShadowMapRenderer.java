@@ -144,6 +144,9 @@ public class ShadowMapRenderer {
 
     public void render(Vec3f lightDirection) {
         OpenGL.setViewport(new Viewport(resolution, resolution));
+        OpenGL.depthTest(true);
+        OpenGL.depthMask(true);
+        OpenGL.blend(false);
 
         final int visibilityBitset = ChunkProgram.Slice.directionCull(lightDirection.scale(-1000), new Vec3i(0));
 
