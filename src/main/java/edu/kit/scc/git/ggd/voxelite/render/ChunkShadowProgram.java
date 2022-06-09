@@ -17,6 +17,6 @@ public class ChunkShadowProgram extends Program {
     public final Attribute<Vec3f>   position = attribute("pos", OpenGL.Type.FLOAT, 3);
     public final Attribute<Integer> data     = attribute("data", OpenGL.Type.INT, 1);
 
-    public final Uniform<Matrix4f> mvp                  = uniMatrix4f("mvp", true);
-    public final Uniform<Vec3i>    chunk                = uniVec3i("chunk");
+    public final Uniform<Matrix4f> mvp            = uniMatrix4f("mvp", true);
+    public final Uniform<Vec3i>    chunk          = uniVec3i("chunk");
 }

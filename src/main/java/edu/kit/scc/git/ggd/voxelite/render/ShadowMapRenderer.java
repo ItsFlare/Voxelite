@@ -12,7 +12,9 @@ import net.durchholz.beacon.render.opengl.textures.ArrayTexture2D;
 import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.window.Viewport;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 
 import static org.lwjgl.opengl.GL43.GL_NONE;
 
@@ -21,14 +23,17 @@ public class ShadowMapRenderer {
     public static final ChunkShadowProgram PROGRAM             = new ChunkShadowProgram(Shader.vertex(Util.readShaderResource("chunk_opaque_shadow.vs")), Shader.fragment(Util.readShaderResource("default.fs")));
     public static final int                RANGE_BEHIND_CAMERA = 250;
 
-    private final FBO            fbo           = new FBO();
-    private final ArrayTexture2D texture       = new ArrayTexture2D();
+    private final FBO            fbo     = new FBO();
+    private final ArrayTexture2D texture = new ArrayTexture2D();
 
-    public        int            cascades;
-    public        int            resolution;
-    public        Float[]        cascadeFar;
-    public        Vec4f[]        cascadeScale;
-    public        Matrix4f       lightView     = new Matrix4f(1);
+    public int      cascades;
+    public int      resolution;
+    public Float[]  cascadeFar;
+    public Vec4f[]  cascadeScale;
+    public int[]  chunkCounts;
+    public Matrix4f lightView = new Matrix4f(1);
+    public boolean  frustumCull;
+    public float constantBias;
 
     public ShadowMapRenderer(int resolution, int cascades) {
         this.resolution = resolution;
@@ -37,6 +42,7 @@ public class ShadowMapRenderer {
         cascadeScale = new Vec4f[this.cascades];
         Arrays.fill(cascadeFar, (float) 0);
         Arrays.fill(cascadeScale, new Vec4f(1));
+        chunkCounts = new int[this.cascades];
 
         OpenGL.use(fbo, texture, () -> {
             texture.allocate(resolution, resolution, cascades, GLTexture.BaseFormat.DEPTH_COMPONENT);
@@ -47,15 +53,23 @@ public class ShadowMapRenderer {
             texture.depthCompare(true);
 
             OpenGL.setDrawBuffers(GL_NONE);
-//            glDrawBuffer(GL_NONE);
-//            glReadBuffer(GL_NONE);
         });
     }
 
     public void allocate() {
-        OpenGL.use(fbo, texture, () -> {
-            texture.allocate(resolution, resolution, cascades, GLTexture.BaseFormat.DEPTH_COMPONENT);
+        texture.use(() -> texture.allocate(resolution, resolution, cascades, GLTexture.BaseFormat.DEPTH_COMPONENT));
+    }
+
+    public void hardwareFiltering(boolean enable) {
+        texture.use(() -> {
+            texture.minFilter(enable ? GLTexture.MinFilter.LINEAR : GLTexture.MinFilter.NEAREST);
+            texture.magFilter(enable ? GLTexture.MagFilter.LINEAR : GLTexture.MagFilter.NEAREST);
         });
+    }
+
+    public void depthFormat(GLTexture.Format format) {
+        if(!format.baseFormat().isDepth()) throw new IllegalArgumentException();
+        texture.use(() -> texture.allocate(resolution, resolution, cascades, format));
     }
 
     private Frustum[] split() {
@@ -134,14 +148,38 @@ public class ShadowMapRenderer {
         final int visibilityBitset = ChunkProgram.Slice.directionCull(lightDirection.scale(-1000), new Vec3i(0));
 
         OpenGL.use(PROGRAM, fbo, texture, () -> {
-            for (int i = 0; i < cascades; i++) {
-                fbo.depth(texture, 0, i);
+            final Collection<RenderChunk> renderChunks = new ArrayList<>(Main.INSTANCE.getRenderer().getWorldRenderer().getRenderChunks());
+
+            //Reverse order for inherited frustum culling
+            for (int c = cascades - 1; c >= 0; c--) {
+                fbo.depth(texture, 0, c);
                 OpenGL.clearAll();
-                PROGRAM.mvp.set(lightTransform(i, lightDirection));
+                final Matrix4f lightTransform = lightTransform(c, lightDirection);
+                PROGRAM.mvp.set(lightTransform);
+                final double blocksPerScreen = 2 / cascadeScale[c].y();
+                final double blocksPerPixel = blocksPerScreen / (float) resolution; //adjacent
+                final double depthPerBlock = cascadeScale[c].z() * -2; //opposite
+                final double scale = blocksPerPixel * depthPerBlock;
 
-                for (RenderChunk renderChunk : Main.INSTANCE.getRenderer().getWorldRenderer().getRenderChunks()) {
+                if(c == WorldRenderer.frustumNumber) {
+                    final float dot = new Vec3f(0, 1, 0).dot(lightDirection.scale(-1));
+                    final float abs = Math.abs(dot);
+                    final float min = Math.min(abs, 1);
+                    final double acos = Math.acos(min);
+                    final double tan = Math.tan(acos);
+                    System.out.printf("Angle: %.5f | Tan: %.5f | Bias: %.5f%n", Math.toDegrees(acos), tan, tan * scale);
+                }
+
+                if (frustumCull) {
+                    //TODO Replace with OBB?
+                    final Frustum frustum = new Frustum(Main.INSTANCE.getRenderer().getCamera().getPosition(), lightTransform);
+                    renderChunks.removeIf(renderChunk -> !frustum.intersects(renderChunk.getChunk().getBoundingBox()));
+                }
+
+                chunkCounts[c] = renderChunks.size();
+
+                for (RenderChunk renderChunk : renderChunks) {
                     PROGRAM.chunk.set(Chunk.toWorldPosition(renderChunk.getChunk().getPosition()));
-
                     renderChunk.renderShadow(RenderType.OPAQUE, visibilityBitset);
                 }
             }

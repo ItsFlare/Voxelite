@@ -62,11 +62,13 @@ public class ChunkProgram extends Program {
     public final Uniform<Float>    specularStrength     = uniFloat("specularStrength");
     public final Uniform<Integer>  phongExponent        = uniInteger("phongExponent");
     public final Uniform<Float>    normalizedSpriteSize = uniFloat("normalizedSpriteSize");
+    public final Uniform<Float>    constantBias         = uniFloat("constantBias");
     public final Uniform<Integer>  maxLightValue        = uniInteger("maxLightValue");
     public final Uniform<Matrix4f> lightView            = uniMatrix4f("lightView", true);
     public final Uniform<Integer>  shadows              = uniInteger("shadows");
     public final Uniform<Vec4f[]>  cascadeScales        = uniVec4fArray("cascades", "scale", 4);
     public final Uniform<Float[]>  cascadeFar           = uniFloatArray("cascades", "far", 4);
+    public final Uniform<Integer>  cascadeDebug         = uniInteger("cascadeDebug");
     public final Uniform<Integer>  kernel               = uniInteger("kernel");
 
     public record QuadVertex(Vec3f position, Vec2i texture, Vec3f normal) implements Vertex {

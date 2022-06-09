@@ -141,9 +141,10 @@ public class WorldRenderer {
                 program.maxLightValue.set(LightStorage.MAX_TOTAL_VALUE);
                 program.shadowMap.bind(1, shadowMapRenderer.getTexture());
                 program.lightView.set(shadowMapRenderer.lightView);
-                program.shadows.set(shadows && ! shadowTransform ? 1 : 0);
+                program.shadows.set(shadows && !shadowTransform ? 1 : 0);
                 program.cascadeFar.set(shadowMapRenderer.cascadeFar);
                 program.cascadeScales.set(shadowMapRenderer.cascadeScale);
+                program.constantBias.set(shadowMapRenderer.constantBias);
 
                 for (RenderChunk renderChunk : frameRenderList) {
                     program.chunk.set(Chunk.toWorldPosition(renderChunk.getChunk().getPosition()));

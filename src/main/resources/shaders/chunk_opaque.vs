@@ -8,7 +8,7 @@ in uint light;
 
 out vec2 Tex;
 out vec3 Pos;
-out vec3 Normal;
+flat out vec3 Normal;
 out vec4 BlockLight;
 out vec4 LightSpacePos;
 

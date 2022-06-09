@@ -1,12 +1,11 @@
 #version 410
 in vec2 Tex;
 in vec3 Pos;
-in vec3 Normal;
+flat in vec3 Normal;
 in vec4 BlockLight;
 in vec4 LightSpacePos;
 
 out vec4 FragColor;
-
 
 uniform sampler2D atlas;
 uniform sampler2DArrayShadow shadowMap;
@@ -15,6 +14,7 @@ uniform vec3 camera;
 uniform float ambientStrength;
 uniform float diffuseStrength;
 uniform float specularStrength;
+uniform float constantBias;
 uniform int phongExponent;
 uniform int shadows;
 
@@ -23,44 +23,44 @@ uniform struct Light {
     vec3 color;
 } light;
 
-const int CASCADES = 4;
+const int MAX_CASCADES = 4;
 uniform struct Cascade {
     float far;
     vec4 scale;
-} cascades[CASCADES];
+} cascades[MAX_CASCADES];
 
 
-uniform int kernel = 0;
+uniform int kernel;
+uniform int cascadeDebug;
 float kernelFactor = 1 / pow(kernel * 2 + 1, 2);
-const int debug = 0;
 
-vec3 debugColor = vec3(0, 1, 1);
+vec3 debugColor;
 
 float ShadowCalculation(vec4 fragPosLightSpace) {
     int c;
-    for(c = -1; c++ < CASCADES; ) {
+    for(c = -1; c++ < MAX_CASCADES; ) {
         if(gl_FragCoord.z < cascades[c].far) {
-            debugColor = vec3(c / float(CASCADES), 0, 0);
             break;
         }
     }
 
-    //Effectively projection to shadow clip space
+    debugColor = vec3(0, 0, c / float(MAX_CASCADES));
+
+    //Effectively projection to shadow screen space
     fragPosLightSpace.xyz *= cascades[c].scale.xyz;
     fragPosLightSpace.z += cascades[c].scale.w;
     fragPosLightSpace.xyz = 0.5 * fragPosLightSpace.xyz + 0.5;
 
-    float bias = 10 * max(0.0025 * (1.0 - dot(Normal, -light.direction)), 0.0001);
-    fragPosLightSpace.z -= bias;
+    vec2 textureSize = textureSize(shadowMap, 0).xy;
+    float blocksPerPixel = 2 / (cascades[c].scale.y * textureSize.y);
+    float depthPerBlock = cascades[c].scale.z * -2;
+    float bias = tan(acos(min(abs(dot(Normal, -light.direction)), 1))) * blocksPerPixel * depthPerBlock + constantBias;
 
-    fragPosLightSpace.w = fragPosLightSpace.z; //Depth
-    fragPosLightSpace.z = c; //Layer
-
-    vec2 texelSize = 1.0 / textureSize(shadowMap, 0).xy;
+    vec2 texelSize = 1.0 / textureSize;
     float shadow = 0.0;
     for(int x = -kernel; x <= kernel; ++x) {
         for (int y = -kernel; y <= kernel; ++y) {
-            shadow += texture(shadowMap, vec4(fragPosLightSpace.xy + vec2(x, y) * texelSize, fragPosLightSpace.zw));
+            shadow += texture(shadowMap, vec4(fragPosLightSpace.xy + vec2(x, y) * texelSize, c, fragPosLightSpace.z - bias * max((abs(x) + abs(y)), 1))); //TODO Fix PCF overbiasing
         }
     }
 
@@ -69,7 +69,7 @@ float ShadowCalculation(vec4 fragPosLightSpace) {
     return shadow;
 }
 vec3 DirectionalLight(Light light, vec3 normal, vec3 viewDirection) {
-    vec3 color = light.color.xyz;
+    vec3 color = light.color.rgb;
     vec3 lightDirection = normalize(-light.direction);
 
     //diffuse
@@ -88,7 +88,7 @@ vec3 DirectionalLight(Light light, vec3 normal, vec3 viewDirection) {
 
 void main() {
     vec4 t = texture(atlas, Tex);
-    FragColor = vec4(DirectionalLight(light, Normal, normalize(camera - Pos)), 1) * t + BlockLight * t;
+    FragColor = (vec4(DirectionalLight(light, Normal, normalize(camera - Pos)), 1) + BlockLight) * t;
 
-    //if(debug == 1) FragColor += vec4(debugColor, 1);
+    if(cascadeDebug == 1) FragColor += vec4(debugColor, 1);
 }

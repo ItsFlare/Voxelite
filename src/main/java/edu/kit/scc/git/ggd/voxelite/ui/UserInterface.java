@@ -15,6 +15,7 @@ import imgui.glfw.ImGuiImplGlfw;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec4f;
 import net.durchholz.beacon.render.opengl.OpenGL;
+import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.window.Window;
 
 import java.util.Map;
@@ -26,7 +27,7 @@ public class UserInterface {
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private final ImGuiImplGl3  imGuiGl3  = new ImGuiImplGl3();
 
-    private final Accordion camera, world, render, cull, light, perf;
+    private final Accordion camera, world, render, shadow, cull, light, perf;
 
     private final LongRingBuffer loadQueueRingBuffer = new SuppliedLongRingBuffer(() -> Main.INSTANCE.getWorld().getLoadQueueSize());
     private final LongRingBuffer buildRingBuffer     = new SuppliedLongRingBuffer(() -> Main.INSTANCE.getRenderer().getWorldRenderer().getBuildQueueSize());
@@ -57,14 +58,26 @@ public class UserInterface {
             var world = new CheckboxElement("World", true, value -> Main.INSTANCE.getRenderer().renderWorld = value);
             var vsync = new CheckboxElement("VSync", true, value -> Window.swapInterval(value ? 1 : 0));
             var wireframe = new CheckboxElement("Wireframe", false, value -> Main.INSTANCE.getRenderer().wireframe = value);
-            var shadows = new CheckboxElement("Shadows", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().shadows = value);
-            var shadowTransform = new CheckboxElement("Shadow Transform", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().shadowTransform = value);
-            var frustumNumber = new IntSliderElement("Frustum Number", 0, 0, 3, value -> WorldRenderer.frustumNumber = value);
+
+            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe);
+        }
+
+        {
+            var enabled = new CheckboxElement("Enabled", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().shadows = value);
+            var transform = new CheckboxElement("Transform", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().shadowTransform = value);
+            var frustumCull = new CheckboxElement("Frustum Cull", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().frustumCull = value);
+            var hardwareFilter = new CheckboxElement("Hardware PCF", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().hardwareFiltering(value));
+            var cascadeDebug = new CheckboxElement("Cascade Debug", false, value -> {
+                RenderType.OPAQUE.getProgram().use(() -> {
+                    RenderType.OPAQUE.getProgram().cascadeDebug.set(value ? 1 : 0);
+                });
+            });
             var frustumCount = new IntSliderElement("Frustum Count", 4, 1, 4, value -> {
                 Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().cascades = value;
                 Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().allocate();
             });
-            var kernel = new IntSliderElement("PCF Kernel", 0, 0, 10, value -> {
+            var frustumNumber = new IntSliderElement("Frustum Number", 0, 0, 3, value -> WorldRenderer.frustumNumber = value);
+            var kernel = new IntSliderElement("PCF Kernel", 2, 0, 10, value -> {
                 RenderType.OPAQUE.getProgram().use(() -> {
                     RenderType.OPAQUE.getProgram().kernel.set(value);
                 });
@@ -74,13 +87,32 @@ public class UserInterface {
                 shadowMapRenderer.resolution = 1 << value;
                 shadowMapRenderer.allocate();
             });
-
-            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe,
-                    shadows, ImGui::sameLine, shadowTransform,
+            var precision = new DropdownElement<GLTexture.Format>("Precision Exponent",
+                    Map.of("Default", GLTexture.BaseFormat.DEPTH_COMPONENT,
+                            "16", GLTexture.SizedFormat.DEPTH_16,
+                            "24", GLTexture.SizedFormat.DEPTH_24,
+                            "32", GLTexture.SizedFormat.DEPTH_32,
+                            "32F", GLTexture.SizedFormat.DEPTH_32F),
+                    value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().depthFormat(value));
+            var cullStats = new TextElement(() -> {
+                final StringBuilder sb = new StringBuilder();
+                final float totalChunks = Main.INSTANCE.getRenderer().getWorldRenderer().getRenderChunks().size();
+                final ShadowMapRenderer shadowMapRenderer = Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer();
+                for (int c = 0; c < shadowMapRenderer.cascades; c++) {
+                    if(c > 0) sb.append(" | ");
+                    sb.append(c).append('c').append(shadowMapRenderer.chunkCounts[c]).append(" (").append("%.1f%%".formatted(100 * shadowMapRenderer.chunkCounts[c] / totalChunks)).append(")");
+                }
+                return sb.toString();
+            });
+            var constantBias = new FloatSliderElement("Constant Bias", 0f, -1f, 1f, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().constantBias = value * 0.001f);
+            this.shadow = new Accordion("Shadow", true, enabled, ImGui::sameLine, transform, ImGui::sameLine, frustumCull, ImGui::sameLine, hardwareFilter, ImGui::sameLine, cascadeDebug,
                     frustumCount,
                     frustumNumber,
                     kernel,
-                    resolution);
+                    resolution,
+                    precision,
+                    constantBias,
+                    cullStats);
         }
 
         {
@@ -208,6 +240,7 @@ public class UserInterface {
         drawProfiler();
         camera.draw();
         render.draw();
+        shadow.draw();
         cull.draw();
         world.draw();
         light.draw();
