@@ -1,33 +1,21 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
-import edu.kit.scc.git.ggd.voxelite.ui.Time;
 import edu.kit.scc.git.ggd.voxelite.ui.UserInterface;
-import edu.kit.scc.git.ggd.voxelite.util.Direction;
-import edu.kit.scc.git.ggd.voxelite.util.LinearInterpolation;
 import edu.kit.scc.git.ggd.voxelite.util.Util;
+import net.durchholz.beacon.math.Matrix3f;
 import net.durchholz.beacon.math.Matrix4f;
-import net.durchholz.beacon.math.*;
-import edu.kit.scc.git.ggd.voxelite.world.generator.noise.Noise;
-import edu.kit.scc.git.ggd.voxelite.world.generator.noise.SimplexNoise;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
-import net.durchholz.beacon.render.opengl.textures.Texture2D;
 import net.durchholz.beacon.util.Image;
 import net.durchholz.beacon.window.Viewport;
 import net.durchholz.beacon.window.Window;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 
-import static java.lang.Math.cos;
 import static java.lang.Math.sin;
-import static org.lwjgl.opengl.GL41.*;
 
 public class Renderer {
 
@@ -104,7 +92,7 @@ public class Renderer {
     private void renderSky() {
         Vec3f blueSky = new Vec3f(0.3f,0.55f,0.8f);
         Vec3f nightSky = new Vec3f();
-        float dayPercentage = Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.5f, 0, 1);
+        float dayPercentage = Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.75f, 0, 1);
         Vec2f viewportRes = new Vec2f(viewport.width(),viewport.height());
 
         Matrix3f rotation = Util.quatToMatrix(camera.getRotation());

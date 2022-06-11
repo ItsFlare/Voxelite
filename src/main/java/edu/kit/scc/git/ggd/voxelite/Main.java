@@ -40,8 +40,8 @@ public class Main {
     private final VoxeliteExecutor executor = new VoxeliteExecutor();
     private World            world;
 
-    private long tick;
-    public static final long tickPerDay = 2000;
+    private       long tick;
+    public static long ticksPerDay = 2000;
 
     private final Time time = new Time();
 
@@ -170,7 +170,7 @@ public class Main {
     }
 
     public static float getDayPercentage() {
-        return (Main.INSTANCE.getTick() % Main.tickPerDay) / (float) Main.tickPerDay;
+        return (Main.INSTANCE.getTick() % Main.ticksPerDay) / (float) Main.ticksPerDay;
     }
 
     public static void main(String[] args) {

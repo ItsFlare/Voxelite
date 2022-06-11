@@ -10,6 +10,7 @@ import net.durchholz.beacon.render.opengl.buffers.BufferLayout;
 import net.durchholz.beacon.render.opengl.buffers.IBO;
 import net.durchholz.beacon.render.opengl.buffers.VertexArray;
 import net.durchholz.beacon.render.opengl.buffers.VertexBuffer;
+import net.durchholz.beacon.render.opengl.textures.Texture2D;
 
 import java.io.IOException;
 
@@ -45,7 +46,7 @@ public class QuadRenderer {
         });
     }
 
-    public void render(Matrix4f matrix, String name) {
+    public void render(Matrix4f matrix, Texture2D texture, Vec2f offset, Vec2f size) {
         OpenGL.depthTest(false);
         OpenGL.depthMask(false);
         OpenGL.cull(false);
@@ -53,12 +54,9 @@ public class QuadRenderer {
         OpenGL.use(program, va, () -> {
             program.mvp.set(matrix);
 
-            var atlas =  Main.INSTANCE.getRenderer().getWorldRenderer().getAtlas();
-            program.sampler.bind(0, atlas);
-            program.normalizedSpriteSize.set(atlas.getNormalizedSpriteSize());
-
-            Vec2i sprite = atlas.getSprite(name);
-            program.sprite.set(new Vec2f(sprite.x(), sprite.y()));
+            program.sampler.bind(0, texture);
+            program.size.set(size);
+            program.offset.set(offset);
 
             OpenGL.drawIndexed(OpenGL.Mode.TRIANGLES, INDICES.length, OpenGL.Type.UNSIGNED_INT);
         });

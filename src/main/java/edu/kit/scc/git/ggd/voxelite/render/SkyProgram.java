@@ -2,7 +2,6 @@ package edu.kit.scc.git.ggd.voxelite.render;
 
 import edu.kit.scc.git.ggd.voxelite.util.Util;
 import net.durchholz.beacon.math.Matrix3f;
-import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
@@ -22,9 +21,7 @@ public class SkyProgram extends Program {
     }
 
     public final Attribute<Vec2f> ndc = attribute("ndc", OpenGL.Type.FLOAT, 2);
-    public final Uniform<Vec3f> color = uniVec3f("color");
 
-    public final Uniform<Vec3f> direction = uniVec3f("direction");
     public final Uniform<Vec2f> viewportResolution = uniVec2f("viewPortResolution");
     public final Uniform<Vec3f> sunPos = uniVec3f("sunPos");
     public final Uniform<Float> dayPercentage = uniFloat("dayPercentage");
