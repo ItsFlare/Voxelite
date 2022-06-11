@@ -14,7 +14,6 @@ import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec4f;
-import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.window.Window;
 
@@ -100,7 +99,7 @@ public class UserInterface {
                 final ShadowMapRenderer shadowMapRenderer = Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer();
                 for (int c = 0; c < shadowMapRenderer.cascades; c++) {
                     if(c > 0) sb.append(" | ");
-                    sb.append(c).append('c').append(shadowMapRenderer.chunkCounts[c]).append(" (").append("%.1f%%".formatted(100 * shadowMapRenderer.chunkCounts[c] / totalChunks)).append(")");
+                    sb.append(c).append(": ").append(shadowMapRenderer.cullCounts[c]).append(" (").append("%.1f%%".formatted(100 * shadowMapRenderer.cullCounts[c] / totalChunks)).append(")");
                 }
                 return sb.toString();
             });
@@ -117,25 +116,27 @@ public class UserInterface {
 
         {
             var directionCull = new CheckboxElement("Direction", true, value -> ChunkProgram.directionCulling = value);
-            var backfaceCull = new CheckboxElement("Backface", true, OpenGL::cull);
+            var backfaceCull = new CheckboxElement("Backface", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().backfaceCull = value);
             var caveCull = new CheckboxElement("Cave", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().caveCull = value);
             var frustumCull = new CheckboxElement("Frustum", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().frustumCull = value);
-            var occlusionCull = new CheckboxElement("Occlusion", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCull = value);
-            var occlusionCullThreshold = new IntSliderElement("Occlusion Threshold", 4096, 0, (Chunk.VOLUME * 6) / 2, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCullThreshold = value);
+            var dotCull = new CheckboxElement("Dot", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().dotCull = value);
+            var occlusionCull = new CheckboxElement("Occlusion", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCull = value);
+            var occlusionCullThreshold = new IntSliderElement("Occlusion Threshold", 0, 0, (Chunk.VOLUME * 6) / 2, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCullThreshold = value);
             var cullStats = new TextElement(() -> {
                 final float chunks = Main.INSTANCE.getWorld().getChunks().size();
                 final WorldRenderer renderer = Main.INSTANCE.getRenderer().getWorldRenderer();
 
-                return "Cave: %d (%.1f%%) | Empty: %d (%.1f%%) %nFrustum: %d (%.1f%%) | Occlusion: %d (%.1f%%) %nTotal: %d (%.1f%%)".formatted(
-                        renderer.caveCullCount, 100 * renderer.caveCullCount / chunks,
+                return "Empty: %d (%.1f%%) | Cave: %d (%.1f%%) %nDot: %d (%.1f%%) | Frustum: %d (%.1f%%) %nOcclusion: %d (%.1f%%) | Total: %d (%.1f%%)".formatted(
                         renderer.emptyCount, 100 * renderer.emptyCount / chunks,
+                        renderer.caveCullCount, 100 * renderer.caveCullCount / chunks,
+                        renderer.dotCullCount, 100 * renderer.dotCullCount / chunks,
                         renderer.frustumCullCount, 100 * renderer.frustumCullCount / chunks,
                         renderer.occlusionCullCount, 100 * renderer.occlusionCullCount / chunks,
                         renderer.totalCullCount, 100 * renderer.totalCullCount / chunks
                 );
             });
 
-            this.cull = new Accordion("Culling", false, directionCull, ImGui::sameLine, backfaceCull, ImGui::sameLine, caveCull, ImGui::sameLine, frustumCull, ImGui::sameLine, occlusionCull,
+            this.cull = new Accordion("Culling", false, caveCull, ImGui::sameLine, dotCull, ImGui::sameLine, frustumCull, ImGui::sameLine, occlusionCull, ImGui::sameLine, directionCull, ImGui::sameLine, backfaceCull,
                     occlusionCullThreshold,
                     cullStats);
         }

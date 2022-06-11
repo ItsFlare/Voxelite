@@ -16,10 +16,11 @@ import java.util.Objects;
 public class RenderChunk {
     private final Chunk                chunk;
     private final ChunkProgram.Slice[] slices = new ChunkProgram.Slice[RenderType.values().length];
+    private final int                  occlusionQueryId;
 
     private volatile boolean valid = true, dirty;
     private HullSet hullSet = new HullSet();
-    private boolean occluded;
+
     private int occlusionFrame;
 
     public RenderChunk(Chunk chunk) {
@@ -31,6 +32,14 @@ public class RenderChunk {
             RenderType renderType = renderTypes[i];
             slices[i] = new ChunkProgram.Slice(chunk.getPosition(), renderType);
         }
+
+        final WorldRenderer worldRenderer = Main.INSTANCE.getRenderer().getWorldRenderer();
+        final OcclusionRenderer.Query query = new OcclusionRenderer.Query(
+                () -> getQuadCount() >= worldRenderer.occlusionCullThreshold,
+                () -> getChunk().getBoundingBox(),
+                () -> setOccluded(Main.INSTANCE.getRenderer().getFrame())
+        );
+        occlusionQueryId = worldRenderer.getOcclusionRenderer().getQueries().add(query);
     }
 
     public synchronized void build() {
@@ -95,6 +104,7 @@ public class RenderChunk {
             slice.vertexArray.delete();
             slice.instanceBuffer.delete();
         }
+        Main.INSTANCE.getRenderer().getWorldRenderer().getOcclusionRenderer().getQueries().remove(occlusionQueryId);
     }
 
     public int getQuadCount() {
@@ -121,12 +131,12 @@ public class RenderChunk {
         return hullSet;
     }
 
-    public void setOccluded(boolean occluded, int frame) {
-        this.occluded = occluded;
+    private void setOccluded(int frame) {
         this.occlusionFrame = frame;
     }
 
     public boolean isOccluded() {
-        return occluded && occlusionFrame == Main.INSTANCE.getRenderer().getFrame() - 1;
+        return getQuadCount() >= Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCullThreshold
+                && occlusionFrame == Main.INSTANCE.getRenderer().getFrame();
     }
 }

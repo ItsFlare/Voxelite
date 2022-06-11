@@ -30,6 +30,8 @@ public class Chunk implements Iterable<Voxel> {
     public static final Vec3i CENTER       = new Vec3i(WIDTH >> 1);
     public static final AABB  BOUNDING_BOX = new AABB(new Vec3f(), new Vec3f(WIDTH));
 
+    public static final int   RADIUS_SQUARED = Chunk.CENTER.magnitudeSq();
+    public static final float RADIUS         = (float) Math.sqrt(RADIUS_SQUARED);
 
     private final World                  world;
     private final Vec3i                  position;
@@ -114,6 +116,14 @@ public class Chunk implements Iterable<Voxel> {
 
     public Vec3i getPosition() {
         return position;
+    }
+
+    public Vec3i getWorldPosition() {
+        return Chunk.toWorldPosition(position);
+    }
+
+    public Vec3i getCenter() {
+        return getWorldPosition().add(Chunk.CENTER);
     }
 
     public AABB getBoundingBox() {

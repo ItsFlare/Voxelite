@@ -17,6 +17,7 @@ import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class Util {
@@ -103,6 +104,10 @@ public class Util {
 
     public static double frac(float f) {
         return f - Math.floor(f);
+    }
+
+    public static IntStream rangeReversed(int from, int to) {
+        return IntStream.range(from, to).map(i -> to - i + from - 1);
     }
 
     public static <T> T init(T t, Consumer<T> consumer) {

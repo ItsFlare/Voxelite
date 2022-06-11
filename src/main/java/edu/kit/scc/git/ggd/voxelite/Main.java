@@ -37,7 +37,8 @@ public class Main {
     private final Renderer         renderer;
     private final TimerRingBuffer  profiler = new TimerRingBuffer();
     private final VoxeliteExecutor executor = new VoxeliteExecutor();
-    private World            world;
+    private World world;
+    private long  frameTime = TimeUnit.MILLISECONDS.toNanos(16);
 
     static {
         System.setProperty("log4j.skipJansi", "false");
@@ -118,6 +119,7 @@ public class Main {
             executor.process();
             deltaTime = System.nanoTime() - start;
             accumulator += deltaTime;
+            frameTime = deltaTime;
         }
 
         LOGGER.info("Shutdown...");
@@ -156,6 +158,10 @@ public class Main {
 
     public VoxeliteExecutor getExecutor() {
         return executor;
+    }
+
+    public long getFrameTime() {
+        return frameTime;
     }
 
     public static void main(String[] args) {

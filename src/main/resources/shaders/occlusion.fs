@@ -1,12 +1,13 @@
 #version 430
 layout(early_fragment_tests) in;
 
-flat in int id;
+flat in int ID;
 
-writeonly layout(std430) buffer occlusionBuffer {
+layout(std430) writeonly buffer occlusionBuffer {
     int[] occlusion;
 };
 
+uniform int frame;
 
 void main() {
     /*
@@ -14,5 +15,6 @@ void main() {
     If the native word size happens to be larger, this could be racy.
     */
 
-    occlusion[id] = 1;
+    occlusion[0] = frame;
+    occlusion[ID] = frame; //Swapping these writes omits this one - WTF?!
 }

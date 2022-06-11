@@ -42,8 +42,8 @@ public class WorldRenderer {
     public Vec4f             lightColor      = new Vec4f(1);
     public float             ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f;
     public int phongExponent = 32, uploadRate = 5;
-    public boolean frustumCull = true, caveCull = true, occlusionCull = false, shadows = true, shadowTransform = false;
-    public int emptyCount, frustumCullCount, caveCullCount, occlusionCullCount, totalCullCount;
+    public boolean backfaceCull = true, dotCull = true, frustumCull = true, caveCull = true, occlusionCull = true, shadows = true, shadowTransform = false;
+    public int emptyCount, frustumCullCount, dotCullCount, caveCullCount, occlusionCullCount, totalCullCount;
     public int occlusionCullThreshold;
 
     public WorldRenderer() {
@@ -100,52 +100,53 @@ public class WorldRenderer {
         upload(uploadRate);
 
         final Camera camera = Main.INSTANCE.getRenderer().getCamera();
+        final Vec3f cameraPosition = camera.getPosition();
+        final Vec3f cameraDirection = camera.getDirection();
 
         final Matrix4f mvp = camera.transform(true, true);
         final Frustum frustum = new Frustum(camera.getPosition(), mvp);
 
-        final Vec3f lightDirection = camera.getDirection();
+        final Vec3f lightDirection = cameraDirection;
         if (shadows) shadowMapRenderer.render(lightDirection);
-        final Vec3f cameraPosition = shadowTransform ? camera.getPosition().add(lightDirection.scale(-1000)) : camera.getPosition();
-        final RenderChunk currentChunk = getRenderChunk(Chunk.toChunkPosition(cameraPosition));
 
+        dotCullCount = 0;
         frustumCullCount = 0;
         final var frameRenderList = renderList
                 .stream()
                 .filter(RenderChunk::isValid)
+                .filter(dotCull ? renderChunk -> {
+                    //Filter if behind camera (biased towards view direction to compensate for chunk volume) - basically frustum culling ordered on Wish.
+                    final Vec3f camToChunk = renderChunk.getChunk().getCenter().subtract(cameraPosition);
+                    final boolean visible = camToChunk.add(cameraDirection.scale(Chunk.RADIUS)).dot(cameraDirection) >= 0;
+                    if (!visible) dotCullCount++;
+                    return visible;
+                } : renderChunk -> true)
                 .filter(frustumCull ? renderChunk -> {
-                    boolean intersects = frustum.intersects(renderChunk.getChunk().getBoundingBox());
-                    if (!intersects) frustumCullCount++;
-                    return intersects;
+                    boolean visible = frustum.intersects(renderChunk.getChunk().getBoundingBox());
+                    if (!visible) frustumCullCount++;
+                    return visible;
                 } : renderChunk -> true)
                 .collect(Collectors.toList());
 
         occlusionCullCount = 0;
-        if(occlusionCull) {
-            final int frame = Main.INSTANCE.getRenderer().getFrame();
+        if (occlusionCull) {
+            occlusionRenderer.render(mvp);
             occlusionRenderer.read();
-
-            final OcclusionRenderer.Query[] queries = frameRenderList.stream()
-                    .filter(renderChunk -> renderChunk != currentChunk) //Don't cull current chunk because AABB sides are back-facing
-                    .filter(renderChunk -> renderChunk.getQuadCount() > occlusionCullThreshold) //Don't cull chunks that are cheap to render
-                    .map(renderChunk -> new OcclusionRenderer.Query(renderChunk.getChunk().getBoundingBox(), b -> renderChunk.setOccluded(b, frame)))
-                    .toArray(OcclusionRenderer.Query[]::new);
-            occlusionRenderer.render(mvp, queries);
 
             final int previous = frameRenderList.size();
             frameRenderList.removeIf(RenderChunk::isOccluded);
             occlusionCullCount = previous - frameRenderList.size();
         }
 
-        totalCullCount = emptyCount + frustumCullCount + caveCullCount + occlusionCullCount;
+        totalCullCount = emptyCount + dotCullCount + frustumCullCount + caveCullCount + occlusionCullCount;
 
+        OpenGL.colorMask(true);
         OpenGL.depthMask(true);
         OpenGL.clearDepth();
-        OpenGL.colorMask(true);
-
         OpenGL.depthTest(true);
+        OpenGL.depthFunction(OpenGL.CompareFunction.LESS);
         OpenGL.blend(false);
-        OpenGL.cull(true);
+        OpenGL.cull(backfaceCull);
 
         final RenderType[] renderTypes = RenderType.values();
         for (int i = 0; i < renderTypes.length; i++) {
@@ -262,6 +263,10 @@ public class WorldRenderer {
     }
 
     public void tick() {
+        updateRenderList();
+    }
+
+    private void updateRenderList() {
         //TODO Make neater
         //TODO Immediately add back chunks going from empty to non-empty
         emptyCount = 0;
@@ -332,5 +337,9 @@ public class WorldRenderer {
 
     public ShadowMapRenderer getShadowMapRenderer() {
         return shadowMapRenderer;
+    }
+
+    public OcclusionRenderer getOcclusionRenderer() {
+        return occlusionRenderer;
     }
 }

@@ -12,9 +12,7 @@ import net.durchholz.beacon.render.opengl.textures.ArrayTexture2D;
 import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.window.Viewport;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 
 import static org.lwjgl.opengl.GL43.GL_NONE;
 
@@ -30,7 +28,7 @@ public class ShadowMapRenderer {
     public int      resolution;
     public Float[]  cascadeFar;
     public Vec4f[]  cascadeScale;
-    public int[]  chunkCounts;
+    public int[]    cullCounts;
     public Matrix4f lightView = new Matrix4f(1);
     public boolean  frustumCull;
     public float constantBias;
@@ -42,12 +40,10 @@ public class ShadowMapRenderer {
         cascadeScale = new Vec4f[this.cascades];
         Arrays.fill(cascadeFar, (float) 0);
         Arrays.fill(cascadeScale, new Vec4f(1));
-        chunkCounts = new int[this.cascades];
+        cullCounts = new int[this.cascades];
 
         OpenGL.use(fbo, texture, () -> {
             texture.allocate(resolution, resolution, cascades, GLTexture.BaseFormat.DEPTH_COMPONENT);
-            texture.minFilter(GLTexture.MinFilter.LINEAR);
-            texture.magFilter(GLTexture.MagFilter.LINEAR);
             texture.wrapMode(GLTexture.TextureCoordinate.R, GLTexture.WrapMode.CLAMP_TO_EDGE);
             texture.wrapMode(GLTexture.TextureCoordinate.S, GLTexture.WrapMode.CLAMP_TO_EDGE);
             texture.depthCompare(true);
@@ -146,41 +142,42 @@ public class ShadowMapRenderer {
         OpenGL.setViewport(new Viewport(resolution, resolution));
         OpenGL.depthTest(true);
         OpenGL.depthMask(true);
+        OpenGL.colorMask(false);
         OpenGL.blend(false);
 
         final int visibilityBitset = ChunkProgram.Slice.directionCull(lightDirection.scale(-1000), new Vec3i(0));
 
         OpenGL.use(PROGRAM, fbo, texture, () -> {
-            final Collection<RenderChunk> renderChunks = new ArrayList<>(Main.INSTANCE.getRenderer().getWorldRenderer().getRenderChunks());
+            final var renderChunks = Main.INSTANCE.getRenderer().getWorldRenderer().getRenderChunks().toArray(RenderChunk[]::new);
+            int culled = 0;
 
-            //Reverse order for inherited frustum culling
+            //Reverse order for successive frustum culling
             for (int c = cascades - 1; c >= 0; c--) {
                 fbo.depth(texture, 0, c);
-                OpenGL.clearAll();
+                OpenGL.clearDepth();
+
                 final Matrix4f lightTransform = lightTransform(c, lightDirection);
                 PROGRAM.mvp.set(lightTransform);
-                final double blocksPerScreen = 2 / cascadeScale[c].y();
-                final double blocksPerPixel = blocksPerScreen / (float) resolution; //adjacent
-                final double depthPerBlock = cascadeScale[c].z() * -2; //opposite
-                final double scale = blocksPerPixel * depthPerBlock;
-
-                if(c == WorldRenderer.frustumNumber) {
-                    final float dot = new Vec3f(0, 1, 0).dot(lightDirection.scale(-1));
-                    final float abs = Math.abs(dot);
-                    final float min = Math.min(abs, 1);
-                    final double acos = Math.acos(min);
-                    final double tan = Math.tan(acos);
-                }
 
                 if (frustumCull) {
                     //TODO Replace with OBB?
                     final Frustum frustum = new Frustum(Main.INSTANCE.getRenderer().getCamera().getPosition(), lightTransform);
-                    renderChunks.removeIf(renderChunk -> !frustum.intersects(renderChunk.getChunk().getBoundingBox()));
+
+                    for (int i = 0; i < renderChunks.length; i++) {
+                        RenderChunk renderChunk = renderChunks[i];
+                        if(renderChunk == null) continue;
+                        if(!frustum.intersects(renderChunk.getChunk().getBoundingBox())) {
+                            renderChunks[i] = null;
+                            culled++;
+                        }
+                    }
                 }
 
-                chunkCounts[c] = renderChunks.size();
+                cullCounts[c] = culled;
 
                 for (RenderChunk renderChunk : renderChunks) {
+                    if(renderChunk == null) continue;
+
                     PROGRAM.chunk.set(Chunk.toWorldPosition(renderChunk.getChunk().getPosition()));
                     renderChunk.renderShadow(RenderType.OPAQUE, visibilityBitset);
                 }

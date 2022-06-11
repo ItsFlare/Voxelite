@@ -15,8 +15,10 @@ public class OcclusionProgram extends Program {
     public final Attribute<Vec3f> pos = attribute("pos", OpenGL.Type.FLOAT, 3);
     public final Attribute<Vec3f> min = attribute("min", OpenGL.Type.FLOAT, 3);
     public final Attribute<Vec3f> max = attribute("max", OpenGL.Type.FLOAT, 3);
+    public final Attribute<Integer> id  = attribute("id", OpenGL.Type.INT, 1);
 
     public final Uniform<Matrix4f> mvp       = uniMatrix4f("mvp", true);
+    public final Uniform<Integer>  frame     = uniInteger("frame");
     public final StorageBuffer     occlusion = storageBuffer("occlusionBuffer", 0);
 
     public OcclusionProgram() {
@@ -33,8 +35,9 @@ public class OcclusionProgram extends Program {
         }
     }
 
-    public record InstanceVertex(Vec3f min, Vec3f max) implements Vertex {
+    public record InstanceVertex(int id, Vec3f min, Vec3f max) implements Vertex {
         public static final VertexLayout<InstanceVertex> LAYOUT = new VertexLayout<>(InstanceVertex.class);
+        public static final VertexAttribute<Integer>     ID     = LAYOUT.primitive(false);
         public static final VertexAttribute<Vec3f>       MIN    = LAYOUT.vec3f(false);
         public static final VertexAttribute<Vec3f>       MAX    = LAYOUT.vec3f(false);
 
