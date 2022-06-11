@@ -51,7 +51,7 @@ public class TerrainPass implements GeneratorPass {
             } else {
                 density = density - (voxel.position().y() / 5000);
             }
-            if (density < 0) {
+            if (density < -0.7) {
                 continue;
             }
             if((voxel.position().y() <  height) && (voxel.position().y() > (height - dirtRange))) {
