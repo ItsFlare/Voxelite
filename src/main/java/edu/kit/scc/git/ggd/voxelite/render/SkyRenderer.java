@@ -14,7 +14,6 @@ import net.durchholz.beacon.render.opengl.buffers.VertexBuffer;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
 import net.durchholz.beacon.util.Image;
 
-
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -66,20 +65,11 @@ public class SkyRenderer {
         model.multiply(Matrix4f.rotation(quaternion));
 
         final Vec3f quadNormal = new Vec3f(Direction.POS_Z.getAxis());
-        model.translate(quadNormal.rotate(quaternion));
-
-        Matrix4f matrix4f = new Matrix4f(0.0f, 0,0,0,0.0f,0,0,0,0,0,0,0,1,0,0,0);
-        model.multiply(matrix4f);
-
-        Vec3f sunPos = new Vec3f(model.get(0,0), model.get(1,0),model.get(2,0));
-        //System.out.println(sunPos);
-        //System.out.println(direction);
-
+        final Vec3f position = quadNormal.rotate(quaternion);
+        model.translate(position);
 
         OpenGL.use(program, va,  () -> {
-            program.sunPos.set(sunPos);
-            program.color.set(color);
-            program.direction.set(direction);
+            program.sunPos.set(position);
             program.viewportResolution.set(viewportRes);
             program.dayPercentage.set(dayPercentage);
             program.fov.set(fov);
