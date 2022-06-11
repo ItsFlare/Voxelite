@@ -43,9 +43,6 @@ public class TerrainPass implements GeneratorPass {
             Vec2f pos1 = new Vec2f(voxel.position().x() , voxel.position().z());
             Vec3f pos2 = new Vec3f(voxel.position().x(),voxel.position().y(), voxel.position().z());
 
-            //double nois = noise.sample(pos1.scale(0.02f));
-            //double height = continentalMap.value((float)nois);
-            //double height = octave(4, pos1);
             float pos = (float) (octave(octave, pos1) / maxOctaveValue);
             double height = erosionMap.value(pos / 2) * (continentalMap.value(pos) + pvMap.value(pos));
             double density = noise.sample(pos2.scale(0.05f));

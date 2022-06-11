@@ -36,10 +36,6 @@ void main()
 
     col =  color;
 
-    //col += 0.1*vec3(0.1, 0.3, 0.9)*pow(sundot, 0.5);
-    //col += 0.3*vec3(1., 0.7, 0.7)*pow(sundot, 1.);
-    //col += 0.7*vec3(1.)*pow(sundot, 128.);
-
     sunColor += 0.1*vec3(0.1, 0.3, 0.9)*pow(sundot, 0.7);
     sunColor += 0.3*vec3(1., 0.7, 0.7)*pow(sundot, 1.);
     sunColor += 0.7*vec3(1.)*(pow(sundot, 128) + 0.35);
@@ -47,7 +43,6 @@ void main()
 
     float num = clamp(-2 * pow(direction.y,3), -1.,0.);
 
-    //col = mix(color, col, -num);
     // scales the color when camera moves up/down
     col = mix(white, col, -num );
 
