@@ -44,7 +44,7 @@ void main()
     float num = clamp(-2 * pow(direction.y,3), -1.,0.);
 
     // scales the color when camera moves up/down
-    col = mix(white, col, -num );
+    col = mix(white, col, -num);
 
 
     // responsible for changing sky color when day progresses
