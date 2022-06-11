@@ -9,7 +9,6 @@ import edu.kit.scc.git.ggd.voxelite.util.LongRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.util.SuppliedLongRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.world.Block;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
-import edu.kit.scc.git.ggd.voxelite.world.generator.ModuloChunkGenerator;
 import edu.kit.scc.git.ggd.voxelite.world.CompressedLightStorage;
 import edu.kit.scc.git.ggd.voxelite.world.generator.NaturalWorldGenerator;
 import imgui.ImGui;
@@ -60,9 +59,12 @@ public class UserInterface {
             var world = new CheckboxElement("World", true, value -> Main.INSTANCE.getRenderer().renderWorld = value);
             var vsync = new CheckboxElement("VSync", true, value -> Window.swapInterval(value ? 1 : 0));
             var wireframe = new CheckboxElement("Wireframe", false, value -> Main.INSTANCE.getRenderer().wireframe = value);
+            var ticksPerDay = new IntSliderElement("Day Length", 2000, 200, 20000, value -> Main.ticksPerDay = value);
 
 
-            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe);
+            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe,
+                    ticksPerDay
+            );
         }
 
         {
