@@ -12,6 +12,8 @@ import net.durchholz.beacon.render.opengl.buffers.IBO;
 import net.durchholz.beacon.render.opengl.buffers.VertexArray;
 import net.durchholz.beacon.render.opengl.buffers.VertexBuffer;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
+import net.durchholz.beacon.render.opengl.textures.GLTexture;
+import net.durchholz.beacon.render.opengl.textures.Texture2D;
 import net.durchholz.beacon.util.Image;
 
 import javax.imageio.ImageIO;
@@ -19,12 +21,15 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class SkyRenderer {
 
     private final QuadRenderer   quadRenderer   = new QuadRenderer();
     private final SkyboxRenderer skyboxRenderer = new SkyboxRenderer(loadNightSkyBox());
+
+    private final Texture2D sunTexture = new Texture2D();
 
     private static final SkyProgram.SkyVertex[] VERTICES = {
             new SkyProgram.SkyVertex(new Vec2f(-1.0f,  1.0f)),
@@ -47,11 +52,16 @@ public class SkyRenderer {
     private final IBO ibo     = new IBO();
 
     public SkyRenderer() throws IOException {
+        Image image = new Image(Util.readResource("textures/skybox/sun.png"));
 
-        OpenGL.use(va, vb, ibo,  () -> {
+        OpenGL.use(va, vb, ibo, sunTexture,  () -> {
             vb.data(VERTICES);
             ibo.data(OpenGL.Usage.STATIC_DRAW, INDICES);
             va.set(program.ndc, SkyProgram.SkyVertex.POSITION, vb, 0);
+
+            sunTexture.image(image);
+            sunTexture.magFilter(GLTexture.MagFilter.NEAREST);
+            sunTexture.minFilter(GLTexture.MinFilter.NEAREST);
         });
     }
 
@@ -95,7 +105,7 @@ public class SkyRenderer {
         final Matrix4f projection = p;
         view.multiply(model);
         projection.multiply(view);
-        quadRenderer.render(projection, "glowstone.png");
+        quadRenderer.render(projection, sunTexture,new Vec2f(), new Vec2f(1));
 
     }
 
@@ -113,8 +123,7 @@ public class SkyRenderer {
         skyboxRenderer.render(p, a);
     }
 
-    private CubemapTexture loadNightSkyBox() throws IOException {
-        final Image[] images = new Image[6];
+    private CubemapTexture loadNightSkyBox() {
         Noise noise = new SimplexNoise();
         int size = 512;
         int center = size / 2;
@@ -124,27 +133,28 @@ public class SkyRenderer {
 
         for(int x = 0; x < size; x++) {
             for(int y = 0; y < size; y++) {
-                double noiseValue = noise.sample(new Vec2f(x,y));
-                double distance = getDistance(center, center, x, y);
+                Vec2f vec = new Vec2f(x,y);
+                double noiseValue = noise.sample(vec);
+                double distance = vec.subtract(center).magnitude() / (double) center;
 
-                if (noiseValue > 0.9 && distance <= center) {
-                    g2d.setColor(new Color(1f,1f,1f, 1 - ThreadLocalRandom.current().nextFloat(0.7f)));
+                g2d.setColor(new Color(1f,1f,1f, 1 - ThreadLocalRandom.current().nextFloat(0.7f)));
+                if (distance <= 0.9) {
+                    if (noiseValue > 0.9) {
+                        g2d.drawLine(x, y, x, y);
+                    }
                 } else {
-                    g2d.setColor(new Color(0,0,0,0));
+                    if (noiseValue - ((distance - 0.9) / 15) > 0.9) {
+                        g2d.drawLine(x, y, x, y);
+                    }
                 }
-                g2d.drawLine(x, y, x, y);
             }
         }
+        //ImageIO.write(bufferedImage, "png", new File("src/main/resources/textures/skybox/nightsky.png"));
         g2d.dispose();
-        ImageIO.write(bufferedImage, "png", new File("src/main/resources/textures/skybox/nightsky.png"));
-        for (int i = 0; i < 6; i++) {
-            images[i] = new Image(Util.readResource("textures/skybox/nightsky.png"));
-        }
+
+        final Image[] images = new Image[6];
+        Arrays.fill(images, new Image(bufferedImage));
+
         return SkyboxRenderer.createCubemap(images);
     }
-
-    private double getDistance(int x1, int y1, int x2, int y2) {
-        return Math.sqrt(Math.pow(x1-x2, 2) + Math.pow(y1 - y2, 2));
-    }
-
 }

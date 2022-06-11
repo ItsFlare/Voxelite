@@ -79,10 +79,11 @@ void main()
     skyColor = mix(skyColor, horizonColor, horizonFactor * verticalIntensity * horizontalIntensity);
 
     //sun glow
-    vec3 sunGlow = vec3(0);
-    sunGlow += 0.25 * mix(horizonColor, white, 0.2) * pow(sundot, 32);
-    sunGlow += 0.25 * mix(horizonColor, white, 0.2) * pow(sundot, 128);
-    skyColor += sunGlow;
+    vec3 sunColor = vec3(1.00, 0.97, 0.00);
+    vec3 sunGlow = mix(horizonColor, sunColor, 0.2);
+    float alpha = 0.5 * pow(sundot, 64);
+    skyColor = skyColor * (1 - alpha) + sunGlow * alpha;
+
 
     skyColor = mix(black, skyColor, dayPercentage); //darken at night
 
