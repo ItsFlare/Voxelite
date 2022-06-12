@@ -2,7 +2,6 @@ package edu.kit.scc.git.ggd.voxelite;
 
 import edu.kit.scc.git.ggd.voxelite.input.InputListener;
 import edu.kit.scc.git.ggd.voxelite.render.Renderer;
-import edu.kit.scc.git.ggd.voxelite.ui.Time;
 import edu.kit.scc.git.ggd.voxelite.util.TimerRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.util.VoxeliteExecutor;
 import edu.kit.scc.git.ggd.voxelite.world.Block;
@@ -38,12 +37,11 @@ public class Main {
     private final Renderer         renderer;
     private final TimerRingBuffer  profiler = new TimerRingBuffer();
     private final VoxeliteExecutor executor = new VoxeliteExecutor();
-    private World            world;
+    private World world;
+    private long  frameTime = TimeUnit.MILLISECONDS.toNanos(16);
 
     private       long tick;
     public static long ticksPerDay = 2000;
-
-    private final Time time = new Time();
 
     static {
         System.setProperty("log4j.skipJansi", "false");
@@ -109,6 +107,7 @@ public class Main {
             inputSystem.poll();
             inputSystem.tick();
             inputListener.move(deltaTime / (float) NS_PER_SECOND);
+
             while (accumulator >= NS_PER_TICK) {
                 simulate();
                 accumulator -= NS_PER_TICK;
@@ -116,14 +115,14 @@ public class Main {
 
             world.frame();
             renderer.render();
-            time.time();
 
             window.swapBuffers();
-            OpenGL.clearAll();
+            OpenGL.clearColor();
 
             executor.process();
             deltaTime = System.nanoTime() - start;
             accumulator += deltaTime;
+            frameTime = deltaTime;
         }
 
         LOGGER.info("Shutdown...");
@@ -134,7 +133,6 @@ public class Main {
     private void simulate() {
         world.tick();
         renderer.tick();
-        tick++;
     }
 
     public Window getWindow() {
@@ -163,6 +161,10 @@ public class Main {
 
     public VoxeliteExecutor getExecutor() {
         return executor;
+    }
+
+    public long getFrameTime() {
+        return frameTime;
     }
 
     public long getTick() {

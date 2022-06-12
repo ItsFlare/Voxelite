@@ -70,17 +70,17 @@ public class Camera {
     }
 
     public Matrix4f transform() {
+        return transform(true, true);
+    }
+
+    public Matrix4f transform(boolean translate, boolean rotate) {
         final Matrix4f projection = projection();
-        projection.multiply(view(true, true));
+        projection.multiply(view(translate, rotate));
 
         return projection;
     }
 
     public Vec3f getDirection() {
         return new Vec3f(0, 0, -1).rotate(rotation);
-    }
-
-    public Vec3f getOrientation() {
-        return new Vec3f(0, 0, -1).rotate(getRotation());
     }
 }

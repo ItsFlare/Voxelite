@@ -7,6 +7,7 @@ import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import edu.kit.scc.git.ggd.voxelite.world.HullSet;
 import edu.kit.scc.git.ggd.voxelite.world.Voxel;
 import net.durchholz.beacon.math.Vec2i;
+import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 
 import java.util.Arrays;
@@ -15,9 +16,12 @@ import java.util.Objects;
 public class RenderChunk {
     private final Chunk                chunk;
     private final ChunkProgram.Slice[] slices = new ChunkProgram.Slice[RenderType.values().length];
+    private final int                  occlusionQueryId;
 
     private volatile boolean valid = true, dirty;
     private HullSet hullSet = new HullSet();
+
+    private int occlusionFrame;
 
     public RenderChunk(Chunk chunk) {
         this.chunk = chunk;
@@ -26,8 +30,16 @@ public class RenderChunk {
         for (int i = 0; i < renderTypes.length; i++) {
             if (i > 0) continue; //TODO Remove with transparency
             RenderType renderType = renderTypes[i];
-            slices[i] = renderType.getProgram().new Slice(chunk.getPosition(), renderType);
+            slices[i] = new ChunkProgram.Slice(chunk.getPosition(), renderType);
         }
+
+        final WorldRenderer worldRenderer = Main.INSTANCE.getRenderer().getWorldRenderer();
+        final OcclusionRenderer.Query query = new OcclusionRenderer.Query(
+                () -> getQuadCount() >= worldRenderer.occlusionCullThreshold,
+                () -> getChunk().getBoundingBox(),
+                () -> setOccluded(Main.INSTANCE.getRenderer().getFrame())
+        );
+        occlusionQueryId = worldRenderer.getOcclusionRenderer().getQueries().add(query);
     }
 
     public synchronized void build() {
@@ -73,11 +85,16 @@ public class RenderChunk {
         }
     }
 
-    public void render(RenderType renderType) {
+    public void render(RenderType renderType, Vec3f cameraPosition) {
         assert valid;
 
-        renderType.getProgram().chunk.set(Chunk.toWorldPosition(chunk.getPosition()));
-        slices[renderType.ordinal()].render();
+        slices[renderType.ordinal()].render(cameraPosition);
+    }
+
+    public void renderShadow(RenderType renderType, int visibilityBitset) {
+        assert valid;
+
+        slices[renderType.ordinal()].renderShadow(visibilityBitset);
     }
 
     public void delete() {
@@ -87,6 +104,7 @@ public class RenderChunk {
             slice.vertexArray.delete();
             slice.instanceBuffer.delete();
         }
+        Main.INSTANCE.getRenderer().getWorldRenderer().getOcclusionRenderer().getQueries().remove(occlusionQueryId);
     }
 
     public int getQuadCount() {
@@ -111,5 +129,14 @@ public class RenderChunk {
 
     public HullSet getHullSet() {
         return hullSet;
+    }
+
+    private void setOccluded(int frame) {
+        this.occlusionFrame = frame;
+    }
+
+    public boolean isOccluded() {
+        return getQuadCount() >= Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCullThreshold
+                && occlusionFrame == Main.INSTANCE.getRenderer().getFrame();
     }
 }

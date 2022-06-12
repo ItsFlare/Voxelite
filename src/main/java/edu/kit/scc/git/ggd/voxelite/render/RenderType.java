@@ -1,12 +1,9 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
 import edu.kit.scc.git.ggd.voxelite.util.Util;
-import net.durchholz.beacon.render.opengl.shader.Shader;
 
 public enum RenderType {
-    OPAQUE(loadProgram("chunk_opaque")),
-    CUTOUT(null),
-    TRANSPARENT(null);
+    OPAQUE("chunk_opaque");
 
     private final ChunkProgram program;
 
@@ -14,11 +11,11 @@ public enum RenderType {
         this.program = program;
     }
 
-    public ChunkProgram getProgram() {
-        return this.program;
+    RenderType(String shaderName) {
+        this.program = new ChunkProgram(Util.loadShaders(shaderName));
     }
 
-    private static ChunkProgram loadProgram(String name) {
-        return new ChunkProgram(Shader.vertex(Util.readShaderResource(name + ".vs")), Shader.fragment(Util.readShaderResource(name + ".fs")));
+    public ChunkProgram getProgram() {
+        return this.program;
     }
 }

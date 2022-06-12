@@ -31,6 +31,8 @@ public class Renderer {
     public boolean renderWorld  = true;
     public boolean wireframe    = false;
 
+    private int frame;
+
     public Renderer(Window window) throws IOException {
         this.camera = new Camera(window);
         this.userInterface = new UserInterface();
@@ -67,6 +69,8 @@ public class Renderer {
             renderCrosshair();
             renderUserInterface();
         }
+
+        frame++;
     }
 
     public void tick() {
@@ -107,6 +111,10 @@ public class Renderer {
             crosshairRenderer.update(new Vec2f(), 2, new Vec3f().extend(0.6f), true, true);
             crosshairRenderer.render();
         });
+    }
+
+    public int getFrame() {
+        return frame;
     }
 
     private static CubemapTexture loadSkybox() throws IOException {

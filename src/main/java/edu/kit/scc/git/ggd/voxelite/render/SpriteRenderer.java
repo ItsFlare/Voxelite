@@ -7,7 +7,6 @@ import net.durchholz.beacon.math.Vec4f;
 import net.durchholz.beacon.render.opengl.buffers.BufferLayout;
 import net.durchholz.beacon.render.opengl.buffers.VertexArray;
 import net.durchholz.beacon.render.opengl.buffers.VertexBuffer;
-import net.durchholz.beacon.render.opengl.shader.Shader;
 import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.render.opengl.textures.Texture2D;
 import net.durchholz.beacon.util.Image;
@@ -16,7 +15,7 @@ import static net.durchholz.beacon.render.opengl.OpenGL.*;
 
 public class SpriteRenderer {
 
-    public static final SpriteProgram PROGRAM  = new SpriteProgram(Shader.vertex(Util.readShaderResource("sprite.vs")), Shader.fragment(Util.readShaderResource("sprite.fs")));
+    public static final SpriteProgram PROGRAM  = new SpriteProgram(Util.loadShaders("sprite"));
     private static final Vec2f[]      VERTICES = new Vec2f[] {
             new Vec2f(0, 1),
             new Vec2f(0, 0),

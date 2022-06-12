@@ -1,14 +1,10 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
-import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import edu.kit.scc.git.ggd.voxelite.world.LightStorage;
 import net.durchholz.beacon.data.IntVector;
-import net.durchholz.beacon.math.Matrix4f;
-import net.durchholz.beacon.math.Vec2i;
-import net.durchholz.beacon.math.Vec3f;
-import net.durchholz.beacon.math.Vec3i;
+import net.durchholz.beacon.math.*;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.buffers.*;
 import net.durchholz.beacon.render.opengl.shader.Program;
@@ -22,9 +18,6 @@ import java.util.List;
 import static org.lwjgl.opengl.GL43.*;
 
 public class ChunkProgram extends Program {
-
-    public static final int MAX_UNSIGNED_SHORT    = (1 << (Short.BYTES * 8)) - 1;
-    public static final int PRIMITIVE_RESET_INDEX = MAX_UNSIGNED_SHORT;
 
     private static final VertexBuffer<QuadVertex> QUAD_VB      = new VertexBuffer<>(QuadVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
     private static final IBO                      QUAD_IBO     = new IBO();
@@ -60,6 +53,7 @@ public class ChunkProgram extends Program {
     public final Uniform<Matrix4f> mvp                  = uniMatrix4f("mvp", true);
     public final Uniform<Vec3i>    chunk                = uniVec3i("chunk");
     public final Sampler           atlas                = sampler("atlas");
+    public final Sampler           shadowMap            = sampler("shadowMap");
     public final Uniform<Vec3f>    camera               = uniVec3f("camera");
     public final Uniform<Vec3f>    lightDirection       = uniVec3f("light.direction");
     public final Uniform<Vec3f>    lightColor           = uniVec3f("light.color");
@@ -68,7 +62,14 @@ public class ChunkProgram extends Program {
     public final Uniform<Float>    specularStrength     = uniFloat("specularStrength");
     public final Uniform<Integer>  phongExponent        = uniInteger("phongExponent");
     public final Uniform<Float>    normalizedSpriteSize = uniFloat("normalizedSpriteSize");
+    public final Uniform<Float>    constantBias         = uniFloat("constantBias");
     public final Uniform<Integer>  maxLightValue        = uniInteger("maxLightValue");
+    public final Uniform<Matrix4f> lightView            = uniMatrix4f("lightView", true);
+    public final Uniform<Integer>  shadows              = uniInteger("shadows");
+    public final Uniform<Vec4f[]>  cascadeScales        = uniVec4fArray("cascades", "scale", 4);
+    public final Uniform<Float[]>  cascadeFar           = uniFloatArray("cascades", "far", 4);
+    public final Uniform<Integer>  cascadeDebug         = uniInteger("cascadeDebug");
+    public final Uniform<Integer>  kernel               = uniInteger("kernel");
 
     public record QuadVertex(Vec3f position, Vec2i texture, Vec3f normal) implements Vertex {
         public static final VertexLayout<QuadVertex> LAYOUT   = new VertexLayout<>(QuadVertex.class);
@@ -103,8 +104,9 @@ public class ChunkProgram extends Program {
     }
 
     //TODO Subclass per RenderType?
-    public class Slice {
+    public static class Slice {
 
+        public static final int FULL_VISIBILITY = (1 << 6) - 1;
 
         record QueuedQuad(Direction direction, Vec3i position, Vec2i texture, Vec3i light) {}
 
@@ -115,10 +117,11 @@ public class ChunkProgram extends Program {
         protected final Vec3i position, worldPosition;
         protected final RenderType renderType;
 
-        protected final VertexArray                       vertexArray    = new VertexArray();
-        protected final VertexBuffer<InstanceVertex>      instanceBuffer = new VertexBuffer<>(InstanceVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
-        protected final VertexBuffer<InstanceLightVertex> lightBuffer    = new VertexBuffer<>(InstanceLightVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
-        protected final List<QueuedQuad>                  queue          = new ArrayList<>();
+        protected final VertexArray                       vertexArray       = new VertexArray();
+        protected final VertexArray                       shadowVertexArray = new VertexArray();
+        protected final VertexBuffer<InstanceVertex>      instanceBuffer    = new VertexBuffer<>(InstanceVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
+        protected final VertexBuffer<InstanceLightVertex> lightBuffer       = new VertexBuffer<>(InstanceLightVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
+        protected final List<QueuedQuad>                  queue             = new ArrayList<>();
 
         protected final    Command[]                                   commands = new Command[1 << Direction.values().length];
         protected          OpenGL.DrawMultiElementsIndirectCommand[][] nextCommands;
@@ -130,20 +133,32 @@ public class ChunkProgram extends Program {
             this.position = position;
             this.worldPosition = Chunk.toWorldPosition(position);
             this.renderType = renderType;
+            var program = renderType.getProgram();
 
             OpenGL.use(vertexArray, QUAD_IBO, () -> {
                 QUAD_VB.use(() -> {
-                    vertexArray.set(ChunkProgram.this.position, QuadVertex.POSITION, QUAD_VB, 0);
-                    vertexArray.set(ChunkProgram.this.texture, QuadVertex.TEXTURE, QUAD_VB, 0);
-                    vertexArray.set(ChunkProgram.this.normal, QuadVertex.NORMAL, QUAD_VB, 0);
+                    vertexArray.set(program.position, QuadVertex.POSITION, QUAD_VB, 0);
+                    vertexArray.set(program.texture, QuadVertex.TEXTURE, QUAD_VB, 0);
+                    vertexArray.set(program.normal, QuadVertex.NORMAL, QUAD_VB, 0);
                 });
 
                 instanceBuffer.use(() -> {
-                    vertexArray.set(ChunkProgram.this.data, InstanceVertex.DATA, instanceBuffer, 1);
+                    vertexArray.set(program.data, InstanceVertex.DATA, instanceBuffer, 1);
                 });
 
                 lightBuffer.use(() -> {
-                    vertexArray.set(ChunkProgram.this.light, InstanceLightVertex.LIGHT, lightBuffer, 1);
+                    vertexArray.set(program.light, InstanceLightVertex.LIGHT, lightBuffer, 1);
+                });
+            });
+
+            var shadowProgram = ShadowMapRenderer.PROGRAM;
+            OpenGL.use(shadowVertexArray, QUAD_IBO, () -> {
+                QUAD_VB.use(() -> {
+                    vertexArray.set(shadowProgram.position, QuadVertex.POSITION, QUAD_VB, 0);
+                });
+
+                instanceBuffer.use(() -> {
+                    vertexArray.set(shadowProgram.data, InstanceVertex.DATA, instanceBuffer, 1);
                 });
             });
         }
@@ -229,36 +244,26 @@ public class ChunkProgram extends Program {
             return cmds;
         }
 
-        public void render() {
+        public void renderShadow(int visibilityBitset) {
             if (quadCount == 0) return;
-            final Vec3f cameraPosition = Main.INSTANCE.getRenderer().getCamera().getPosition();
+
+            if (visibilityBitset == 0) return;
+            final var cmd = commands[visibilityBitset];
+            if (cmd.commands == 0) return;
+
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, cmd.buffer.id());
+            shadowVertexArray.use(() -> glMultiDrawElementsIndirect(GL_TRIANGLE_STRIP, GL_UNSIGNED_SHORT, 0L, cmd.commands, Command.STRIDE));
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
+
+        public void render(Vec3f cameraPosition) {
+            if (quadCount == 0) return;
+
             final int visibilityBitset;
             if (directionCulling) {
-                /*
-                Direction culling (geometry partitioned by face direction)
-                TODO Unroll loop and replace dot product with comparison?
-                */
-
-                final Vec3i chunkCenter = worldPosition.add(Chunk.CENTER);
-                final Direction[] directions = Direction.values();
-
-                //Calculate visibility bitset
-                int bitset = 0;
-                for (int i = 0; i < directions.length; i++) {
-
-                    final var direction = directions[i];
-                    final var planePos = chunkCenter.subtract(direction.getAxis().scale(Chunk.WIDTH >> 1));
-                    final var planeToCam = cameraPosition.subtract(planePos);
-
-                    if (planeToCam.dot(direction.getAxis()) > 0f) {
-                        bitset |= (1 << i);
-                    }
-                }
-
-                visibilityBitset = bitset;
+                visibilityBitset = directionCull(cameraPosition, worldPosition);
             } else {
-                //Render everything
-                visibilityBitset = (1 << 6) - 1;
+                visibilityBitset = FULL_VISIBILITY;
             }
 
             if (visibilityBitset == 0) return;
@@ -268,6 +273,34 @@ public class ChunkProgram extends Program {
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, cmd.buffer.id());
             vertexArray.use(() -> glMultiDrawElementsIndirect(GL_TRIANGLE_STRIP, GL_UNSIGNED_SHORT, 0L, cmd.commands, Command.STRIDE));
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
+
+        public static int directionCull(Vec3f cameraPosition, Vec3i chunkWorldPosition) {
+            final int visibilityBitset;
+
+            /*
+            Direction culling (geometry partitioned by face direction)
+            TODO Unroll loop and replace dot product with comparison?
+            */
+
+            final Vec3i chunkCenter = chunkWorldPosition.add(Chunk.CENTER);
+            final Direction[] directions = Direction.values();
+
+            //Calculate visibility bitset
+            int bitset = 0;
+            for (int i = 0; i < directions.length; i++) {
+
+                final var direction = directions[i];
+                final var planePos = chunkCenter.subtract(direction.getAxis().scale(Chunk.WIDTH >> 1));
+                final var planeToCam = cameraPosition.subtract(planePos);
+
+                if (planeToCam.dot(direction.getAxis()) > 0f) {
+                    bitset |= (1 << i);
+                }
+            }
+
+            visibilityBitset = bitset;
+            return visibilityBitset;
         }
 
         public int getQuadCount() {

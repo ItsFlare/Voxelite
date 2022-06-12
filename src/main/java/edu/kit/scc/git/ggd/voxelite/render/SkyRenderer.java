@@ -76,6 +76,7 @@ public class SkyRenderer {
     public void render(Vec2f viewportRes, float dayPercentage, float fov, Matrix3f rotation) {
         OpenGL.depthMask(false);
         OpenGL.depthTest(false);
+        OpenGL.cull(false);
 
         Quaternion quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotation()).normalized();
         final Matrix4f model = Matrix4f.identity();
