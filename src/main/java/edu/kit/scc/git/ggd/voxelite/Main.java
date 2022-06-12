@@ -133,6 +133,7 @@ public class Main {
     private void simulate() {
         world.tick();
         renderer.tick();
+        tick++;
     }
 
     public Window getWindow() {
