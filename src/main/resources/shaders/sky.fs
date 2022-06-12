@@ -5,22 +5,18 @@ out vec4 FragColor;
 uniform vec3 sunPos;
 uniform vec3 color;
 uniform vec2 viewPortResolution;
-uniform vec3 direction;
 uniform float dayPercentage;
 uniform float fov;
 uniform mat3 rotation;
 
+const float PI = 3.14159265359;
+const vec3 white = vec3(1);
+const vec3 black = vec3(0);
+const vec3 blueSky = vec3(0.3, 0.55, 0.8);
+const float horizonAngularSize = 45;
+const float horizonAngularOffset = 5;
 void main()
 {
-    vec3 white = vec3(1, 1, 1);
-    vec3 yellow = vec3(1.0, 1.0, 0.0);
-    vec3 orange = vec3(1.0, 0.5, 0.0);
-    vec3 red = vec3(1.0, 0.0, 0.0);
-    vec3 black = vec3(0, 0, 0);
-    vec3 redSky = vec3(0.8, 0.8, 0.6);
-    vec3 blueSky = vec3(0.3, 0.55, 0.8);
-    float PI = 3.14159265358;
-
     //normalize fragment coordinates
     vec2 viewPortCoord = gl_FragCoord.xy / viewPortResolution.xy;
     vec2 clipCoord = -1 + 2 * viewPortCoord;
@@ -33,61 +29,65 @@ void main()
     //direction vs sun
     float sundot = clamp(dot(rayDirection, sunPos), 0, 1);
     float sundeg = degrees(acos(sundot));
+    float moondot = clamp(dot(rayDirection, -sunPos), 0, 1);
 
     //direction to horizon vs sun at horizon
-    float sunhordot = clamp(dot(vec3(rayDirection.x, 0, rayDirection.z), normalize(vec3(sunPos.x, 0, sunPos.z))), 0, 1);
+    float sunhordot = dot(normalize(vec3(rayDirection.x, 0, rayDirection.z)), normalize(vec3(sunPos.x, 0, sunPos.z)));
     float sunhordeg = degrees(acos(sunhordot));
 
-    //direction vs horizon
-    float hordot = dot(rayDirection, normalize(vec3(rayDirection.x, 0, rayDirection.z)));
-    float hordeg = degrees(acos(hordot));
+    //sun vs up vector
+    float daydot = dot(sunPos, vec3(0, 1, 0)); //in range of [-1,1]
+    float daydotNormalized = 0.5 + daydot * 0.5;
+    float daydeg = degrees(acos(daydot));
 
     //sun vs horizon
-    float sunrisedot = dot(sunPos, normalize(vec3(sunPos.x, 0, sunPos.z)));
-    float sunrisedeg = degrees(acos(sunrisedot));
+    float sunrisedeg = 90 - daydeg;
 
-    //sun vs up vector
-    float daydot = dot(sunPos, vec3(0, 1, 0));
-    float daydotNormalized = 0.5 + daydot * 0.5;
+    //direction vs horizon
+    float hordeg = 90 - degrees(acos(dot(rayDirection, vec3(0, 1, 0))));
+
+    //base color
+    vec3 skyColor = mix(black, blueSky, dayPercentage);
 
     vec3 a = vec3(0.82, 0.57, 0.02); //yellow-orange
     vec3 b = vec3(0.82, 0.37, 0.02); //orange-red
-    vec3 c = red;
-    vec3 d = vec3(0.60, 0.04, 0.40); //purple
+    vec3 c = vec3(1.00, 0.00, 0.00); //red
+    vec3 d = vec3(0.70, 0.00, 0.30); //purple
 
-    float range = 30; //range around horizon in deg
-    float deg = 90 - degrees(acos(daydot)) + range; //angle of sun relative to horizon in deg
-    float interval = (range * 2) / 3; //angle of one interval in deg
+    float deg = sunrisedeg + horizonAngularSize; //angle of sun relative to horizon in deg with offset for selection
+    float interval = (horizonAngularSize * 2) / 3; //angle of one interval in deg
 
     //select appropriate range and interpolate
     vec3 sunsetColor = vec3(0);
     if(deg > 0 && deg <= interval) sunsetColor = mix(d, c, deg / interval);
-    if(deg > interval && deg <= interval * 2) sunsetColor = mix(c, b, (deg - interval) / interval);
-    if(deg > interval * 2 && deg <= interval * 3) sunsetColor = mix(b, a, (deg - interval * 2) / interval);
+    else if(deg > interval && deg <= interval * 2) sunsetColor = mix(c, b, (deg - interval) / interval);
+    else if(deg > interval * 2 && deg <= interval * 3) sunsetColor = mix(b, a, (deg - interval * 2) / interval);
 
-    float horizonFactor = pow(clamp(1 - hordeg / 45, 0, 0.9), 2);
-    float verticalIntensity = clamp(1 - sunrisedeg / 45, 0.5, 0.75);
+    float horizonFactor = pow(clamp(1 - (hordeg + horizonAngularOffset) / horizonAngularSize, 0, 1), 1.5);
+    float verticalIntensity = clamp(1 - (sunrisedeg) / horizonAngularSize, 0.5, 1.0);
 
     //angle relative to sun at horizon where horizon is visible
-    //360 if sun overhead, 240 if sund at horizon
-    float horizonCoverageAngle = clamp(240 * 2 * daydotNormalized, 0, 360);
+    float horizonCoverageAngle = clamp(daydotNormalized * 360, 120, 360);
 
     //calculate horizon intensity based on coverage angle
     //full intensity at daytime, highlight at sunset
-    float horizontalIntensity = max(clamp(1 - sunhordeg / horizonCoverageAngle, 0, 1), daydot);
+    float horizontalIntensity = max(clamp(1 - sunhordeg / horizonCoverageAngle, 0, 1), 1 - daydeg / 90);
 
-    vec3 skyColor = mix(black, blueSky, dayPercentage);
-    vec3 horizonColor = mix(daydot > 0 ? white : black, sunsetColor, clamp(1 - sunrisedeg / range, 0, 1));
-    skyColor = mix(skyColor, horizonColor, horizonFactor * verticalIntensity * horizontalIntensity);
+    //horizon
+    vec3 horizonColor = mix(sunrisedeg > 0 ? white : skyColor, sunsetColor, clamp(1 - abs(sunrisedeg) / horizonAngularSize, 0, 1));
+    skyColor = mix(skyColor, horizonColor, horizonFactor * verticalIntensity * horizontalIntensity * 0.8);
 
     //sun glow
-    vec3 sunColor = vec3(1.00, 0.97, 0.00);
-    vec3 sunGlow = mix(horizonColor, sunColor, 0.2);
-    float alpha = 0.5 * pow(sundot, 64);
-    skyColor = skyColor * (1 - alpha) + sunGlow * alpha;
+    vec3 sunColor = vec3(1.00, 0.94, 0.72);
+    vec3 sunGlow = mix(sunColor, horizonColor, 0.5);
+    float sunAlpha = 0.25 * pow(sundot, 64);
+    skyColor = mix(skyColor, sunGlow, sunAlpha);
 
+    //moon glow
+    vec3 moonColor = white;
+    vec3 moonGlow = mix(moonColor, horizonColor, 0.2);
+    float moonAlpha = 0.1 * pow(moondot, 16);
+    skyColor = mix(skyColor, moonGlow, moonAlpha);
 
-    skyColor = mix(black, skyColor, dayPercentage); //darken at night
-
-    FragColor= vec4(skyColor, 1.0);
+    FragColor = vec4(skyColor, 1.0);
 }

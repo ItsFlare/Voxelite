@@ -4,7 +4,6 @@ import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.ui.UserInterface;
 import edu.kit.scc.git.ggd.voxelite.util.Util;
 import net.durchholz.beacon.math.Matrix3f;
-import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
@@ -83,23 +82,16 @@ public class Renderer {
         }
     }
 
-    private void renderSkybox() {
-        final Matrix4f projection = camera.projection();
-        projection.multiply(camera.view(false, true));
-        //skyboxRenderer.render(projection);
-    }
-
     private void renderSky() {
-        Vec3f blueSky = new Vec3f(0.3f,0.55f,0.8f);
-        Vec3f nightSky = new Vec3f();
         float dayPercentage = Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.75f, 0, 1);
         Vec2f viewportRes = new Vec2f(viewport.width(),viewport.height());
 
-        Matrix3f rotation = Util.quatToMatrix(camera.getRotation());
+        var projection = camera.projection();
+        projection.multiply(camera.view(false, true));
 
-        skyRenderer.render(nightSky.interpolate(blueSky, dayPercentage),  camera.getDirection(), viewportRes, dayPercentage, camera.getFOV(), rotation);
-        skyRenderer.renderNightSkyBox(camera.view(false, true), camera.projection(), -1 *dayPercentage + 1);
-        skyRenderer.renderSun(camera.view(false, true), camera.projection());
+        skyRenderer.render(viewportRes, dayPercentage, camera.getFOV(), Matrix3f.rotation(camera.getRotation()));
+        skyRenderer.renderNightSkyBox(projection, -1 * dayPercentage + 1);
+        skyRenderer.renderPlanets(projection);
     }
 
     private void renderWorld() {

@@ -30,6 +30,7 @@ public class SkyRenderer {
     private final SkyboxRenderer skyboxRenderer = new SkyboxRenderer(loadNightSkyBox());
 
     private final Texture2D sunTexture = new Texture2D();
+    private final Texture2D moonTexture = new Texture2D();
 
     private static final SkyProgram.SkyVertex[] VERTICES = {
             new SkyProgram.SkyVertex(new Vec2f(-1.0f,  1.0f)),
@@ -43,8 +44,6 @@ public class SkyRenderer {
             1, 0, 3,
     };
 
-
-
     private final SkyProgram                            program = new SkyProgram();
     private final VertexArray va      = new VertexArray();
     private final VertexBuffer<SkyProgram.SkyVertex> vb      = new VertexBuffer<>(SkyProgram.SkyVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.STATIC_DRAW);
@@ -52,20 +51,29 @@ public class SkyRenderer {
     private final IBO ibo     = new IBO();
 
     public SkyRenderer() throws IOException {
-        Image image = new Image(Util.readResource("textures/skybox/sun.png"));
 
-        OpenGL.use(va, vb, ibo, sunTexture,  () -> {
+        OpenGL.use(va, vb, ibo, () -> {
             vb.data(VERTICES);
             ibo.data(OpenGL.Usage.STATIC_DRAW, INDICES);
             va.set(program.ndc, SkyProgram.SkyVertex.POSITION, vb, 0);
+        });
 
-            sunTexture.image(image);
+        Image sun = new Image(Util.readResource("textures/skybox/sun.png"));
+        sunTexture.use(() -> {
+            sunTexture.image(sun);
             sunTexture.magFilter(GLTexture.MagFilter.NEAREST);
             sunTexture.minFilter(GLTexture.MinFilter.NEAREST);
         });
+
+        Image moon = new Image(Util.readResource("textures/skybox/moon.png"));
+        moonTexture.use(() -> {
+            moonTexture.image(moon);
+            moonTexture.magFilter(GLTexture.MagFilter.NEAREST);
+            moonTexture.minFilter(GLTexture.MinFilter.NEAREST);
+        });
     }
 
-    public void render(Vec3f color, Vec3f direction, Vec2f viewportRes, float dayPercentage, float fov, Matrix3f rotation) {
+    public void render(Vec2f viewportRes, float dayPercentage, float fov, Matrix3f rotation) {
         OpenGL.depthMask(false);
         OpenGL.depthTest(false);
 
@@ -85,45 +93,50 @@ public class SkyRenderer {
             program.fov.set(fov);
             program.rotation.set(rotation);
 
-
             OpenGL.drawIndexed(OpenGL.Mode.TRIANGLES, INDICES.length, OpenGL.Type.UNSIGNED_INT);
         });
     }
 
-    public void renderSun(Matrix4f v, Matrix4f p) {
-        OpenGL.blend(false);
+    public void renderPlanets(Matrix4f vp) {
+        Quaternion quaternion;
 
-        Quaternion quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotation()).normalized();
+        quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotation()).normalized();
+        renderPlanetQuad(vp, quaternion, 0.1f, sunTexture);
+        quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotation() + 180).normalized();
+        renderPlanetQuad(vp, quaternion, 0.1f, moonTexture);
+    }
+
+    public void renderPlanetQuad(Matrix4f vp, Quaternion rotation, float scale, Texture2D texture) {
+        OpenGL.blend(false);
+        vp = vp.clone();
+
         final Matrix4f model = Matrix4f.identity();
-        model.scale(0.1f);
-        model.multiply(Matrix4f.rotation(quaternion));
+        model.scale(scale);
+        model.multiply(Matrix4f.rotation(rotation));
 
         final Vec3f quadNormal = new Vec3f(Direction.POS_Z.getAxis());
-        model.translate(quadNormal.rotate(quaternion));
+        model.translate(quadNormal.rotate(rotation));
 
-        final Matrix4f view = v;
-        final Matrix4f projection = p;
-        view.multiply(model);
-        projection.multiply(view);
-        quadRenderer.render(projection, sunTexture,new Vec2f(), new Vec2f(1));
+        vp.multiply(model);
 
+        quadRenderer.render(vp, texture, new Vec2f(), new Vec2f(1));
     }
 
     private float getRotation() {
         return Main.getDayPercentage() * 360;
     }
 
-    public void renderNightSkyBox(Matrix4f v, Matrix4f p, float a) {
+    public void renderNightSkyBox(Matrix4f vp, float a) {
         Quaternion quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotation()).normalized();
         final Matrix4f model = Matrix4f.identity();
         model.multiply(Matrix4f.rotation(quaternion));
+        vp = vp.clone();
+        vp.multiply(model);
 
-        v.multiply(model);
-        p.multiply(v);
-        skyboxRenderer.render(p, a);
+        skyboxRenderer.render(vp, a);
     }
 
-    private CubemapTexture loadNightSkyBox() {
+    private CubemapTexture loadNightSkyBox() throws IOException {
         Noise noise = new SimplexNoise();
         int size = 512;
         int center = size / 2;
@@ -136,20 +149,22 @@ public class SkyRenderer {
                 Vec2f vec = new Vec2f(x,y);
                 double noiseValue = noise.sample(vec);
                 double distance = vec.subtract(center).magnitude() / (double) center;
+                final double threshold = 0.95;
+                final double radius = 0.9;
 
                 g2d.setColor(new Color(1f,1f,1f, 1 - ThreadLocalRandom.current().nextFloat(0.7f)));
-                if (distance <= 0.9) {
-                    if (noiseValue > 0.9) {
+                if (distance <= radius) {
+                    if (noiseValue > threshold) {
                         g2d.drawLine(x, y, x, y);
                     }
                 } else {
-                    if (noiseValue - ((distance - 0.9) / 15) > 0.9) {
+                    if (noiseValue - ((distance - radius) / 10) > threshold) {
                         g2d.drawLine(x, y, x, y);
                     }
                 }
             }
         }
-        //ImageIO.write(bufferedImage, "png", new File("src/main/resources/textures/skybox/nightsky.png"));
+        ImageIO.write(bufferedImage, "png", new File("src/main/resources/textures/skybox/nightsky.png"));
         g2d.dispose();
 
         final Image[] images = new Image[6];
