@@ -8,7 +8,6 @@ import edu.kit.scc.git.ggd.voxelite.world.generator.noise.SimplexNoise;
 import net.durchholz.beacon.math.*;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.buffers.BufferLayout;
-import net.durchholz.beacon.render.opengl.buffers.IBO;
 import net.durchholz.beacon.render.opengl.buffers.VertexArray;
 import net.durchholz.beacon.render.opengl.buffers.VertexBuffer;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
@@ -16,10 +15,8 @@ import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.render.opengl.textures.Texture2D;
 import net.durchholz.beacon.util.Image;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
@@ -29,32 +26,24 @@ public class SkyRenderer {
     private final QuadRenderer   quadRenderer   = new QuadRenderer();
     private final SkyboxRenderer skyboxRenderer = new SkyboxRenderer(loadNightSkyBox());
 
-    private final Texture2D sunTexture = new Texture2D();
+    private final Texture2D sunTexture  = new Texture2D();
     private final Texture2D moonTexture = new Texture2D();
 
     private static final SkyProgram.SkyVertex[] VERTICES = {
-            new SkyProgram.SkyVertex(new Vec2f(-1.0f,  1.0f)),
-            new SkyProgram.SkyVertex(new Vec2f(-1.0f, -1.0f)),
-            new SkyProgram.SkyVertex( new Vec2f(1.0f,  1.0f)),
-            new SkyProgram.SkyVertex( new Vec2f(1.0f, -1.0f)),
+            new SkyProgram.SkyVertex(new Vec2f(1, 1)),
+            new SkyProgram.SkyVertex(new Vec2f(-1, 1)),
+            new SkyProgram.SkyVertex(new Vec2f(1, -1)),
+            new SkyProgram.SkyVertex(new Vec2f(-1, -1)),
     };
 
-    private static final int[] INDICES = {
-            2, 0, 3,
-            1, 0, 3,
-    };
-
-    private final SkyProgram                            program = new SkyProgram();
-    private final VertexArray va      = new VertexArray();
+    private final SkyProgram                         program = new SkyProgram();
+    private final VertexArray                        va      = new VertexArray();
     private final VertexBuffer<SkyProgram.SkyVertex> vb      = new VertexBuffer<>(SkyProgram.SkyVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.STATIC_DRAW);
-
-    private final IBO ibo     = new IBO();
 
     public SkyRenderer() throws IOException {
 
-        OpenGL.use(va, vb, ibo, () -> {
+        OpenGL.use(va, vb, () -> {
             vb.data(VERTICES);
-            ibo.data(OpenGL.Usage.STATIC_DRAW, INDICES);
             va.set(program.ndc, SkyProgram.SkyVertex.POSITION, vb, 0);
         });
 
@@ -74,6 +63,7 @@ public class SkyRenderer {
     }
 
     public void render(Vec2f viewportRes, float dayPercentage, float fov, Matrix3f rotation) {
+        OpenGL.colorMask(true);
         OpenGL.depthMask(false);
         OpenGL.depthTest(false);
         OpenGL.cull(false);
@@ -87,14 +77,14 @@ public class SkyRenderer {
         final Vec3f position = quadNormal.rotate(quaternion);
         model.translate(position);
 
-        OpenGL.use(program, va,  () -> {
+        OpenGL.use(program, va, () -> {
             program.sunPos.set(position);
             program.viewportResolution.set(viewportRes);
             program.dayPercentage.set(dayPercentage);
             program.fov.set(fov);
             program.rotation.set(rotation);
 
-            OpenGL.drawIndexed(OpenGL.Mode.TRIANGLES, INDICES.length, OpenGL.Type.UNSIGNED_INT);
+            OpenGL.drawArrays(OpenGL.Mode.TRIANGLE_STRIP, 0, VERTICES.length);
         });
     }
 
@@ -137,23 +127,23 @@ public class SkyRenderer {
         skyboxRenderer.render(vp, a);
     }
 
-    private CubemapTexture loadNightSkyBox() throws IOException {
+    private CubemapTexture loadNightSkyBox() {
         Noise noise = new SimplexNoise();
         int size = 512;
         int center = size / 2;
 
-        BufferedImage bufferedImage = new BufferedImage(size , size , BufferedImage.TYPE_INT_RGB);
+        BufferedImage bufferedImage = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = bufferedImage.createGraphics();
 
-        for(int x = 0; x < size; x++) {
-            for(int y = 0; y < size; y++) {
-                Vec2f vec = new Vec2f(x,y);
+        for (int x = 0; x < size; x++) {
+            for (int y = 0; y < size; y++) {
+                Vec2f vec = new Vec2f(x, y);
                 double noiseValue = noise.sample(vec);
                 double distance = vec.subtract(center).magnitude() / (double) center;
                 final double threshold = 0.95;
                 final double radius = 0.9;
 
-                g2d.setColor(new Color(1f,1f,1f, 1 - ThreadLocalRandom.current().nextFloat(0.7f)));
+                g2d.setColor(new Color(1f, 1f, 1f, 1 - ThreadLocalRandom.current().nextFloat(0.7f)));
                 if (distance <= radius) {
                     if (noiseValue > threshold) {
                         g2d.drawLine(x, y, x, y);
@@ -165,7 +155,7 @@ public class SkyRenderer {
                 }
             }
         }
-        ImageIO.write(bufferedImage, "png", new File("src/main/resources/textures/skybox/nightsky.png"));
+        //ImageIO.write(bufferedImage, "png", new File("src/main/resources/textures/skybox/nightsky.png"));
         g2d.dispose();
 
         final Image[] images = new Image[6];
