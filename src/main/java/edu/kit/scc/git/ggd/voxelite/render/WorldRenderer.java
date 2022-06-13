@@ -130,11 +130,10 @@ public class WorldRenderer {
 
         occlusionCullCount = 0;
         if (occlusionCull) {
-            occlusionRenderer.render(mvp);
-            occlusionRenderer.read();
+            occlusionRenderer.read(); //TODO Read only whats necessary
 
             final int previous = frameRenderList.size();
-            frameRenderList.removeIf(RenderChunk::isOccluded);
+            frameRenderList.removeIf(renderChunk -> renderChunk.isOccluded() && renderChunk.getChunk().getCenter().subtract(cameraPosition).magnitudeSq() > Chunk.RADIUS_SQUARED);
             occlusionCullCount = previous - frameRenderList.size();
         }
 
@@ -183,6 +182,8 @@ public class WorldRenderer {
                 }
             });
         }
+
+        if(occlusionCull) occlusionRenderer.render(mvp);
     }
 
     public record VisibilityNode(RenderChunk renderChunk, Direction source, int directions) {

@@ -117,7 +117,7 @@ public class Main {
             renderer.render();
 
             window.swapBuffers();
-            OpenGL.clearColor();
+            OpenGL.clearAll();
 
             executor.process();
             deltaTime = System.nanoTime() - start;

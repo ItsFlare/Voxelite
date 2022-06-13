@@ -59,7 +59,7 @@ public class OcclusionRenderer {
      * Constant inflation of bounding boxes to compensate movement vs. latency of last frame's depth.
      * TODO Make this adapt based on frame time and actual movement.
      */
-    public static final float INFLATE = 2;
+    public static final float INFLATE = 0.5f;
 
     public static final int MAX_OCCLUDEES = 100_000;
 
@@ -96,13 +96,13 @@ public class OcclusionRenderer {
     }
 
     public void render(Matrix4f mvp) {
-        final int frame = Main.INSTANCE.getRenderer().getFrame();
-
         OpenGL.depthTest(true);
         OpenGL.depthFunction(OpenGL.CompareFunction.LESS_EQUAL);
         OpenGL.depthMask(false);
         OpenGL.colorMask(false);
         OpenGL.cull(false);
+
+        final int frame = Main.INSTANCE.getRenderer().getFrame();
 
         var vertices = queries
                 .stream()
