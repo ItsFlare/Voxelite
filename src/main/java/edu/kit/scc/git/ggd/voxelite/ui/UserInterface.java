@@ -14,6 +14,7 @@ import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec4f;
+import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.window.Window;
 
@@ -108,6 +109,7 @@ public class UserInterface {
                 return sb.toString();
             });
             var constantBias = new FloatSliderElement("Constant Bias", 0f, -1f, 1f, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().constantBias = value * 0.001f);
+            var splitCorrection = new FloatSliderElement("Split correction", 0.9f, 0, 1f, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().splitCorrection = value);
             this.shadow = new Accordion("Shadow", true, enabled, ImGui::sameLine, transform, ImGui::sameLine, frustumCull, ImGui::sameLine, hardwareFilter, ImGui::sameLine, cascadeDebug,
                     frustumCount,
                     frustumNumber,
@@ -115,16 +117,17 @@ public class UserInterface {
                     resolution,
                     precision,
                     constantBias,
+                    splitCorrection,
                     cullStats);
         }
 
         {
+            var caveCull = new CheckboxElement("Cave", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().caveCull = value);
+            var dotCull = new CheckboxElement("Dot", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().dotCull = value);
+            var frustumCull = new CheckboxElement("Frustum", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().frustumCull = value);
+            var occlusionCull = new CheckboxElement("Occlusion", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCull = value);
             var directionCull = new CheckboxElement("Direction", true, value -> ChunkProgram.directionCulling = value);
             var backfaceCull = new CheckboxElement("Backface", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().backfaceCull = value);
-            var caveCull = new CheckboxElement("Cave", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().caveCull = value);
-            var frustumCull = new CheckboxElement("Frustum", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().frustumCull = value);
-            var dotCull = new CheckboxElement("Dot", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().dotCull = value);
-            var occlusionCull = new CheckboxElement("Occlusion", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCull = value);
             var occlusionCullThreshold = new IntSliderElement("Occlusion Threshold", 0, 0, (Chunk.VOLUME * 6) / 2, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCullThreshold = value);
             var cullStats = new TextElement(() -> {
                 final float chunks = Main.INSTANCE.getWorld().getChunks().size();
@@ -247,6 +250,7 @@ public class UserInterface {
     }
 
     public void draw() {
+        OpenGL.colorMask(true);
         imGuiGlfw.newFrame();
         ImGui.newFrame();
         ImGui.begin("Settings");

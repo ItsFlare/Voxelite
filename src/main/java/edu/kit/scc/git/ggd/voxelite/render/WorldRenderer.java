@@ -103,10 +103,10 @@ public class WorldRenderer {
         final Vec3f cameraPosition = camera.getPosition();
         final Vec3f cameraDirection = camera.getDirection();
 
-        final Matrix4f mvp = camera.transform(true, true);
+        final Matrix4f mvp = camera.transform();
         final Frustum frustum = new Frustum(camera.getPosition(), mvp);
 
-        final Vec3f lightDirection = cameraDirection;
+        final Vec3f lightDirection = Main.INSTANCE.getWorld().getSunlightDirection();
         if (shadows) shadowMapRenderer.render(lightDirection);
 
         dotCullCount = 0;
@@ -155,25 +155,30 @@ public class WorldRenderer {
             final ChunkProgram program = renderType.getProgram();
 
             program.use(() -> {
-
-                //TODO Set on demand
                 program.mvp.set(shadowTransform ? shadowMapRenderer.lightTransform(frustumNumber, lightDirection) : mvp);
                 program.atlas.bind(0, atlas);
                 program.camera.set(cameraPosition);
                 program.lightColor.set(new Vec3f(lightColor.x(), lightColor.y(), lightColor.z()));
                 program.lightDirection.set(lightDirection);
-                program.ambientStrength.set(ambientStrength);
-                program.diffuseStrength.set(diffuseStrength);
-                program.specularStrength.set(specularStrength);
+
+                Vec3f phongParameters = Main.INSTANCE.getWorld().getPhongParameters();
+                program.ambientStrength.set(phongParameters.x());
+                program.diffuseStrength.set(phongParameters.y());
+                program.specularStrength.set(phongParameters.z());
+
                 program.phongExponent.set(phongExponent);
                 program.normalizedSpriteSize.set(atlas.getNormalizedSpriteSize());
                 program.maxLightValue.set(LightStorage.MAX_TOTAL_VALUE);
                 program.shadowMap.bind(1, shadowMapRenderer.getTexture());
-                program.lightView.set(shadowMapRenderer.lightView);
+                program.lightView.set(shadowMapRenderer.lightView(lightDirection));
                 program.shadows.set(shadows && !shadowTransform ? 1 : 0);
-                program.cascadeFar.set(shadowMapRenderer.cascadeFar);
-                program.cascadeScales.set(shadowMapRenderer.cascadeScale);
                 program.constantBias.set(shadowMapRenderer.constantBias);
+
+
+                program.cascadeScales.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::scale).toArray(Vec3f[]::new));
+                program.cascadeTranslations.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::translation).toArray(Vec3f[]::new));
+                program.cascadeFar.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::far).toArray(Float[]::new));
+
 
                 for (RenderChunk renderChunk : frameRenderList) {
                     program.chunk.set(Chunk.toWorldPosition(renderChunk.getChunk().getPosition()));

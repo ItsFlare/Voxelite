@@ -12,8 +12,6 @@ import net.durchholz.beacon.render.opengl.textures.ArrayTexture2D;
 import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.window.Viewport;
 
-import java.util.Arrays;
-
 import static org.lwjgl.opengl.GL43.GL_NONE;
 
 public class ShadowMapRenderer {
@@ -24,22 +22,19 @@ public class ShadowMapRenderer {
     private final FBO            fbo     = new FBO();
     private final ArrayTexture2D texture = new ArrayTexture2D();
 
-    public int      cascades;
-    public int      resolution;
-    public Float[]  cascadeFar;
-    public Vec4f[]  cascadeScale;
-    public int[]    cullCounts;
-    public Matrix4f lightView = new Matrix4f(1);
-    public boolean  frustumCull;
-    public float constantBias;
+    public int       cascades;
+    public int       resolution;
+    public Cascade[] c;
+    public int[]     cullCounts;
+    public boolean   frustumCull;
+    public float     constantBias, splitCorrection;
+
+    record Cascade(float far, Vec3f scale, Vec3f translation) {}
 
     public ShadowMapRenderer(int resolution, int cascades) {
         this.resolution = resolution;
         this.cascades = cascades;
-        cascadeFar = new Float[this.cascades];
-        cascadeScale = new Vec4f[this.cascades];
-        Arrays.fill(cascadeFar, (float) 0);
-        Arrays.fill(cascadeScale, new Vec4f(1));
+        this.c = new Cascade[cascades];
         cullCounts = new int[this.cascades];
 
         OpenGL.use(fbo, texture, () -> {
@@ -64,7 +59,7 @@ public class ShadowMapRenderer {
     }
 
     public void depthFormat(GLTexture.Format format) {
-        if(!format.baseFormat().isDepth()) throw new IllegalArgumentException();
+        if (!format.baseFormat().isDepth()) throw new IllegalArgumentException();
         texture.use(() -> texture.allocate(resolution, resolution, cascades, format));
     }
 
@@ -77,7 +72,6 @@ public class ShadowMapRenderer {
         Matrix4f view = camera.view(true, true);
         Matrix4f cameraProjection = camera.projection();
 
-        float lambda = 0.75f;
 
         float far = Camera.FAR_PLANE;
         float near = Camera.NEAR_PLANE;
@@ -86,14 +80,14 @@ public class ShadowMapRenderer {
         r[0] = new Range(near, 0);
         for (int i = 1; i < cascades; i++) {
             float si = i / (float) cascades;
-            r[i] = new Range((float) (lambda * (near * Math.pow(ratio, si)) + (1 - lambda) * (near + (far - near) * si)), 0);
+            r[i] = new Range((float) (splitCorrection * (near * Math.pow(ratio, si)) + (1 - splitCorrection) * (near + (far - near) * si)), 0);
             r[i - 1] = new Range(r[i - 1].near, r[i].near * 1.005f);
         }
         r[cascades - 1] = new Range(r[cascades - 1].near, far);
 
         for (int i = 0; i < cascades; i++) {
             Range range = r[i];
-            cascadeFar[i] = 0.5f * new Vec4f(0, 0, -r[i].far, 1).transform(cameraProjection).z() / r[i].far + 0.5f;
+            c[i] = new Cascade(0.5f * new Vec4f(0, 0, -r[i].far, 1).transform(cameraProjection).z() / r[i].far + 0.5f, c[i] != null ? c[i].scale : null, c[i] != null ? c[i].translation : null);
 
             Matrix4f projection = Matrix4f.perspective(camera.getFOV(), Main.INSTANCE.getWindow().getViewport().aspectRatio(), range.near, range.far);
             projection.multiply(view);
@@ -103,10 +97,19 @@ public class ShadowMapRenderer {
         return f;
     }
 
-    public Matrix4f lightTransform(int cascade, Vec3f lightDirection) {
+    public Matrix4f lightView(Vec3f lightDirection) {
         final var targetPos = Main.INSTANCE.getRenderer().getCamera().getPosition();
-        final Matrix4f view = Matrix4f.look(targetPos.subtract(lightDirection), targetPos);
-        lightView = view;
+        return Matrix4f.look(targetPos.subtract(lightDirection), targetPos);
+    }
+
+    public Matrix4f lightTransform(int cascades, Vec3f lightDirection) {
+        var projection = lightProjection(cascades, lightDirection);
+        projection.multiply(lightView(lightDirection));
+        return projection;
+    }
+
+    public Matrix4f lightProjection(int cascade, Vec3f lightDirection) {
+        final Matrix4f view = lightView(lightDirection);
         final var frustumCorners = split()[cascade].corners().clone();
 
         //Project frustum corners into light space
@@ -132,8 +135,10 @@ public class ShadowMapRenderer {
 
         //Result is CPV
         crop.multiply(projection);
-        cascadeScale[cascade] = new Vec4f(new Vec4f(1, 0, 0, 0).transform(crop).x(), new Vec4f(0, 1, 0, 0).transform(crop).y(), crop.get(2, 2), crop.get(2, 3));
-        crop.multiply(view);
+
+        Vec3f scale = new Vec3f(crop.get(0, 0), crop.get(1, 1), crop.get(2, 2));
+        Vec3f offset = crop.translation();
+        c[cascade] = new Cascade(c[cascade].far, scale, offset);
 
         return crop;
     }
@@ -161,12 +166,12 @@ public class ShadowMapRenderer {
 
                 if (frustumCull) {
                     //TODO Replace with OBB?
-                    final Frustum frustum = new Frustum(Main.INSTANCE.getRenderer().getCamera().getPosition(), lightTransform);
+                    final Frustum frustum = new Frustum(Main.INSTANCE.getRenderer().getCamera().getPosition().add(lightDirection.scale(-1000)), lightTransform);
 
                     for (int i = 0; i < renderChunks.length; i++) {
                         RenderChunk renderChunk = renderChunks[i];
-                        if(renderChunk == null) continue;
-                        if(!frustum.intersects(renderChunk.getChunk().getBoundingBox())) {
+                        if (renderChunk == null) continue;
+                        if (!frustum.intersects(renderChunk.getChunk().getBoundingBox())) { //TODO Intersection with center sufficient?
                             renderChunks[i] = null;
                             culled++;
                         }
@@ -176,7 +181,7 @@ public class ShadowMapRenderer {
                 cullCounts[c] = culled;
 
                 for (RenderChunk renderChunk : renderChunks) {
-                    if(renderChunk == null) continue;
+                    if (renderChunk == null) continue;
 
                     PROGRAM.chunk.set(Chunk.toWorldPosition(renderChunk.getChunk().getPosition()));
                     renderChunk.renderShadow(RenderType.OPAQUE, visibilityBitset);
