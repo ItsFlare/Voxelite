@@ -3,7 +3,7 @@ in vec2 Tex;
 in vec3 Pos;
 flat in vec3 Normal;
 in vec4 BlockLight;
-in vec4 LightSpacePos;
+in vec3 LightSpacePos;
 
 out vec4 FragColor;
 
@@ -26,7 +26,8 @@ uniform struct Light {
 const int MAX_CASCADES = 4;
 uniform struct Cascade {
     float far;
-    vec4 scale;
+    vec3 scale;
+    vec3 translation;
 } cascades[MAX_CASCADES];
 
 
@@ -36,7 +37,7 @@ float kernelFactor = 1 / pow(kernel * 2 + 1, 2);
 
 vec3 debugColor;
 
-float ShadowCalculation(vec4 fragPosLightSpace) {
+float ShadowCalculation(vec3 fragPosLightSpace) {
     int c;
     for(c = -1; c++ < MAX_CASCADES; ) {
         if(gl_FragCoord.z < cascades[c].far) {
@@ -47,16 +48,17 @@ float ShadowCalculation(vec4 fragPosLightSpace) {
     debugColor = vec3(0, 0, c / float(MAX_CASCADES));
 
     //Effectively projection to shadow screen space
-    fragPosLightSpace.xyz *= cascades[c].scale.xyz;
-    fragPosLightSpace.z += cascades[c].scale.w;
-    fragPosLightSpace.xyz = 0.5 * fragPosLightSpace.xyz + 0.5;
+    fragPosLightSpace *= cascades[c].scale;
+    fragPosLightSpace += cascades[c].translation;
+    fragPosLightSpace = 0.5 * fragPosLightSpace + 0.5;
 
     vec2 textureSize = textureSize(shadowMap, 0).xy;
+    vec2 texelSize = 1.0 / textureSize;
+
     float blocksPerPixel = 2 / (cascades[c].scale.y * textureSize.y);
     float depthPerBlock = cascades[c].scale.z * -2;
     float bias = tan(acos(min(abs(dot(Normal, -light.direction)), 1))) * blocksPerPixel * depthPerBlock + constantBias;
 
-    vec2 texelSize = 1.0 / textureSize;
     float shadow = 0.0;
     for(int x = -kernel; x <= kernel; ++x) {
         for (int y = -kernel; y <= kernel; ++y) {
@@ -68,7 +70,7 @@ float ShadowCalculation(vec4 fragPosLightSpace) {
 
     return shadow;
 }
-vec3 DirectionalLight(Light light, vec3 normal, vec3 viewDirection) {
+vec3 DirectionalLight(vec3 normal, vec3 viewDirection) {
     vec3 color = light.color.rgb;
     vec3 lightDirection = normalize(-light.direction);
 
@@ -88,7 +90,7 @@ vec3 DirectionalLight(Light light, vec3 normal, vec3 viewDirection) {
 
 void main() {
     vec4 t = texture(atlas, Tex);
-    FragColor = (vec4(DirectionalLight(light, Normal, normalize(camera - Pos)), 1) + BlockLight) * t;
+    FragColor = (vec4(DirectionalLight(Normal, normalize(camera - Pos)), 1) + BlockLight) * t;
 
     if(cascadeDebug == 1) FragColor += vec4(debugColor, 1);
 }

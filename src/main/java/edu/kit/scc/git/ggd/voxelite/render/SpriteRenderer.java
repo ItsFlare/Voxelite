@@ -4,6 +4,7 @@ import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.util.Util;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec4f;
+import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.buffers.BufferLayout;
 import net.durchholz.beacon.render.opengl.buffers.VertexArray;
 import net.durchholz.beacon.render.opengl.buffers.VertexBuffer;
@@ -69,6 +70,9 @@ public class SpriteRenderer {
     }
 
     public void render() {
+        OpenGL.depthTest(false);
+        OpenGL.depthMask(false);
+        OpenGL.colorMask(true);
         blend(true);
         blendEquation(BlendEquation.ADD);
         blendFunction(BlendFunction.ONE, BlendFunction.ONE_MINUS_SOURCE_ALPHA);

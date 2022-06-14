@@ -10,7 +10,7 @@ out vec2 Tex;
 out vec3 Pos;
 flat out vec3 Normal;
 out vec4 BlockLight;
-out vec4 LightSpacePos;
+out vec3 LightSpacePos;
 
 uniform mat4 mvp;
 uniform ivec3 chunk;
@@ -33,5 +33,5 @@ void main() {
     Pos = vp;
     Normal = normal;
     BlockLight = vec4(light >> 20, (light >> 10) & uint(0x3ff), light & uint(0x3ff), 0) / maxLightValue;
-    LightSpacePos = lightView * vec4(vp, 1);
+    LightSpacePos = (lightView * vec4(vp, 1)).xyz;
 }
