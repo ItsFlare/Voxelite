@@ -148,12 +148,12 @@ public class UserInterface {
         {
             var load = new CheckboxElement("Update Area", true, value -> Main.INSTANCE.getWorld().setLoadChunks(value));
             var radius = new IntSliderElement("Chunk radius", 4, 0, 50, value -> Main.INSTANCE.getWorld().setChunkRadius(value));
-            var frequency = new FloatSliderElement("Frequency", 0.02f, 0, 0.1f, value -> {
+            var frequency = new FloatSliderElement("Frequency", 0.007f, 0, 0.1f, value -> {
                 if(Main.INSTANCE.getWorld().getGenerator() instanceof NaturalWorldGenerator g) {
                     g.getPasses().get(0).setFrequency(value);
                 }
             });
-            var amplitude = new IntSliderElement("Amplitude", 20, 0, 50, value -> {
+            var amplitude = new IntSliderElement("Amplitude", 30, 0, 50, value -> {
                 if(Main.INSTANCE.getWorld().getGenerator() instanceof NaturalWorldGenerator g) {
                     g.getPasses().get(0).setAmplitude(value);
                 }
