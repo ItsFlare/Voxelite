@@ -69,7 +69,7 @@ public enum Block {
 
     @NotNull
     public RenderType getRenderType() {
-        return RenderType.OPAQUE; //TODO Implement
+        return isOpaque() ? RenderType.OPAQUE : RenderType.TRANSPARENT;
     }
 
     @NotNull

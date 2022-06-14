@@ -139,21 +139,16 @@ public class WorldRenderer {
 
         totalCullCount = emptyCount + dotCullCount + frustumCullCount + caveCullCount + occlusionCullCount;
 
-        OpenGL.colorMask(true);
-        OpenGL.depthMask(true);
         OpenGL.clearDepth();
+        OpenGL.colorMask(true);
         OpenGL.depthTest(true);
         OpenGL.depthFunction(OpenGL.CompareFunction.LESS);
-        OpenGL.blend(false);
         OpenGL.cull(backfaceCull);
 
-        final RenderType[] renderTypes = RenderType.values();
-        for (int i = 0; i < renderTypes.length; i++) {
-            if (i > 0) continue; //TODO Remove with transparency
+        for (RenderType renderType : RenderType.values()) {
+            renderType.setPipelineState();
 
-            final RenderType renderType = renderTypes[i];
             final ChunkProgram program = renderType.getProgram();
-
             program.use(() -> {
                 program.mvp.set(shadowTransform ? shadowMapRenderer.lightTransform(frustumNumber, lightDirection) : mvp);
                 program.atlas.bind(0, atlas);

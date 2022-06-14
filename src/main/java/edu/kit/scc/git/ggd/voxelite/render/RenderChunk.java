@@ -28,7 +28,6 @@ public class RenderChunk {
 
         RenderType[] renderTypes = RenderType.values();
         for (int i = 0; i < renderTypes.length; i++) {
-            if (i > 0) continue; //TODO Remove with transparency
             RenderType renderType = renderTypes[i];
             slices[i] = new ChunkProgram.Slice(chunk.getPosition(), renderType);
         }
@@ -70,7 +69,7 @@ public class RenderChunk {
         }
 
         for (ChunkProgram.Slice s : slices) {
-            if (s != null) s.build();
+            s.build();
         }
 
         Main.INSTANCE.getRenderer().getWorldRenderer().queueUpload(this);
@@ -80,7 +79,6 @@ public class RenderChunk {
         assert valid;
 
         for (ChunkProgram.Slice slice : slices) {
-            if (slice == null) continue; //TODO Remove with transparency
             slice.upload();
         }
     }
@@ -100,7 +98,6 @@ public class RenderChunk {
     public void delete() {
         valid = false;
         for (ChunkProgram.Slice slice : slices) {
-            if (slice == null) return; //TODO Remove with transparency
             slice.vertexArray.delete();
             slice.instanceBuffer.delete();
         }
