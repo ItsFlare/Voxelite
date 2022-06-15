@@ -129,7 +129,7 @@ public class WorldRenderer {
                 .collect(Collectors.toList());
 
         occlusionCullCount = 0;
-        if (occlusionCull) {
+        if (occlusionCull && !shadowTransform) {
             occlusionRenderer.read(); //TODO Read only whats necessary
 
             final int previous = frameRenderList.size();
