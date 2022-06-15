@@ -23,8 +23,8 @@ void main() {
     uint y = (data >> 22) & uint(0x1f);
     uint z = (data >> 17) & uint(0x1f);
 
-    uint u = (data >> 8) & uint(0xff);
-    uint v = data & uint(0xff);
+    uint u = (data >> 10) & uint(0x7f);
+    uint v = (data >> 3) & uint(0x7f);
 
     vec3 vp = vec3(chunk) + pos + vec3(x, y, z);
     gl_Position = mvp * vec4(vp, 1);

@@ -3,14 +3,19 @@ package edu.kit.scc.git.ggd.voxelite.render;
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.util.Util;
 import net.durchholz.beacon.render.opengl.OpenGL;
+import net.durchholz.beacon.render.opengl.shader.Shader;
 
 public enum RenderType {
-    OPAQUE("chunk_opaque", () -> {
+    OPAQUE(new OpaqueChunkProgram(Util.loadShaders("chunk_opaque")), () -> {
         OpenGL.depthMask(true);
         OpenGL.blend(false);
         OpenGL.cull(Main.INSTANCE.getRenderer().getWorldRenderer().backfaceCull);
     }),
-    TRANSPARENT("chunk_opaque", () -> {
+    TRANSPARENT(new TransparentChunkProgram(
+            Shader.vertex(Util.readShaderResource("chunk_transparent.vs")),
+            Shader.geometry(Util.readShaderResource("chunk_transparent.gs")),
+            Shader.fragment(Util.readShaderResource("chunk_opaque.fs"))
+    ), () -> {
         OpenGL.depthMask(false);
         OpenGL.blend(true);
         OpenGL.blendEquation(OpenGL.BlendEquation.ADD);
@@ -23,11 +28,6 @@ public enum RenderType {
 
     RenderType(ChunkProgram program, Runnable state) {
         this.program = program;
-        this.state = state;
-    }
-
-    RenderType(String shaderName, Runnable state) {
-        this.program = new ChunkProgram(Util.loadShaders(shaderName));
         this.state = state;
     }
 

@@ -42,7 +42,7 @@ public class WorldRenderer {
     public Vec4f             lightColor      = new Vec4f(1);
     public float             ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f;
     public int phongExponent = 32, uploadRate = 5;
-    public boolean backfaceCull = true, dotCull = true, frustumCull = true, caveCull = true, occlusionCull = true, shadows = true, shadowTransform = false;
+    public boolean directionCull = true, backfaceCull = true, dotCull = true, frustumCull = true, caveCull = true, occlusionCull = true, shadows = true, shadowTransform = false, transparentSort = true;
     public int emptyCount, frustumCullCount, dotCullCount, caveCullCount, occlusionCullCount, totalCullCount;
     public int occlusionCullThreshold;
 
@@ -139,8 +139,16 @@ public class WorldRenderer {
 
         totalCullCount = emptyCount + dotCullCount + frustumCullCount + caveCullCount + occlusionCullCount;
 
-        OpenGL.clearDepth();
+        record RenderInfo(RenderChunk chunk, int visibility) {}
+        final var frameRenderInfo = frameRenderList
+                .stream()
+                .map(directionCull ?
+                        renderChunk -> new RenderInfo(renderChunk, RenderChunk.directionCull(cameraPosition, renderChunk.getChunk().getWorldPosition())) :
+                        renderChunk -> new RenderInfo(renderChunk, RenderChunk.FULL_VISIBILITY))
+                .toList();
+
         OpenGL.colorMask(true);
+        OpenGL.depthMask(true);
         OpenGL.depthTest(true);
         OpenGL.depthFunction(OpenGL.CompareFunction.LESS);
         OpenGL.cull(backfaceCull);
@@ -175,10 +183,12 @@ public class WorldRenderer {
                 program.cascadeFar.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::far).toArray(Float[]::new));
 
 
-                for (RenderChunk renderChunk : frameRenderList) {
-                    program.chunk.set(Chunk.toWorldPosition(renderChunk.getChunk().getPosition()));
+                for (RenderInfo info : frameRenderInfo) {
+                    final RenderChunk renderChunk = info.chunk();
+                    if(renderType == RenderType.TRANSPARENT && transparentSort) renderChunk.sortTransparent();
+                    program.chunk.set(renderChunk.getChunk().getWorldPosition());
 
-                    renderChunk.render(renderType, cameraPosition);
+                    renderChunk.render(renderType, info.visibility());
                 }
             });
         }

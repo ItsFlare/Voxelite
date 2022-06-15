@@ -1,9 +1,6 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
-import edu.kit.scc.git.ggd.voxelite.world.Chunk;
-import edu.kit.scc.git.ggd.voxelite.world.LightStorage;
-import net.durchholz.beacon.data.IntVector;
 import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec2i;
 import net.durchholz.beacon.math.Vec3f;
@@ -14,16 +11,10 @@ import net.durchholz.beacon.render.opengl.shader.Program;
 import net.durchholz.beacon.render.opengl.shader.Shader;
 import net.durchholz.beacon.render.opengl.shader.Uniform;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-
-import static org.lwjgl.opengl.GL43.*;
-
 public class ChunkProgram extends Program {
 
-    private static final VertexBuffer<QuadVertex> QUAD_VB      = new VertexBuffer<>(QuadVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
-    private static final IBO                      QUAD_IBO     = new IBO();
+    public static final VertexBuffer<QuadVertex> QUAD_VB      = new VertexBuffer<>(QuadVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
+    public static final IBO                      QUAD_IBO     = new IBO();
     private static final short[]                  QUAD_INDICES = {0, 3, 1, 2};
 
     static {
@@ -41,15 +32,11 @@ public class ChunkProgram extends Program {
         QUAD_IBO.use(() -> QUAD_IBO.data(OpenGL.Usage.STATIC_DRAW, QUAD_INDICES));
     }
 
-    public static boolean directionCulling = true;
-
     public ChunkProgram(Shader... shaders) {
         super(shaders);
     }
 
-    public final Attribute<Vec3f>   position = attribute("pos", OpenGL.Type.FLOAT, 3);
-    public final Attribute<Vec2i>   texture  = attribute("tex", OpenGL.Type.INT, 2);
-    public final Attribute<Vec3f>   normal   = attribute("normal", OpenGL.Type.FLOAT, 3);
+
     public final Attribute<Integer> data     = attribute("data", OpenGL.Type.INT, 1);
     public final Attribute<Integer> light    = attribute("light", OpenGL.Type.INT, 1);
 
@@ -107,237 +94,4 @@ public class ChunkProgram extends Program {
         }
     }
 
-    //TODO Subclass per RenderType?
-    public static class Slice {
-
-        public static final int FULL_VISIBILITY = (1 << 6) - 1;
-
-        record QueuedQuad(Direction direction, Vec3i position, Vec2i texture, Vec3i light) {}
-
-        record Command(VBO buffer, int commands) {
-            public static final int STRIDE = 20; //5 ints (see OpenGL.DrawMultiElementsIndirectCommand)
-        }
-
-        protected final Vec3i position, worldPosition;
-        protected final RenderType renderType;
-
-        protected final VertexArray                       vertexArray       = new VertexArray();
-        protected final VertexArray                       shadowVertexArray = new VertexArray();
-        protected final VertexBuffer<InstanceVertex>      instanceBuffer    = new VertexBuffer<>(InstanceVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
-        protected final VertexBuffer<InstanceLightVertex> lightBuffer       = new VertexBuffer<>(InstanceLightVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
-        protected final List<QueuedQuad>                  queue             = new ArrayList<>();
-
-        protected final    Command[]                                   commands = new Command[1 << Direction.values().length];
-        protected          OpenGL.DrawMultiElementsIndirectCommand[][] nextCommands;
-        protected          InstanceVertex[]                            nextVertices;
-        protected          InstanceLightVertex[]                       nextLightVertices;
-        protected volatile int                                         quadCount;
-
-        public Slice(Vec3i position, RenderType renderType) {
-            this.position = position;
-            this.worldPosition = Chunk.toWorldPosition(position);
-            this.renderType = renderType;
-            var program = renderType.getProgram();
-
-            OpenGL.use(vertexArray, QUAD_IBO, () -> {
-                QUAD_VB.use(() -> {
-                    vertexArray.set(program.position, QuadVertex.POSITION, QUAD_VB, 0);
-                    vertexArray.set(program.texture, QuadVertex.TEXTURE, QUAD_VB, 0);
-                    vertexArray.set(program.normal, QuadVertex.NORMAL, QUAD_VB, 0);
-                });
-
-                instanceBuffer.use(() -> {
-                    vertexArray.set(program.data, InstanceVertex.DATA, instanceBuffer, 1);
-                });
-
-                lightBuffer.use(() -> {
-                    vertexArray.set(program.light, InstanceLightVertex.LIGHT, lightBuffer, 1);
-                });
-            });
-
-            var shadowProgram = ShadowMapRenderer.PROGRAM;
-            OpenGL.use(shadowVertexArray, QUAD_IBO, () -> {
-                QUAD_VB.use(() -> {
-                    vertexArray.set(shadowProgram.position, QuadVertex.POSITION, QUAD_VB, 0);
-                });
-
-                instanceBuffer.use(() -> {
-                    vertexArray.set(shadowProgram.data, InstanceVertex.DATA, instanceBuffer, 1);
-                });
-            });
-        }
-
-        public synchronized void build() {
-            if (queue.isEmpty()) {
-                quadCount = 0;
-                return;
-            }
-
-            var queuedQuads = queue
-                    .stream()
-                    .sorted(Comparator.comparingInt(value -> value.direction.ordinal())).toList();
-
-            this.nextVertices = queuedQuads.stream()
-                    .map(queuedQuad -> new InstanceVertex(packInstance(queuedQuad.position(), queuedQuad.texture())))
-                    .toArray(InstanceVertex[]::new);
-
-            this.nextLightVertices = queuedQuads.stream()
-                    .map(queuedQuad -> new InstanceLightVertex(packLight(queuedQuad.light())))
-                    .toArray(InstanceLightVertex[]::new);
-
-            this.nextCommands = generateCommands();
-
-            queue.clear();
-        }
-
-        public synchronized void upload() {
-            if (nextVertices == null) return;
-            assert nextVertices.length == nextLightVertices.length;
-
-            instanceBuffer.use(() -> {
-                instanceBuffer.data(nextVertices);
-            });
-
-            lightBuffer.use(() -> {
-                lightBuffer.data(nextLightVertices);
-            });
-
-            for (int i = 0; i < nextCommands.length; i++) {
-                OpenGL.DrawMultiElementsIndirectCommand[] directionCommands = nextCommands[i];
-                VBO vbo = new VBO();
-                vbo.use(() -> vbo.data(OpenGL.Usage.DYNAMIC_DRAW, IntVector.merge(directionCommands)));
-                this.commands[i] = new Command(vbo, directionCommands.length);
-            }
-
-            this.quadCount = nextVertices.length;
-            this.nextVertices = null;
-            this.nextLightVertices = null;
-            this.nextCommands = null;
-        }
-
-        private OpenGL.DrawMultiElementsIndirectCommand[][] generateCommands() {
-            OpenGL.DrawMultiElementsIndirectCommand[][] cmds = new OpenGL.DrawMultiElementsIndirectCommand[commands.length][];
-
-            //Calculate partition sizes
-            int[] directionCounts = new int[Direction.values().length];
-            for (Slice.QueuedQuad queuedQuad : queue) {
-                directionCounts[queuedQuad.direction().ordinal()]++;
-            }
-
-            //For all bitset permutations, precompute command data arrays
-            for (int i = 0; i < cmds.length; i++) {
-                final List<OpenGL.DrawMultiElementsIndirectCommand> dataList = new ArrayList<>(Direction.values().length);
-
-                int offset = 0;
-                for (int dir = 0; dir < Direction.values().length; dir++) {
-                    int directionQuadCount = directionCounts[dir];
-                    if (directionQuadCount == 0) continue;
-
-                    //IF visible
-                    if ((i & (1 << dir)) != 0) {
-                        dataList.add(new OpenGL.DrawMultiElementsIndirectCommand(4, directionQuadCount, 0, 4 * dir, offset));
-                    }
-
-                    offset += directionQuadCount;
-                }
-
-                final OpenGL.DrawMultiElementsIndirectCommand[] directionCommands = dataList.toArray(OpenGL.DrawMultiElementsIndirectCommand[]::new);
-                cmds[i] = directionCommands;
-            }
-
-            return cmds;
-        }
-
-        public void renderShadow(int visibilityBitset) {
-            if (quadCount == 0) return;
-
-            if (visibilityBitset == 0) return;
-            final var cmd = commands[visibilityBitset];
-            if (cmd.commands == 0) return;
-
-            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, cmd.buffer.id());
-            shadowVertexArray.use(() -> glMultiDrawElementsIndirect(GL_TRIANGLE_STRIP, GL_UNSIGNED_SHORT, 0L, cmd.commands, Command.STRIDE));
-            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
-        }
-
-        public void render(Vec3f cameraPosition) {
-            if (quadCount == 0) return;
-
-            final int visibilityBitset;
-            if (directionCulling) {
-                visibilityBitset = directionCull(cameraPosition, worldPosition);
-            } else {
-                visibilityBitset = FULL_VISIBILITY;
-            }
-
-            if (visibilityBitset == 0) return;
-            final var cmd = commands[visibilityBitset];
-            if (cmd.commands == 0) return;
-
-            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, cmd.buffer.id());
-            vertexArray.use(() -> glMultiDrawElementsIndirect(GL_TRIANGLE_STRIP, GL_UNSIGNED_SHORT, 0L, cmd.commands, Command.STRIDE));
-            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
-        }
-
-        public static int directionCull(Vec3f cameraPosition, Vec3i chunkWorldPosition) {
-            final int visibilityBitset;
-
-            /*
-            Direction culling (geometry partitioned by face direction)
-            TODO Unroll loop and replace dot product with comparison?
-            */
-
-            final Vec3i chunkCenter = chunkWorldPosition.add(Chunk.CENTER);
-            final Direction[] directions = Direction.values();
-
-            //Calculate visibility bitset
-            int bitset = 0;
-            for (int i = 0; i < directions.length; i++) {
-
-                final var direction = directions[i];
-                final var planePos = chunkCenter.subtract(direction.getAxis().scale(Chunk.WIDTH >> 1));
-                final var planeToCam = cameraPosition.subtract(planePos);
-
-                if (planeToCam.dot(direction.getAxis()) > 0f) {
-                    bitset |= (1 << i);
-                }
-            }
-
-            visibilityBitset = bitset;
-            return visibilityBitset;
-        }
-
-        public int getQuadCount() {
-            return quadCount;
-        }
-
-        public static int packInstance(Vec3i offset, Vec2i texture) {
-            assert offset.max() < Chunk.WIDTH;
-            assert texture.x() < 256 && texture.y() < 256;
-
-            int result = 0;
-
-            result |= offset.x() << 27;
-            result |= offset.y() << 22;
-            result |= offset.z() << 17;
-
-            result |= texture.x() << 8;
-            result |= texture.y();
-
-            return result;
-        }
-
-        public static int packLight(Vec3i light) {
-            assert LightStorage.MAX_TOTAL_VALUE < (1 << 10);
-            assert light.x() < 1024 && light.y() < 1024 && light.z() < 1024;
-
-            int result = 0;
-
-            result |= light.x() << 20;
-            result |= light.y() << 10;
-            result |= light.z();
-
-            return result;
-        }
-    }
 }

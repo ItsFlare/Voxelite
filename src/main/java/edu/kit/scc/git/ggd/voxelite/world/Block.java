@@ -5,7 +5,6 @@ import edu.kit.scc.git.ggd.voxelite.render.RenderType;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import net.durchholz.beacon.math.Vec2i;
 import net.durchholz.beacon.math.Vec3f;
-import net.durchholz.beacon.math.Vec3f;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,7 +36,9 @@ public enum Block {
     GRASS(builder -> builder.texture("grass_block_side").texture("dirt", Direction.NEG_Y).texture("grass_block_top", Direction.POS_Y)),
     WATER(builder -> builder.texture("blue_concrete")),
     TNT(builder -> builder.texture("tnt_side").texture("tnt_bottom", Direction.NEG_Y).texture("tnt_top", Direction.POS_Y)),
-    RED_GLASS(builder -> builder.texture("red_stained_glass").transparent().filter(new Vec3f(1, 1, 0))),
+    RED_GLASS(builder -> builder.texture("red_stained_glass").transparent().filter(new Vec3f(1, 0, 0))),
+    CYAN_GLASS(builder -> builder.texture("cyan_stained_glass").transparent().filter(new Vec3f(0, 1, 1))),
+    WHITE_GLASS(builder -> builder.texture("white_stained_glass").transparent()),
     GLOWSTONE(builder -> builder.texture().light(new Vec3f(1, 0, 0), 31));
 
     public Vec3f light, filter;

@@ -117,6 +117,8 @@ public class Main {
             renderer.render();
 
             window.swapBuffers();
+            OpenGL.colorMask(true);
+            OpenGL.depthMask(true);
             OpenGL.clearAll();
 
             executor.process();

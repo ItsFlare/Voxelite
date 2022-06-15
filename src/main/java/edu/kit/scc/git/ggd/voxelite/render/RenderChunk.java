@@ -14,9 +14,11 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public class RenderChunk {
-    private final Chunk                chunk;
-    private final ChunkProgram.Slice[] slices = new ChunkProgram.Slice[RenderType.values().length];
-    private final int                  occlusionQueryId;
+    public static final int FULL_VISIBILITY = (1 << Direction.values().length) - 1;
+
+    private final Chunk   chunk;
+    private final Slice[] slices = new Slice[RenderType.values().length];
+    private final int     occlusionQueryId;
 
     private volatile boolean valid = true, dirty;
     private HullSet hullSet = new HullSet();
@@ -29,7 +31,10 @@ public class RenderChunk {
         RenderType[] renderTypes = RenderType.values();
         for (int i = 0; i < renderTypes.length; i++) {
             RenderType renderType = renderTypes[i];
-            slices[i] = new ChunkProgram.Slice(chunk.getPosition(), renderType);
+            slices[i] = switch (renderType) {
+                case OPAQUE -> new OpaqueSlice(renderType);
+                case TRANSPARENT -> new TransparentSlice(chunk.getWorldPosition(), renderType);
+            };
         }
 
         final WorldRenderer worldRenderer = Main.INSTANCE.getRenderer().getWorldRenderer();
@@ -39,6 +44,34 @@ public class RenderChunk {
                 () -> setOccluded(Main.INSTANCE.getRenderer().getFrame())
         );
         occlusionQueryId = worldRenderer.getOcclusionRenderer().getQueries().add(query);
+    }
+
+    public static int directionCull(Vec3f cameraPosition, Vec3i chunkWorldPosition) {
+        final int visibilityBitset;
+
+        /*
+        Direction culling (geometry partitioned by face direction)
+        TODO Unroll loop and replace dot product with comparison?
+        */
+
+        final Vec3i chunkCenter = chunkWorldPosition.add(Chunk.CENTER);
+        final Direction[] directions = Direction.values();
+
+        //Calculate visibility bitset
+        int bitset = 0;
+        for (int i = 0; i < directions.length; i++) {
+
+            final var direction = directions[i];
+            final var planePos = chunkCenter.subtract(direction.getAxis().scale(Chunk.WIDTH >> 1));
+            final var planeToCam = cameraPosition.subtract(planePos);
+
+            if (planeToCam.dot(direction.getAxis()) > 0f) {
+                bitset |= (1 << i);
+            }
+        }
+
+        visibilityBitset = bitset;
+        return visibilityBitset;
     }
 
     public synchronized void build() {
@@ -52,23 +85,23 @@ public class RenderChunk {
             final Block block = voxel.getBlock();
             if (block == Block.AIR) continue;
 
-            final ChunkProgram.Slice slice = slices[block.getRenderType().ordinal()];
+            final Slice slice = slices[block.getRenderType().ordinal()];
 
             for (Direction direction : Direction.values()) {
                 final Voxel neighbor = voxel.getNeighbor(direction);
-                if (neighbor == null || !neighbor.isOpaque()) {
+                if (neighbor == null || (!neighbor.isOpaque() && block != neighbor.getBlock())) {
 
                     Vec2i texture = block.getTexture(direction);
                     Vec3i light = neighbor == null ? new Vec3i() : neighbor.chunk().getLightStorage().getLight(neighbor.position());
 
                     synchronized (slice) {
-                        slice.queue.add(new ChunkProgram.Slice.QueuedQuad(direction, Chunk.toChunkSpace(voxel.position()), texture, light));
+                        slice.queue(new OpaqueSlice.QueuedQuad(direction, Chunk.toChunkSpace(voxel.position()), texture, light));
                     }
                 }
             }
         }
 
-        for (ChunkProgram.Slice s : slices) {
+        for (Slice s : slices) {
             s.build();
         }
 
@@ -78,34 +111,41 @@ public class RenderChunk {
     public void upload() {
         assert valid;
 
-        for (ChunkProgram.Slice slice : slices) {
+        for (Slice slice : slices) {
             slice.upload();
         }
     }
 
-    public void render(RenderType renderType, Vec3f cameraPosition) {
+    public void render(RenderType renderType, int visibility) {
         assert valid;
 
-        slices[renderType.ordinal()].render(cameraPosition);
+        slices[renderType.ordinal()].render(visibility);
     }
 
-    public void renderShadow(RenderType renderType, int visibilityBitset) {
+    public void renderShadow(RenderType renderType, int visibility) {
         assert valid;
 
-        slices[renderType.ordinal()].renderShadow(visibilityBitset);
+        slices[renderType.ordinal()].renderShadow(visibility);
     }
 
     public void delete() {
+        assert valid;
+
         valid = false;
-        for (ChunkProgram.Slice slice : slices) {
-            slice.vertexArray.delete();
-            slice.instanceBuffer.delete();
+        for (Slice slice : slices) {
+            slice.delete();
         }
         Main.INSTANCE.getRenderer().getWorldRenderer().getOcclusionRenderer().getQueries().remove(occlusionQueryId);
     }
 
+    public void sortTransparent() {
+        assert valid;
+
+        ((TransparentSlice) slices[RenderType.TRANSPARENT.ordinal()]).sort();
+    }
+
     public int getQuadCount() {
-        return Arrays.stream(slices).filter(Objects::nonNull).mapToInt(ChunkProgram.Slice::getQuadCount).sum(); //TODO Remove filter with transparency
+        return Arrays.stream(slices).filter(Objects::nonNull).mapToInt(Slice::getQuadCount).sum(); //TODO Remove filter with transparency
     }
 
     public Chunk getChunk() {

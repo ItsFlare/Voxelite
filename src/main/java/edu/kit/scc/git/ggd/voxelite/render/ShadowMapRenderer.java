@@ -150,7 +150,7 @@ public class ShadowMapRenderer {
         OpenGL.colorMask(false);
         OpenGL.blend(false);
 
-        final int visibilityBitset = ChunkProgram.Slice.directionCull(lightDirection.scale(-1000), new Vec3i(0));
+        final int visibility = RenderChunk.directionCull(lightDirection.scale(-1000), new Vec3i(0));
 
         OpenGL.use(PROGRAM, fbo, texture, () -> {
             final var renderChunks = Main.INSTANCE.getRenderer().getWorldRenderer().getRenderChunks().toArray(RenderChunk[]::new);
@@ -166,7 +166,7 @@ public class ShadowMapRenderer {
 
                 if (frustumCull) {
                     //TODO Replace with OBB?
-                    final Frustum frustum = new Frustum(Main.INSTANCE.getRenderer().getCamera().getPosition().add(lightDirection.scale(-1000)), lightTransform);
+                    final Frustum frustum = new Frustum(Main.INSTANCE.getRenderer().getCamera().getPosition(), lightTransform);
 
                     for (int i = 0; i < renderChunks.length; i++) {
                         RenderChunk renderChunk = renderChunks[i];
@@ -184,7 +184,7 @@ public class ShadowMapRenderer {
                     if (renderChunk == null) continue;
 
                     PROGRAM.chunk.set(Chunk.toWorldPosition(renderChunk.getChunk().getPosition()));
-                    renderChunk.renderShadow(RenderType.OPAQUE, visibilityBitset);
+                    renderChunk.renderShadow(RenderType.OPAQUE, visibility);
                 }
             }
         });

@@ -13,6 +13,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.*;
 import java.util.*;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.IntSupplier;
@@ -123,6 +124,17 @@ public class Util {
         final T t = constructor.apply(supplier.getAsInt());
         consumer.accept(t);
         return t;
+    }
+
+    public static void debug(Runnable runnable) {
+        debug(() -> {
+            runnable.run();
+            return true;
+        });
+    }
+
+    public static void debug(BooleanSupplier supplier) {
+        assert supplier.getAsBoolean();
     }
 
     public static Iterable<Vec3i> cuboid(Vec3i a, Vec3i b) {
