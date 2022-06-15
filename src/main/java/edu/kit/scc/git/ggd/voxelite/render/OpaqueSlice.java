@@ -1,6 +1,7 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
+import edu.kit.scc.git.ggd.voxelite.util.Tuple;
 import net.durchholz.beacon.data.IntVector;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.buffers.VBO;
@@ -18,15 +19,13 @@ public class OpaqueSlice extends Slice {
 
     private static final OpaqueChunkProgram PROGRAM = (OpaqueChunkProgram) RenderType.OPAQUE.getProgram();
 
-    protected final Command[]                                   commands = new Command[1 << Direction.values().length];
-    protected       OpenGL.DrawMultiArraysIndirectCommand[][] nextCommands;
+    protected final VBO commandBuffer = new VBO();
+
+    protected Command[]               commands = new Command[1 << Direction.values().length];
+    protected Tuple<int[], Command[]> nextCommands;
 
     public OpaqueSlice(RenderType renderType) {
         super(renderType);
-
-        for (int i = 0; i < commands.length; i++) {
-            commands[i] = new Command(new VBO(), 0);
-        }
 
         OpenGL.use(vertexArray, () -> {
             ChunkProgram.QUAD_VB.use(() -> {
@@ -77,13 +76,8 @@ public class OpaqueSlice extends Slice {
         super.upload();
         if (this.nextCommands == null) return;
 
-        for (int i = 0; i < nextCommands.length; i++) {
-            final var directionCommands = nextCommands[i];
-            final var vbo = this.commands[i].buffer();
-
-            vbo.use(() -> vbo.data(OpenGL.Usage.DYNAMIC_DRAW, IntVector.merge(directionCommands))); //TODO Merge in build
-            this.commands[i] = new Command(vbo, directionCommands.length);
-        }
+        commandBuffer.use(() -> commandBuffer.data(OpenGL.Usage.STREAM_DRAW, nextCommands.a()));
+        commands = nextCommands.b();
 
         this.nextCommands = null;
     }
@@ -91,13 +85,11 @@ public class OpaqueSlice extends Slice {
     @Override
     public void delete() {
         super.delete();
-        for (Command command : commands) {
-            command.buffer().delete();
-        }
+        commandBuffer.delete();
     }
 
-    private OpenGL.DrawMultiArraysIndirectCommand[][] generateCommands() {
-        OpenGL.DrawMultiArraysIndirectCommand[][] cmds = new OpenGL.DrawMultiArraysIndirectCommand[commands.length][];
+    private Tuple<int[], Command[]> generateCommands() {
+        Command[] cmds = new Command[1 << Direction.values().length];
 
         //Calculate partition sizes
         int[] directionCounts = new int[Direction.values().length];
@@ -106,27 +98,27 @@ public class OpaqueSlice extends Slice {
         }
 
         //For all bitset permutations, precompute command data arrays
+        final List<OpenGL.DrawMultiArraysIndirectCommand> commandList = new ArrayList<>(Direction.values().length);
         for (int i = 0; i < cmds.length; i++) {
-            final List<OpenGL.DrawMultiArraysIndirectCommand> dataList = new ArrayList<>(Direction.values().length);
+            int commandOffset = commandList.size();
 
-            int offset = 0;
+            int quadOffset = 0;
             for (int dir = 0; dir < Direction.values().length; dir++) {
                 int directionQuadCount = directionCounts[dir];
                 if (directionQuadCount == 0) continue;
 
                 //IF visible
                 if ((i & (1 << dir)) != 0) {
-                    dataList.add(new OpenGL.DrawMultiArraysIndirectCommand(4, directionQuadCount, 4 * dir, offset));
+                    commandList.add(new OpenGL.DrawMultiArraysIndirectCommand(4, directionQuadCount, 4 * dir, quadOffset));
                 }
 
-                offset += directionQuadCount;
+                quadOffset += directionQuadCount;
             }
 
-            final OpenGL.DrawMultiArraysIndirectCommand[] directionCommands = dataList.toArray(OpenGL.DrawMultiArraysIndirectCommand[]::new);
-            cmds[i] = directionCommands;
+            cmds[i] = new Command(commandList.size() - commandOffset, commandOffset);
         }
 
-        return cmds;
+        return new Tuple<>(IntVector.merge(commandList.toArray(OpenGL.DrawMultiArraysIndirectCommand[]::new)), cmds);
     }
 
     @Override
@@ -137,8 +129,8 @@ public class OpaqueSlice extends Slice {
         final var cmd = commands[visibility];
         if (cmd.commands() == 0) return;
 
-        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, cmd.buffer().id());
-        va.use(() -> OpenGL.drawMultiArraysIndirect(OpenGL.Mode.TRIANGLE_STRIP, cmd.commands(), 0));
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, commandBuffer.id());
+        va.use(() -> OpenGL.drawMultiArraysIndirect(OpenGL.Mode.TRIANGLE_STRIP, cmd.commands(), cmd.offset()));
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
     }
 }

@@ -6,7 +6,6 @@ import net.durchholz.beacon.math.Vec2i;
 import net.durchholz.beacon.math.Vec3i;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.buffers.BufferLayout;
-import net.durchholz.beacon.render.opengl.buffers.VBO;
 import net.durchholz.beacon.render.opengl.buffers.VertexArray;
 import net.durchholz.beacon.render.opengl.buffers.VertexBuffer;
 
@@ -129,5 +128,5 @@ public abstract class Slice {
 
     record QueuedQuad(Direction direction, Vec3i position, Vec2i texture, Vec3i light) {}
 
-    record Command(VBO buffer, int commands) {}
+    record Command(int commands, int offset) {}
 }
