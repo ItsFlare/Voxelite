@@ -7,7 +7,7 @@ in uint[] Light;
 
 out vec2 Tex;
 out vec3 Pos;
-flat out vec3 Normal;
+flat out ivec3 Normal;
 out vec4 BlockLight;
 out vec3 LightSpacePos;
 
@@ -41,12 +41,12 @@ void main() {
     BlockLight = vec4(light >> 20, (light >> 10) & uint(0x3ff), light & uint(0x3ff), 0) / maxLightValue;
     Normal = normals[d];
 
-    vec3 blockPos = vec3(chunk) + vec3(x, y, z);
+    ivec3 blockPos = chunk + ivec3(x, y, z);
     for(int i = 0; i < 4; i++) {
-        vec3 vp = blockPos + vertices[(4 * d) + i];
+        ivec3 vp = blockPos + vertices[(4 * d) + i];
         gl_Position = mvp * vec4(vp, 1);
         Tex = vec2(ivec2(u, v) + texCoords[4 * d + i]) * normalizedSpriteSize;
-        Pos = vp;
+        Pos = vec3(vp);
         LightSpacePos = (lightView * vec4(vp, 1)).xyz;
         EmitVertex();
     }

@@ -1,7 +1,7 @@
 #version 410
 in vec2 Tex;
 in vec3 Pos;
-flat in vec3 Normal;
+flat in ivec3 Normal;
 in vec4 BlockLight;
 in vec3 LightSpacePos;
 

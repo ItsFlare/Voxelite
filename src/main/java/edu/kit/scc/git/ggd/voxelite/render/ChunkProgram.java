@@ -13,23 +13,21 @@ import net.durchholz.beacon.render.opengl.shader.Uniform;
 
 public class ChunkProgram extends Program {
 
-    public static final VertexBuffer<QuadVertex> QUAD_VB      = new VertexBuffer<>(QuadVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
-    public static final IBO                      QUAD_IBO     = new IBO();
-    private static final short[]                  QUAD_INDICES = {0, 3, 1, 2};
+    public static final QuadVertex[] QUAD_VERTICES = new QuadVertex[Direction.values().length * 4];
+    public static final VertexBuffer<QuadVertex> QUAD_VB = new VertexBuffer<>(QuadVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
 
     static {
-        QuadVertex[] quadVertices = new QuadVertex[Direction.values().length * 4];
         for (int i = 0; i < Direction.values().length; i++) {
-            Direction direction = Direction.values()[i];
-            Vec3f normal = new Vec3f(direction.getAxis());
-            quadVertices[i * 4 + 0] = new QuadVertex(new Vec3f(direction.getUnitQuad().v0()), new Vec2i(0, 0), normal);
-            quadVertices[i * 4 + 1] = new QuadVertex(new Vec3f(direction.getUnitQuad().v1()), new Vec2i(0, 1), normal);
-            quadVertices[i * 4 + 2] = new QuadVertex(new Vec3f(direction.getUnitQuad().v2()), new Vec2i(1, 1), normal);
-            quadVertices[i * 4 + 3] = new QuadVertex(new Vec3f(direction.getUnitQuad().v3()), new Vec2i(1, 0), normal);
+            final Direction direction = Direction.values()[i];
+            final Vec3i normal = direction.getAxis();
+
+            QUAD_VERTICES[i * 4 + 0] = new QuadVertex(direction.getUnitQuad().v0(), new Vec2i(0, 0), normal);
+            QUAD_VERTICES[i * 4 + 1] = new QuadVertex(direction.getUnitQuad().v1(), new Vec2i(1, 0), normal);
+            QUAD_VERTICES[i * 4 + 2] = new QuadVertex(direction.getUnitQuad().v2(), new Vec2i(0, 1), normal);
+            QUAD_VERTICES[i * 4 + 3] = new QuadVertex(direction.getUnitQuad().v3(), new Vec2i(1, 1), normal);
         }
 
-        QUAD_VB.use(() -> QUAD_VB.data(quadVertices));
-        QUAD_IBO.use(() -> QUAD_IBO.data(OpenGL.Usage.STATIC_DRAW, QUAD_INDICES));
+        QUAD_VB.use(() -> QUAD_VB.data(QUAD_VERTICES));
     }
 
     public ChunkProgram(Shader... shaders) {
@@ -37,8 +35,8 @@ public class ChunkProgram extends Program {
     }
 
 
-    public final Attribute<Integer> data     = attribute("data", OpenGL.Type.INT, 1);
-    public final Attribute<Integer> light    = attribute("light", OpenGL.Type.INT, 1);
+    public final Attribute<Integer> data  = attribute("data", OpenGL.Type.INT, 1);
+    public final Attribute<Integer> light = attribute("light", OpenGL.Type.INT, 1);
 
     public final Uniform<Matrix4f> mvp                  = uniMatrix4f("mvp", true);
     public final Uniform<Vec3i>    chunk                = uniVec3i("chunk");
@@ -62,11 +60,11 @@ public class ChunkProgram extends Program {
     public final Uniform<Integer>  cascadeDebug         = uniInteger("cascadeDebug");
     public final Uniform<Integer>  kernel               = uniInteger("kernel");
 
-    public record QuadVertex(Vec3f position, Vec2i texture, Vec3f normal) implements Vertex {
+    public record QuadVertex(Vec3i position, Vec2i texture, Vec3i normal) implements Vertex {
         public static final VertexLayout<QuadVertex> LAYOUT   = new VertexLayout<>(QuadVertex.class);
-        public static final VertexAttribute<Vec3f>   POSITION = LAYOUT.vec3f(false);
+        public static final VertexAttribute<Vec3i>   POSITION = LAYOUT.vec3i(false);
         public static final VertexAttribute<Vec2i>   TEXTURE  = LAYOUT.vec2i(false);
-        public static final VertexAttribute<Vec3f>   NORMAL   = LAYOUT.vec3f(false);
+        public static final VertexAttribute<Vec3i>   NORMAL   = LAYOUT.vec3i(false);
 
         @Override
         public VertexLayout<QuadVertex> getLayout() {

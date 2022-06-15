@@ -1,6 +1,6 @@
 #version 410
 
-in vec3 pos;
+in ivec3 pos;
 in uint data;
 
 uniform mat4 mvp;
@@ -11,6 +11,6 @@ void main() {
     uint y = (data >> 22) & uint(0x1f);
     uint z = (data >> 17) & uint(0x1f);
 
-    vec3 vp = vec3(chunk) + pos + vec3(x, y, z);
+    ivec3 vp = chunk + pos + ivec3(x, y, z);
     gl_Position = mvp * vec4(vp, 1);
 }

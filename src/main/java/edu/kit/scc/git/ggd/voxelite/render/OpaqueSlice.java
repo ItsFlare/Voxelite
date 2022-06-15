@@ -10,11 +10,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-import static org.lwjgl.opengl.GL11.GL_TRIANGLE_STRIP;
-import static org.lwjgl.opengl.GL11.GL_UNSIGNED_SHORT;
 import static org.lwjgl.opengl.GL15.glBindBuffer;
 import static org.lwjgl.opengl.GL40.GL_DRAW_INDIRECT_BUFFER;
-import static org.lwjgl.opengl.GL43.glMultiDrawElementsIndirect;
 
 //TODO Subclass per RenderType?
 public class OpaqueSlice extends Slice {
@@ -22,7 +19,7 @@ public class OpaqueSlice extends Slice {
     private static final OpaqueChunkProgram PROGRAM = (OpaqueChunkProgram) RenderType.OPAQUE.getProgram();
 
     protected final Command[]                                   commands = new Command[1 << Direction.values().length];
-    protected       OpenGL.DrawMultiElementsIndirectCommand[][] nextCommands;
+    protected       OpenGL.DrawMultiArraysIndirectCommand[][] nextCommands;
 
     public OpaqueSlice(RenderType renderType) {
         super(renderType);
@@ -31,7 +28,7 @@ public class OpaqueSlice extends Slice {
             commands[i] = new Command(new VBO(), 0);
         }
 
-        OpenGL.use(vertexArray, ChunkProgram.QUAD_IBO, () -> {
+        OpenGL.use(vertexArray, () -> {
             ChunkProgram.QUAD_VB.use(() -> {
                 vertexArray.set(PROGRAM.position, ChunkProgram.QuadVertex.POSITION, ChunkProgram.QUAD_VB, 0);
                 vertexArray.set(PROGRAM.texture, ChunkProgram.QuadVertex.TEXTURE, ChunkProgram.QUAD_VB, 0);
@@ -48,7 +45,7 @@ public class OpaqueSlice extends Slice {
         });
 
         var shadowProgram = ShadowMapRenderer.PROGRAM;
-        OpenGL.use(shadowVertexArray, ChunkProgram.QUAD_IBO, () -> {
+        OpenGL.use(shadowVertexArray, () -> {
             ChunkProgram.QUAD_VB.use(() -> {
                 shadowVertexArray.set(shadowProgram.position, ChunkProgram.QuadVertex.POSITION, ChunkProgram.QUAD_VB, 0);
             });
@@ -99,8 +96,8 @@ public class OpaqueSlice extends Slice {
         }
     }
 
-    private OpenGL.DrawMultiElementsIndirectCommand[][] generateCommands() {
-        OpenGL.DrawMultiElementsIndirectCommand[][] cmds = new OpenGL.DrawMultiElementsIndirectCommand[commands.length][];
+    private OpenGL.DrawMultiArraysIndirectCommand[][] generateCommands() {
+        OpenGL.DrawMultiArraysIndirectCommand[][] cmds = new OpenGL.DrawMultiArraysIndirectCommand[commands.length][];
 
         //Calculate partition sizes
         int[] directionCounts = new int[Direction.values().length];
@@ -110,7 +107,7 @@ public class OpaqueSlice extends Slice {
 
         //For all bitset permutations, precompute command data arrays
         for (int i = 0; i < cmds.length; i++) {
-            final List<OpenGL.DrawMultiElementsIndirectCommand> dataList = new ArrayList<>(Direction.values().length);
+            final List<OpenGL.DrawMultiArraysIndirectCommand> dataList = new ArrayList<>(Direction.values().length);
 
             int offset = 0;
             for (int dir = 0; dir < Direction.values().length; dir++) {
@@ -119,13 +116,13 @@ public class OpaqueSlice extends Slice {
 
                 //IF visible
                 if ((i & (1 << dir)) != 0) {
-                    dataList.add(new OpenGL.DrawMultiElementsIndirectCommand(4, directionQuadCount, 0, 4 * dir, offset));
+                    dataList.add(new OpenGL.DrawMultiArraysIndirectCommand(4, directionQuadCount, 4 * dir, offset));
                 }
 
                 offset += directionQuadCount;
             }
 
-            final OpenGL.DrawMultiElementsIndirectCommand[] directionCommands = dataList.toArray(OpenGL.DrawMultiElementsIndirectCommand[]::new);
+            final OpenGL.DrawMultiArraysIndirectCommand[] directionCommands = dataList.toArray(OpenGL.DrawMultiArraysIndirectCommand[]::new);
             cmds[i] = directionCommands;
         }
 
@@ -141,7 +138,7 @@ public class OpaqueSlice extends Slice {
         if (cmd.commands() == 0) return;
 
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, cmd.buffer().id());
-        va.use(() -> glMultiDrawElementsIndirect(GL_TRIANGLE_STRIP, GL_UNSIGNED_SHORT, 0L, cmd.commands(), OpenGL.DrawMultiElementsIndirectCommand.STRIDE));
+        va.use(() -> OpenGL.drawMultiArraysIndirect(OpenGL.Mode.TRIANGLE_STRIP, cmd.commands(), 0));
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
     }
 }

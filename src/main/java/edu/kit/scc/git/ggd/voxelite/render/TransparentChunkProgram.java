@@ -6,6 +6,8 @@ import net.durchholz.beacon.math.Vec3i;
 import net.durchholz.beacon.render.opengl.shader.Shader;
 import net.durchholz.beacon.render.opengl.shader.Uniform;
 
+import java.util.Arrays;
+
 import static org.lwjgl.opengl.GL43.*;
 
 public class TransparentChunkProgram extends ChunkProgram {
@@ -18,30 +20,10 @@ public class TransparentChunkProgram extends ChunkProgram {
     public TransparentChunkProgram(Shader... shaders) {
         super(shaders);
 
-        Vec3i[] n = new Vec3i[6];
-        Vec3i[] v = new Vec3i[6 * 4];
-        Vec2i[] t = new Vec2i[6 * 4];
-
-        Direction[] values = Direction.values();
-        for (int i = 0; i < values.length; i++) {
-            Direction direction = values[i];
-            n[i] = direction.getAxis();
-
-            v[i * 4 + 0] = direction.getUnitQuad().v0();
-            v[i * 4 + 1] = direction.getUnitQuad().v3();
-            v[i * 4 + 2] = direction.getUnitQuad().v1();
-            v[i * 4 + 3] = direction.getUnitQuad().v2();
-
-            t[i * 4 + 0] = new Vec2i(0, 0);
-            t[i * 4 + 1] = new Vec2i(1, 0);
-            t[i * 4 + 2] = new Vec2i(0, 1);
-            t[i * 4 + 3] = new Vec2i(1, 1);
-        }
-
         use(() -> {
-            normals.set(n);
-            vertices.set(v);
-            texCoords.set(t);
+            normals.set(Arrays.stream(Direction.values()).map(Direction::getAxis).toArray(Vec3i[]::new));
+            vertices.set(Arrays.stream(QUAD_VERTICES).map(QuadVertex::position).toArray(Vec3i[]::new));
+            texCoords.set(Arrays.stream(QUAD_VERTICES).map(QuadVertex::texture).toArray(Vec2i[]::new));
             visibility.set(RenderChunk.FULL_VISIBILITY);
         });
     }
