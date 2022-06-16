@@ -128,5 +128,7 @@ public abstract class Slice {
 
     record QueuedQuad(Direction direction, Vec3i position, Vec2i texture, Vec3i light) {}
 
+    record UploadedQuad(Direction direction, Vec3i position) {}
+
     record Command(int commands, int offset) {}
 }

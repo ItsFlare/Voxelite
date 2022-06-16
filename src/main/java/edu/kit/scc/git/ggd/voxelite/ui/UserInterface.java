@@ -59,10 +59,12 @@ public class UserInterface {
             var vsync = new CheckboxElement("VSync", true, value -> Window.swapInterval(value ? 1 : 0));
             var wireframe = new CheckboxElement("Wireframe", false, value -> Main.INSTANCE.getRenderer().wireframe = value);
             var transparentSort = new CheckboxElement("Transparent sort", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().transparentSort = value);
+            var frustumDebug = new CheckboxElement("Debug Frustum", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().debugFrustum = value);
+            var frustumCapture = new CheckboxElement("Capture Frustum", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().captureFrustum = value);
             var ticksPerDay = new IntSliderElement("Day Length", 2000, 200, 20000, value -> Main.ticksPerDay = value);
 
 
-            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe, ImGui::sameLine, transparentSort,
+            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe, ImGui::sameLine, transparentSort, frustumDebug, frustumCapture,
                     ticksPerDay
             );
         }
@@ -162,11 +164,12 @@ public class UserInterface {
                     g.getPasses().get(0).setAmplitude(value);
                 }
             });
+            var sortRate = new IntSliderElement("Sort rate", 8, 0, 64, value -> Main.INSTANCE.getRenderer().getWorldRenderer().sortRate = value);
             var buildRate = new IntSliderElement("Upload rate", 8, 0, 64, value -> Main.INSTANCE.getRenderer().getWorldRenderer().uploadRate = value);
             var uploadRate = new IntSliderElement("Build rate", 8, 0, 64, value -> Main.INSTANCE.getWorld().buildRate = value);
             var rebuild = new ButtonElement("Force rebuild", () -> Main.INSTANCE.getRenderer().getWorldRenderer().queueAll());
             var regenerate = new ButtonElement("Force regenerate", () -> Main.INSTANCE.getWorld().regenerate());
-            this.world = new Accordion("World", true, load, radius, frequency, amplitude, buildRate, uploadRate, rebuild, ImGui::sameLine, regenerate);
+            this.world = new Accordion("World", true, load, radius, frequency, amplitude, buildRate, uploadRate, sortRate, rebuild, ImGui::sameLine, regenerate);
         }
 
         {

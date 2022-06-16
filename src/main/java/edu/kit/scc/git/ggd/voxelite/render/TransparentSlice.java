@@ -1,26 +1,37 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
+import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
+import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 import net.durchholz.beacon.render.opengl.OpenGL;
+import net.durchholz.beacon.render.opengl.buffers.IBO;
 import net.durchholz.beacon.render.opengl.buffers.VertexArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.Comparator;
-import java.util.List;
+import java.util.stream.IntStream;
+
+import static edu.kit.scc.git.ggd.voxelite.util.Util.debug;
 
 public class TransparentSlice extends Slice {
 
     private static final TransparentChunkProgram PROGRAM = (TransparentChunkProgram) RenderType.TRANSPARENT.getProgram();
+    private static final Logger                  LOGGER  = LoggerFactory.getLogger(TransparentSlice.class);
+
     private final Vec3i worldPosition;
-    private QueuedQuad[] quads;
+    private final IBO   ibo = new IBO();
+
+    private UploadedQuad[] quads;
+    private long           lastSortTick;
 
     public TransparentSlice(Vec3i worldPosition, RenderType renderType) {
         super(renderType);
         this.worldPosition = worldPosition;
 
-        OpenGL.use(vertexArray, () -> {
+        OpenGL.use(vertexArray, ibo, () -> {
             instanceBuffer.use(() -> {
                 vertexArray.set(PROGRAM.data, ChunkProgram.InstanceVertex.DATA, instanceBuffer, 0);
             });
@@ -31,7 +42,7 @@ public class TransparentSlice extends Slice {
         });
 
         var shadowProgram = ShadowMapRenderer.PROGRAM;
-        OpenGL.use(shadowVertexArray, () -> {
+        OpenGL.use(shadowVertexArray, ibo, () -> {
             instanceBuffer.use(() -> {
                 shadowVertexArray.set(shadowProgram.data, ChunkProgram.InstanceVertex.DATA, instanceBuffer, 0);
             });
@@ -45,49 +56,62 @@ public class TransparentSlice extends Slice {
             return;
         }
 
-        quads = queue.toArray(QueuedQuad[]::new);
+        var relative = Main.INSTANCE.getRenderer().getCamera().getPosition().subtract(worldPosition);
 
-        var queuedQuads = sortQuads();
+        var sorted = queue.stream()
+                .sorted(Comparator.comparingDouble(value -> inverseDistance(value.position(), value.direction(), relative)))
+                .toList();
 
-        this.nextVertices = toInstanceVertices(queuedQuads);
-        this.nextLightVertices = toLightVertices(queuedQuads);
+        quads = sorted.stream().map(queuedQuad -> new UploadedQuad(queuedQuad.direction(), queuedQuad.position())).toArray(UploadedQuad[]::new);
+
+        this.nextVertices = toInstanceVertices(sorted);
+        this.nextLightVertices = toLightVertices(sorted);
 
         queue.clear();
     }
 
     @Override
+    public synchronized void upload() {
+        super.upload();
+
+        ibo.use(() -> ibo.data(OpenGL.Usage.STREAM_DRAW, IntStream.range(0, quadCount).toArray()));
+    }
+
+    @Override
     public void render(VertexArray va, int visibility) {
-        if(quadCount == 0) return;
+        if (quadCount == 0) return;
 
         PROGRAM.visibility.set(visibility);
-        va.use(() -> {
-            OpenGL.drawArrays(OpenGL.Mode.POINTS, 0, quadCount);
-        });
+        va.use(() -> OpenGL.drawIndexed(OpenGL.Mode.POINTS, quadCount, OpenGL.Type.UNSIGNED_INT));
     }
 
-    public synchronized void sort() { //TODO Optimize
+    public synchronized void sort() {
+        debug(() -> LOGGER.trace("Sorting (d=%.0f t=%d q=%d)".formatted(
+                Chunk.toBlockPosition(Main.INSTANCE.getRenderer().getCamera().getPosition()).subtract(worldPosition.add(8)).magnitude(),
+                Main.INSTANCE.getTick() - lastSortTick,
+                quadCount)));
+
         if (quads == null) return;
+        if (quadCount != quads.length) return; //TODO Work around errors caused by race condition build -> sort -> upload
 
-        var queuedQuads = sortQuads();
+        var relative = Main.INSTANCE.getRenderer().getCamera().getPosition().subtract(worldPosition);
 
-        var v = toInstanceVertices(queuedQuads);
-        var l = toLightVertices(queuedQuads);
+        var indices = IntStream.range(0, quadCount).boxed().sorted(Comparator.comparingDouble(value -> {
+            var quad = quads[value];
+            return inverseDistance(quad.position(), quad.direction(), relative);
+        })).mapToInt(value -> value).toArray();
 
-        instanceBuffer.use(() -> {
-            instanceBuffer.data(v);
-        });
+        ibo.use(() -> ibo.data(OpenGL.Usage.STREAM_DRAW, indices));
 
-        lightBuffer.use(() -> {
-            lightBuffer.data(l);
-        });
+        //Be careful when writing to lastSortTick as it may break Comparators
+        lastSortTick = Main.INSTANCE.getTick();
     }
 
-    private List<QueuedQuad> sortQuads() {
-        var relative = Chunk.toBlockPosition(Main.INSTANCE.getRenderer().getCamera().getPosition()).subtract(worldPosition);
+    public long getLastSortTick() {
+        return lastSortTick;
+    }
 
-        return Arrays
-                .stream(quads)
-                .sorted(Comparator.comparingInt(value -> -value.position().subtract(relative).magnitudeSq()))
-                .toList();
+    private static double inverseDistance(Vec3i position, Direction direction, Vec3f relative) {
+        return -position.add(0.5f).add(direction.getAxis().scale(0.5f)).subtract(relative).magnitudeSq();
     }
 }

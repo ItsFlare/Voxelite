@@ -35,7 +35,7 @@ public class ShadowMapRenderer {
         this.resolution = resolution;
         this.cascades = cascades;
         this.c = new Cascade[cascades];
-        cullCounts = new int[this.cascades];
+        this.cullCounts = new int[this.cascades];
 
         OpenGL.use(fbo, texture, () -> {
             texture.allocate(resolution, resolution, cascades, GLTexture.BaseFormat.DEPTH_COMPONENT);
@@ -63,19 +63,17 @@ public class ShadowMapRenderer {
         texture.use(() -> texture.allocate(resolution, resolution, cascades, format));
     }
 
-    private Frustum[] split() {
+    public Frustum[] split(Camera camera) {
         record Range(float near, float far) {}
 
         final Frustum[] f = new Frustum[cascades];
         final Range[] r = new Range[cascades];
-        final Camera camera = Main.INSTANCE.getRenderer().getCamera();
-        Matrix4f view = camera.view(true, true);
-        Matrix4f cameraProjection = camera.projection();
+        final Matrix4f view = camera.view(true, true);
+        final Matrix4f cameraProjection = camera.projection();
 
-
-        float far = Camera.FAR_PLANE;
-        float near = Camera.NEAR_PLANE;
-        float ratio = far / near;
+        final float far = camera.getFar();
+        final float near = camera.getNear();
+        final float ratio = far / near;
 
         r[0] = new Range(near, 0);
         for (int i = 1; i < cascades; i++) {
@@ -91,7 +89,7 @@ public class ShadowMapRenderer {
 
             Matrix4f projection = Matrix4f.perspective(camera.getFOV(), Main.INSTANCE.getWindow().getViewport().aspectRatio(), range.near, range.far);
             projection.multiply(view);
-            f[i] = new Frustum(camera.getPosition(), projection);
+            f[i] = new Frustum(projection);
         }
 
         return f;
@@ -110,7 +108,7 @@ public class ShadowMapRenderer {
 
     public Matrix4f lightProjection(int cascade, Vec3f lightDirection) {
         final Matrix4f view = lightView(lightDirection);
-        final var frustumCorners = split()[cascade].corners().clone();
+        final var frustumCorners = split(Main.INSTANCE.getRenderer().getCamera())[cascade].corners().clone();
 
         //Project frustum corners into light space
         for (int i = 0; i < frustumCorners.length; i++) {
@@ -165,8 +163,9 @@ public class ShadowMapRenderer {
                 PROGRAM.mvp.set(lightTransform);
 
                 if (frustumCull) {
+                    //TODO Fix some issue that overculls
                     //TODO Replace with OBB?
-                    final Frustum frustum = new Frustum(Main.INSTANCE.getRenderer().getCamera().getPosition(), lightTransform);
+                    final Frustum frustum = new Frustum(lightTransform);
 
                     for (int i = 0; i < renderChunks.length; i++) {
                         RenderChunk renderChunk = renderChunks[i];

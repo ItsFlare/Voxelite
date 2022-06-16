@@ -37,14 +37,21 @@ public class WorldRenderer {
     private final AsyncChunkBuilder          asyncChunkBuilder = new AsyncChunkBuilder(buildQueue, uploadQueue, ForkJoinPool.getCommonPoolParallelism() / 4 + 1);
     private final ShadowMapRenderer          shadowMapRenderer = new ShadowMapRenderer(SHADOW_MAP_SIZE, 4);
     private final OcclusionRenderer          occlusionRenderer = new OcclusionRenderer();
+    private final LineRenderer               lineRenderer      = new LineRenderer();
+
+    private RenderChunk[] lastSorted = new RenderChunk[0];
 
     public List<RenderChunk> renderList      = new ArrayList<>();
     public Vec4f             lightColor      = new Vec4f(1);
     public float             ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f;
-    public int phongExponent = 32, uploadRate = 5;
-    public boolean directionCull = true, backfaceCull = true, dotCull = true, frustumCull = true, caveCull = true, occlusionCull = true, shadows = true, shadowTransform = false, transparentSort = true;
+    public int phongExponent = 32, uploadRate = 5, sortRate = 5;
+    public boolean directionCull = true, backfaceCull = true, dotCull = true, frustumCull = true, caveCull = true, occlusionCull = true, shadows = true, shadowTransform = false, transparentSort = true, captureFrustum = false, debugFrustum = false;
     public int emptyCount, frustumCullCount, dotCullCount, caveCullCount, occlusionCullCount, totalCullCount;
     public int occlusionCullThreshold;
+
+    private Frustum   capturedFrustum;
+    private Frustum[] capturedShadowFrustums;
+    private Frustum[] capturedSplitFrustums;
 
     public WorldRenderer() {
         EventType.addListener(this);
@@ -98,16 +105,28 @@ public class WorldRenderer {
 
     public void render() {
         upload(uploadRate);
+        if (transparentSort) sort(sortRate);
 
         final Camera camera = Main.INSTANCE.getRenderer().getCamera();
         final Vec3f cameraPosition = camera.getPosition();
         final Vec3f cameraDirection = camera.getDirection();
 
         final Matrix4f mvp = camera.transform();
-        final Frustum frustum = new Frustum(camera.getPosition(), mvp);
+        final Frustum frustum = new Frustum(mvp);
 
         final Vec3f lightDirection = Main.INSTANCE.getWorld().getSunlightDirection();
         if (shadows) shadowMapRenderer.render(lightDirection);
+
+        if(!captureFrustum) {
+            capturedFrustum = frustum;
+            capturedShadowFrustums = new Frustum[shadowMapRenderer.cascades];
+
+            for (int i = 0; i < shadowMapRenderer.cascades; i++) {
+                capturedShadowFrustums[i] = new Frustum(shadowMapRenderer.lightTransform(i, lightDirection));
+            }
+
+            capturedSplitFrustums = shadowMapRenderer.split(camera);
+        }
 
         dotCullCount = 0;
         frustumCullCount = 0;
@@ -182,18 +201,58 @@ public class WorldRenderer {
                 program.cascadeTranslations.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::translation).toArray(Vec3f[]::new));
                 program.cascadeFar.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::far).toArray(Float[]::new));
 
+                if (renderType == RenderType.TRANSPARENT) {
+                    for (int i = frameRenderInfo.size() - 1; i >= 0; i--) {
+                        RenderInfo info = frameRenderInfo.get(i);
+                        final RenderChunk renderChunk = info.chunk();
+                        program.chunk.set(renderChunk.getChunk().getWorldPosition());
 
-                for (RenderInfo info : frameRenderInfo) {
-                    final RenderChunk renderChunk = info.chunk();
-                    if(renderType == RenderType.TRANSPARENT && transparentSort) renderChunk.sortTransparent();
-                    program.chunk.set(renderChunk.getChunk().getWorldPosition());
+                        renderChunk.render(renderType, info.visibility());
+                    }
+                } else {
+                    for (RenderInfo info : frameRenderInfo) {
+                        final RenderChunk renderChunk = info.chunk();
+                        program.chunk.set(renderChunk.getChunk().getWorldPosition());
 
-                    renderChunk.render(renderType, info.visibility());
+                        renderChunk.render(renderType, info.visibility());
+                    }
                 }
+
             });
         }
 
-        if(occlusionCull) occlusionRenderer.render(mvp);
+        if (occlusionCull) occlusionRenderer.render(mvp);
+
+        if(debugFrustum) {
+            final Matrix4f matrix;
+            if(shadowTransform) {
+                matrix = shadowMapRenderer.lightTransform(frustumNumber, lightDirection);
+            } else {
+                //Extend far plane to ensure lines are visible
+                var f = camera.getFar();
+                camera.setFar(10_000);
+                matrix = camera.transform();
+                camera.setFar(f);
+            }
+
+            //If red is visible the split is bad (split should draw over)
+            lineRenderer.render(matrix, new Vec4f(1, 0, 0, 1), capturedFrustum);
+
+            for (int i = 0; i < shadowMapRenderer.cascades; i++) {
+                final float ratio = (shadowMapRenderer.cascades - i) / (float) shadowMapRenderer.cascades;
+                final Vec4f color = new Vec4f(ratio, ratio, 1f, 1f);
+
+                lineRenderer.render(matrix, color, capturedShadowFrustums[i]);
+                lineRenderer.render(matrix, color, capturedSplitFrustums[i]);
+            }
+
+            final Chunk chunk = Main.INSTANCE.getWorld().getChunk(Chunk.toChunkPosition(cameraPosition));
+            if(chunk != null) lineRenderer.render(matrix, new Vec4f(0, 1, 0, 1), chunk.getBoundingBox());
+
+            for (RenderChunk renderChunk : lastSorted) {
+                lineRenderer.render(matrix, new Vec4f(1, 1, 0, 1), renderChunk.getChunk().getBoundingBox());
+            }
+        }
     }
 
     public record VisibilityNode(RenderChunk renderChunk, Direction source, int directions) {
@@ -335,6 +394,23 @@ public class WorldRenderer {
                 r.upload();
                 i++;
             }
+        }
+    }
+
+    private void sort(int limit) {
+        var cameraPosition = Chunk.toBlockPosition(Main.INSTANCE.getRenderer().getCamera().getPosition());
+        long tick = Main.INSTANCE.getTick();
+
+        lastSorted = renderList
+                .stream()
+                .parallel()
+                .filter(renderChunk -> renderChunk.transparentSlice().getQuadCount() > 0)
+                .sorted(Comparator.comparingDouble(r -> r.getChunk().getCenter().subtract(cameraPosition).magnitudeSq() / (float) (tick - r.transparentSlice().getLastSortTick() + 1)))
+                .limit(limit)
+                .toArray(RenderChunk[]::new);
+
+        for (RenderChunk renderChunk : lastSorted) {
+            renderChunk.transparentSlice().sort();
         }
     }
 
