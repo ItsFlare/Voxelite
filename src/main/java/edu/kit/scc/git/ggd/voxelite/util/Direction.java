@@ -5,13 +5,12 @@ import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 
 public enum Direction {
-                                                      //u.r                       //o.r                        // o.l                      //u.l
-    POS_X(new Vec3i(1, 0, 0),   new QuadMesh(new Vec3i(1, 0, 1), new Vec3i(1, 1, 1), new Vec3i(1, 1, 0), new Vec3i(1, 0, 0))),
-    NEG_X(new Vec3i(-1, 0, 0),  new QuadMesh(new Vec3i(0, 0, 0), new Vec3i(0, 1, 0), new Vec3i(0, 1, 1), new Vec3i(0, 0, 1))),
-    POS_Y(new Vec3i(0, 1, 0),   new QuadMesh(new Vec3i(0, 1, 1), new Vec3i(0, 1, 0), new Vec3i(1, 1, 0), new Vec3i(1, 1 ,1))),
-    NEG_Y(new Vec3i(0, -1, 0),  new QuadMesh(new Vec3i(1, 0, 1), new Vec3i(1, 0, 0), new Vec3i(0, 0, 0), new Vec3i(0, 0, 1))),
-    POS_Z(new Vec3i(0, 0, 1),   new QuadMesh(new Vec3i(0, 0, 1), new Vec3i(0, 1, 1), new Vec3i(1, 1, 1), new Vec3i(1, 0, 1))),
-    NEG_Z(new Vec3i(0, 0, -1),  new QuadMesh(new Vec3i(1, 0, 0), new Vec3i(1, 1, 0), new Vec3i(0, 1, 0), new Vec3i(0, 0, 0)));
+    POS_X(new Vec3i(1, 0, 0),   new QuadMesh(new Vec3i(1, 0, 1), new Vec3i(1, 0, 0), new Vec3i(1, 1, 1), new Vec3i(1, 1, 0))),
+    NEG_X(new Vec3i(-1, 0, 0),  new QuadMesh(new Vec3i(0, 0, 0), new Vec3i(0, 0, 1), new Vec3i(0, 1, 0), new Vec3i(0, 1, 1))),
+    POS_Y(new Vec3i(0, 1, 0),   new QuadMesh(new Vec3i(0, 1, 1), new Vec3i(1, 1 ,1), new Vec3i(0, 1, 0), new Vec3i(1, 1, 0))),
+    NEG_Y(new Vec3i(0, -1, 0),  new QuadMesh(new Vec3i(1, 0, 1), new Vec3i(0, 0, 1), new Vec3i(1, 0, 0), new Vec3i(0, 0, 0))),
+    POS_Z(new Vec3i(0, 0, 1),   new QuadMesh(new Vec3i(0, 0, 1), new Vec3i(1, 0, 1), new Vec3i(0, 1, 1), new Vec3i(1, 1, 1))),
+    NEG_Z(new Vec3i(0, 0, -1),  new QuadMesh(new Vec3i(1, 0, 0), new Vec3i(0, 0, 0), new Vec3i(1, 1, 0), new Vec3i(0, 1, 0)));
 
     private final Vec3i    axis;
     private final QuadMesh unitQuad;

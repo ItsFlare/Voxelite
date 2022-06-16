@@ -2,9 +2,7 @@ package edu.kit.scc.git.ggd.voxelite.ui;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.input.InputListener;
-import edu.kit.scc.git.ggd.voxelite.render.Camera;
-import edu.kit.scc.git.ggd.voxelite.render.ChunkProgram;
-import edu.kit.scc.git.ggd.voxelite.render.RenderChunk;
+import edu.kit.scc.git.ggd.voxelite.render.*;
 import edu.kit.scc.git.ggd.voxelite.util.LongRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.util.SuppliedLongRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.world.Block;
@@ -17,6 +15,7 @@ import imgui.glfw.ImGuiImplGlfw;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec4f;
 import net.durchholz.beacon.render.opengl.OpenGL;
+import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.window.Window;
 
 import java.util.Map;
@@ -28,7 +27,7 @@ public class UserInterface {
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private final ImGuiImplGl3  imGuiGl3  = new ImGuiImplGl3();
 
-    private final Accordion camera, world, render, cull, light, perf;
+    private final Accordion camera, world, render, shadow, cull, light, perf;
 
     private final LongRingBuffer loadQueueRingBuffer = new SuppliedLongRingBuffer(() -> Main.INSTANCE.getWorld().getLoadQueueSize());
     private final LongRingBuffer buildRingBuffer     = new SuppliedLongRingBuffer(() -> Main.INSTANCE.getRenderer().getWorldRenderer().getBuildQueueSize());
@@ -59,38 +58,106 @@ public class UserInterface {
             var world = new CheckboxElement("World", true, value -> Main.INSTANCE.getRenderer().renderWorld = value);
             var vsync = new CheckboxElement("VSync", true, value -> Window.swapInterval(value ? 1 : 0));
             var wireframe = new CheckboxElement("Wireframe", false, value -> Main.INSTANCE.getRenderer().wireframe = value);
+            var transparentSort = new CheckboxElement("Transparent sort", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().transparentSort = value);
             var ticksPerDay = new IntSliderElement("Day Length", 2000, 200, 20000, value -> Main.ticksPerDay = value);
 
 
-            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe,
+            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe, ImGui::sameLine, transparentSort,
                     ticksPerDay
             );
         }
 
         {
-            var directionCull = new CheckboxElement("Direction", true, value -> ChunkProgram.directionCulling = value);
-            var backfaceCull = new CheckboxElement("Backface", true, OpenGL::cull);
-            var caveCull = new CheckboxElement("Cave", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().caveCull = value);
-            var frustumCull = new CheckboxElement("Frustum", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().frustumCull = value);
-            var cullStats = new TextElement(() -> "Cave: %d (%.1f%%) | Empty: %d (%.1f%%) %nFrustum: %d (%.1f%%) | Total: %d (%.1f%%)".formatted(
-                    Main.INSTANCE.getRenderer().getWorldRenderer().caveCullCount, 100 * Main.INSTANCE.getRenderer().getWorldRenderer().caveCullCount / (float) Main.INSTANCE.getWorld().getChunks().size(),
-                    Main.INSTANCE.getRenderer().getWorldRenderer().emptyCount, 100 * Main.INSTANCE.getRenderer().getWorldRenderer().emptyCount / (float) Main.INSTANCE.getWorld().getChunks().size(),
-                    Main.INSTANCE.getRenderer().getWorldRenderer().frustumCullCount, 100 * Main.INSTANCE.getRenderer().getWorldRenderer().frustumCullCount / (float) Main.INSTANCE.getWorld().getChunks().size(),
-                    Main.INSTANCE.getRenderer().getWorldRenderer().totalCullCount, 100 * Main.INSTANCE.getRenderer().getWorldRenderer().totalCullCount / (float) Main.INSTANCE.getWorld().getChunks().size()
-            ));
+            var enabled = new CheckboxElement("Enabled", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().shadows = value);
+            var transform = new CheckboxElement("Transform", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().shadowTransform = value);
+            var frustumCull = new CheckboxElement("Frustum Cull", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().frustumCull = value);
+            var hardwareFilter = new CheckboxElement("Hardware PCF", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().hardwareFiltering(value));
+            var cascadeDebug = new CheckboxElement("Cascade Debug", false, value -> {
+                RenderType.OPAQUE.getProgram().use(() -> {
+                    RenderType.OPAQUE.getProgram().cascadeDebug.set(value ? 1 : 0);
+                });
+            });
+            var frustumCount = new IntSliderElement("Frustum Count", 4, 1, 4, value -> {
+                Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().cascades = value;
+                Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().allocate();
+            });
+            var frustumNumber = new IntSliderElement("Frustum Number", 0, 0, 3, value -> WorldRenderer.frustumNumber = value);
+            var kernel = new IntSliderElement("PCF Kernel", 2, 0, 10, value -> {
+                RenderType.OPAQUE.getProgram().use(() -> {
+                    RenderType.OPAQUE.getProgram().kernel.set(value);
+                });
+            });
+            var resolution = new IntSliderElement("Resolution Exponent", 12, 5, 16, value -> {
+                final ShadowMapRenderer shadowMapRenderer = Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer();
+                shadowMapRenderer.resolution = 1 << value;
+                shadowMapRenderer.allocate();
+            });
+            var precision = new DropdownElement<GLTexture.Format>("Precision Exponent",
+                    Map.of("Default", GLTexture.BaseFormat.DEPTH_COMPONENT,
+                            "16", GLTexture.SizedFormat.DEPTH_16,
+                            "24", GLTexture.SizedFormat.DEPTH_24,
+                            "32", GLTexture.SizedFormat.DEPTH_32,
+                            "32F", GLTexture.SizedFormat.DEPTH_32F),
+                    value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().depthFormat(value));
+            var cullStats = new TextElement(() -> {
+                final StringBuilder sb = new StringBuilder();
+                final float totalChunks = Main.INSTANCE.getRenderer().getWorldRenderer().getRenderChunks().size();
+                final ShadowMapRenderer shadowMapRenderer = Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer();
+                for (int c = 0; c < shadowMapRenderer.cascades; c++) {
+                    if(c > 0) sb.append(" | ");
+                    sb.append(c).append(": ").append(shadowMapRenderer.cullCounts[c]).append(" (").append("%.1f%%".formatted(100 * shadowMapRenderer.cullCounts[c] / totalChunks)).append(")");
+                }
+                return sb.toString();
+            });
+            var constantBias = new FloatSliderElement("Constant Bias", 0f, -1f, 1f, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().constantBias = value * 0.001f);
+            var splitCorrection = new FloatSliderElement("Split correction", 0.9f, 0, 1f, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().splitCorrection = value);
+            this.shadow = new Accordion("Shadow", true, enabled, ImGui::sameLine, transform, ImGui::sameLine, frustumCull, ImGui::sameLine, hardwareFilter, ImGui::sameLine, cascadeDebug,
+                    frustumCount,
+                    frustumNumber,
+                    kernel,
+                    resolution,
+                    precision,
+                    constantBias,
+                    splitCorrection,
+                    cullStats);
+        }
 
-            this.cull = new Accordion("Culling", false, directionCull, ImGui::sameLine, backfaceCull, ImGui::sameLine, caveCull, ImGui::sameLine, frustumCull, cullStats);
+        {
+            var caveCull = new CheckboxElement("Cave", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().caveCull = value);
+            var dotCull = new CheckboxElement("Dot", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().dotCull = value);
+            var frustumCull = new CheckboxElement("Frustum", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().frustumCull = value);
+            var occlusionCull = new CheckboxElement("Occlusion", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCull = value);
+            var directionCull = new CheckboxElement("Direction", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().directionCull = value);
+            var backfaceCull = new CheckboxElement("Backface", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().backfaceCull = value);
+            var occlusionCullThreshold = new IntSliderElement("Occlusion Threshold", 0, 0, (Chunk.VOLUME * 6) / 2, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCullThreshold = value);
+            var cullStats = new TextElement(() -> {
+                final float chunks = Main.INSTANCE.getWorld().getChunks().size();
+                final WorldRenderer renderer = Main.INSTANCE.getRenderer().getWorldRenderer();
+
+                return "Empty: %d (%.1f%%) | Cave: %d (%.1f%%) %nDot: %d (%.1f%%) | Frustum: %d (%.1f%%) %nOcclusion: %d (%.1f%%) | Total: %d (%.1f%%)".formatted(
+                        renderer.emptyCount, 100 * renderer.emptyCount / chunks,
+                        renderer.caveCullCount, 100 * renderer.caveCullCount / chunks,
+                        renderer.dotCullCount, 100 * renderer.dotCullCount / chunks,
+                        renderer.frustumCullCount, 100 * renderer.frustumCullCount / chunks,
+                        renderer.occlusionCullCount, 100 * renderer.occlusionCullCount / chunks,
+                        renderer.totalCullCount, 100 * renderer.totalCullCount / chunks
+                );
+            });
+
+            this.cull = new Accordion("Culling", false, caveCull, ImGui::sameLine, dotCull, ImGui::sameLine, frustumCull, ImGui::sameLine, occlusionCull, ImGui::sameLine, directionCull, ImGui::sameLine, backfaceCull,
+                    occlusionCullThreshold,
+                    cullStats);
         }
 
         {
             var load = new CheckboxElement("Update Area", true, value -> Main.INSTANCE.getWorld().setLoadChunks(value));
             var radius = new IntSliderElement("Chunk radius", 4, 0, 50, value -> Main.INSTANCE.getWorld().setChunkRadius(value));
-            var frequency = new FloatSliderElement("Frequency", 0.02f, 0, 0.1f, value -> {
+            var frequency = new FloatSliderElement("Frequency", 0.007f, 0, 0.1f, value -> {
                 if(Main.INSTANCE.getWorld().getGenerator() instanceof NaturalWorldGenerator g) {
                     g.getPasses().get(0).setFrequency(value);
                 }
             });
-            var amplitude = new IntSliderElement("Amplitude", 20, 0, 50, value -> {
+            var amplitude = new IntSliderElement("Amplitude", 30, 0, 50, value -> {
                 if(Main.INSTANCE.getWorld().getGenerator() instanceof NaturalWorldGenerator g) {
                     g.getPasses().get(0).setAmplitude(value);
                 }
@@ -184,6 +251,7 @@ public class UserInterface {
     }
 
     public void draw() {
+        OpenGL.colorMask(true);
         imGuiGlfw.newFrame();
         ImGui.newFrame();
         ImGui.begin("Settings");
@@ -191,6 +259,7 @@ public class UserInterface {
         drawProfiler();
         camera.draw();
         render.draw();
+        shadow.draw();
         cull.draw();
         world.draw();
         light.draw();

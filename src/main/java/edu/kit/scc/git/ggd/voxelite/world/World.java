@@ -6,12 +6,15 @@ import edu.kit.scc.git.ggd.voxelite.util.Util;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.generator.WorldGenerator;
+import net.durchholz.beacon.math.Quaternion;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Predicate;
+
+import static java.lang.Math.sin;
 
 public class World {
     private static final Comparator<Vec3i> DISTANCE_COMPARATOR = Comparator.comparingInt(position -> Chunk.toWorldPosition(position).subtract(new Vec3i(Main.INSTANCE.getRenderer().getCamera().getPosition())).magnitudeSq());
@@ -226,4 +229,17 @@ public class World {
         return new Intersection(v, normal);
     }
 
+    public Vec3f getSunlightDirection() {
+        return new Vec3f(Direction.NEG_Z.getAxis()).rotate(Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), Main.getDayPercentage() * 360)).normalized();
+    }
+
+    public Vec3f getPhongParameters() {
+        Vec3f night = new Vec3f(0.05f, 0, 0);
+        Vec3f day = new Vec3f(0.4f, 0.7f, 0.1f);
+
+        //TODO Improve curve
+        float dayPercentage = Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.5f, 0.1f, 1);
+
+        return night.interpolate(day, dayPercentage);
+    }
 }

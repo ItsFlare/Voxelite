@@ -5,6 +5,7 @@ import imgui.type.ImInt;
 
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class DropdownElement<T> extends StateElement<T> {
 
@@ -14,6 +15,10 @@ public class DropdownElement<T> extends StateElement<T> {
 
     protected DropdownElement(String title, Map<String, T> values) {
         this(title, values, (t, t2) -> {});
+    }
+
+    protected DropdownElement(String title, Map<String, T> values, Consumer<T> action) {
+        this(title, values, (t, t2) -> action.accept(t2));
     }
     protected DropdownElement(String title, Map<String, T> values, BiConsumer<T, T> action) {
         super(title, action);

@@ -4,7 +4,6 @@ import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.ui.UserInterface;
 import edu.kit.scc.git.ggd.voxelite.util.Util;
 import net.durchholz.beacon.math.Matrix3f;
-import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
@@ -31,6 +30,8 @@ public class Renderer {
     public boolean renderSkybox = true;
     public boolean renderWorld  = true;
     public boolean wireframe    = false;
+
+    private int frame;
 
     public Renderer(Window window) throws IOException {
         this.camera = new Camera(window);
@@ -68,6 +69,8 @@ public class Renderer {
             renderCrosshair();
             renderUserInterface();
         }
+
+        frame++;
     }
 
     public void tick() {
@@ -83,21 +86,16 @@ public class Renderer {
         }
     }
 
-    private void renderSkybox() {
-        final Matrix4f projection = camera.projection();
-        projection.multiply(camera.view(false, true));
-        //skyboxRenderer.render(projection);
-    }
-
     private void renderSky() {
         float dayPercentage = Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.75f, 0, 1);
         Vec2f viewportRes = new Vec2f(viewport.width(),viewport.height());
 
-        Matrix3f rotation = Util.quatToMatrix(camera.getRotation());
+        var projection = camera.projection();
+        projection.multiply(camera.view(false, true));
 
-        skyRenderer.render(viewportRes, dayPercentage, camera.getFOV(), rotation);
-        skyRenderer.renderNightSkyBox(camera.view(false, true), camera.projection(), -1 *dayPercentage + 1);
-        skyRenderer.renderSun(camera.view(false, true), camera.projection());
+        skyRenderer.render(viewportRes, dayPercentage, camera.getFOV(), Matrix3f.rotation(camera.getRotation()));
+        skyRenderer.renderNightSkyBox(projection, -1 * dayPercentage + 1);
+        skyRenderer.renderPlanets(projection);
     }
 
     private void renderWorld() {
@@ -113,6 +111,10 @@ public class Renderer {
             crosshairRenderer.update(new Vec2f(), 2, new Vec3f().extend(0.6f), true, true);
             crosshairRenderer.render();
         });
+    }
+
+    public int getFrame() {
+        return frame;
     }
 
     private static CubemapTexture loadSkybox() throws IOException {
