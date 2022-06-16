@@ -1,9 +1,7 @@
 package edu.kit.scc.git.ggd.voxelite.util;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
-import net.durchholz.beacon.math.Matrix3f;
-import net.durchholz.beacon.math.Quaternion;
-import net.durchholz.beacon.math.Vec3i;
+import net.durchholz.beacon.math.*;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -153,5 +151,25 @@ public class Util {
                 r20, r21, r22
         );
         return rot_matrix;
+    }
+
+    //Sets the tangent and bitangent for the given tangent and bitangent parameter
+    public static Vec3f getTangent(Vec3f edge1, Vec3f edge2, Vec2i deltaUV1, Vec2i deltaUV2) {
+        float f = 1.0f / (deltaUV1.x() * deltaUV2.y() - deltaUV2.x() * deltaUV1.y());
+
+        float tangentX = f * (deltaUV2.y() * edge1.x() - deltaUV1.y() * edge2.x());
+        float tangentY = f * (deltaUV2.y() * edge1.y() - deltaUV1.y() * edge2.y());
+        float tangentZ = f * (deltaUV2.y() * edge1.z() - deltaUV1.y() * edge2.z());
+        return new Vec3f(tangentX, tangentY, tangentZ);
+    }
+
+    public static Vec3f getBitangent(Vec3f edge1, Vec3f edge2, Vec2i deltaUV1, Vec2i deltaUV2) {
+        float f = 1.0f / (deltaUV1.x() * deltaUV2.y() - deltaUV2.x() * deltaUV1.y());
+
+        float bitangentX = f * (-deltaUV2.x() * edge1.x() + deltaUV1.x() * edge2.x());
+        float bitangentY = f * (-deltaUV2.x() * edge1.y() + deltaUV1.x() * edge2.y());
+        float bitangentZ = f * (-deltaUV2.x() * edge1.z() + deltaUV1.x() * edge2.z());
+
+        return new Vec3f(bitangentX, bitangentY, bitangentZ);
     }
 }

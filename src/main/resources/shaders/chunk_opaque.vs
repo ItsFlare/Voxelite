@@ -6,10 +6,11 @@ in vec3 normal;
 in uint data;
 in uint light;
 
-out vec2 Tex;
+
 out vec3 Pos;
 out vec3 Normal;
 out vec4 BlockLight;
+out vec2 Tex;
 
 uniform mat4 mvp;
 uniform ivec3 chunk;

@@ -94,7 +94,6 @@ public class Renderer {
         Vec2f viewportRes = new Vec2f(viewport.width(),viewport.height());
 
         Matrix3f rotation = Util.quatToMatrix(camera.getRotation());
-        System.out.println(dayPercentage);
 
         skyRenderer.render(viewportRes, dayPercentage, camera.getFOV(), rotation);
         skyRenderer.renderNightSkyBox(camera.view(false, true), camera.projection(), -1 *dayPercentage + 1);

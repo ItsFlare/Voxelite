@@ -2,6 +2,7 @@ package edu.kit.scc.git.ggd.voxelite.render;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
+import edu.kit.scc.git.ggd.voxelite.util.Util;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import edu.kit.scc.git.ggd.voxelite.world.LightStorage;
 import net.durchholz.beacon.data.IntVector;
@@ -30,11 +31,38 @@ public class ChunkProgram extends Program {
     private static final IBO                      QUAD_IBO     = new IBO();
     private static final short[]                  QUAD_INDICES = {0, 3, 1, 2};
 
+
     static {
         QuadVertex[] quadVertices = new QuadVertex[Direction.values().length * 4];
         for (int i = 0; i < Direction.values().length; i++) {
             Direction direction = Direction.values()[i];
             Vec3f normal = new Vec3f(direction.getAxis());
+            Vec3f tangentPosX1;
+            Vec3f bitangentPosX1;
+            Vec3f tangentPosX2;
+            Vec3f bitangentPosX2;
+            if (i == 0) {
+                tangentPosX1 = Util.getTangent(
+                        new Vec3f(direction.getUnitQuad().v3()).subtract(new Vec3f(direction.getUnitQuad().v2())),
+                        new Vec3f(direction.getUnitQuad().v0()).subtract(new Vec3f(direction.getUnitQuad().v2())),
+                        new Vec2i(0, 0).subtract(new Vec2i(0, 1)),
+                        new Vec2i(1, 0).subtract(new Vec2i(0, 1)));
+                bitangentPosX1 = Util.getBitangent(
+                        new Vec3f(direction.getUnitQuad().v3()).subtract(new Vec3f(direction.getUnitQuad().v2())),
+                        new Vec3f(direction.getUnitQuad().v0()).subtract(new Vec3f(direction.getUnitQuad().v2())),
+                        new Vec2i(0, 0).subtract(new Vec2i(0, 1)),
+                        new Vec2i(1, 0).subtract(new Vec2i(0, 1)));
+                tangentPosX2 = Util.getTangent(
+                        new Vec3f(direction.getUnitQuad().v0()).subtract(new Vec3f(direction.getUnitQuad().v2())),
+                        new Vec3f(direction.getUnitQuad().v1()).subtract(new Vec3f(direction.getUnitQuad().v2())),
+                        new Vec2i(1, 0).subtract(new Vec2i(0, 1)),
+                        new Vec2i(1, 1).subtract(new Vec2i(0, 1)));
+                bitangentPosX2 = Util.getBitangent(new Vec3f(direction.getUnitQuad().v0()).subtract(new Vec3f(direction.getUnitQuad().v2())),
+                        new Vec3f(direction.getUnitQuad().v1()).subtract(new Vec3f(direction.getUnitQuad().v2())),
+                        new Vec2i(1, 0).subtract(new Vec2i(0, 1)),
+                        new Vec2i(1, 1).subtract(new Vec2i(0, 1)));
+            }
+
             quadVertices[i * 4 + 0] = new QuadVertex(new Vec3f(direction.getUnitQuad().v0()), new Vec2i(0, 0), normal);
             quadVertices[i * 4 + 1] = new QuadVertex(new Vec3f(direction.getUnitQuad().v1()), new Vec2i(0, 1), normal);
             quadVertices[i * 4 + 2] = new QuadVertex(new Vec3f(direction.getUnitQuad().v2()), new Vec2i(1, 1), normal);
@@ -57,6 +85,10 @@ public class ChunkProgram extends Program {
     public final Attribute<Integer> data     = attribute("data", OpenGL.Type.INT, 1);
     public final Attribute<Integer> light    = attribute("light", OpenGL.Type.INT, 1);
 
+    //public final Attribute<Vec3f> tangent = attribute("tangent", OpenGL.Type.FLOAT, 3);
+
+    //public final Attribute<Vec3f> biTangent = attribute("biTangent", OpenGL.Type.FLOAT, 3);
+
     public final Uniform<Matrix4f> mvp                  = uniMatrix4f("mvp", true);
     public final Uniform<Vec3i>    chunk                = uniVec3i("chunk");
     public final Sampler           atlas                = sampler("atlas");
@@ -75,6 +107,10 @@ public class ChunkProgram extends Program {
         public static final VertexAttribute<Vec3f>   POSITION = LAYOUT.vec3f(false);
         public static final VertexAttribute<Vec2i>   TEXTURE  = LAYOUT.vec2i(false);
         public static final VertexAttribute<Vec3f>   NORMAL   = LAYOUT.vec3f(false);
+
+        //public static final VertexAttribute<Vec3f> TANGENT = LAYOUT.vec3f(false);
+
+        //public static final VertexAttribute<Vec3f> BITANGENT = LAYOUT.vec3f(false);
 
         @Override
         public VertexLayout<QuadVertex> getLayout() {

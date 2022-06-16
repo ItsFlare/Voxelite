@@ -7,7 +7,7 @@ in vec4 BlockLight;
 out vec4 FragColor;
 
 
-uniform sampler2D atlas;
+uniform sampler2DArray atlas;
 uniform vec3 camera;
 
 uniform float ambientStrength;
@@ -39,6 +39,6 @@ vec3 DirectionalLight(Light light, vec3 normal, vec3 viewDirection)
 }
 
 void main() {
-    vec4 t = texture(atlas, Tex);
+    vec4 t = texture(atlas, vec3(Tex,0));
     FragColor = vec4(DirectionalLight(light, Normal, normalize(camera - Pos)), 1) * t + BlockLight * t;
 }
