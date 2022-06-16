@@ -65,7 +65,7 @@ public class SkyRenderer {
         });
     }
 
-    public void render(Vec3f color, Vec3f direction, Vec2f viewportRes, float dayPercentage, float fov, Matrix3f rotation) {
+    public void render(Vec2f viewportRes, float dayPercentage, float fov, Matrix3f rotation) {
         OpenGL.depthMask(false);
         OpenGL.depthTest(false);
 

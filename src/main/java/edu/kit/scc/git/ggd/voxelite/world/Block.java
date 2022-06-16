@@ -36,7 +36,7 @@ public enum Block {
     OAK_LOG(builder -> builder.texture("oak_log").texture("oak_log_top", Direction.POS_Y, Direction.NEG_Y)),
     GRASS(builder -> builder.texture("grass_block_side").texture("dirt", Direction.NEG_Y).texture("grass_block_top", Direction.POS_Y)),
     WATER(builder -> builder.texture("blue_concrete")),
-    TNT(builder -> builder.texture("tnt_side").texture("tnt_bottom", Direction.NEG_Y).texture("tnt_top", Direction.POS_Y)),
+    //TNT(builder -> builder.texture("tnt_side").texture("tnt_bottom", Direction.NEG_Y).texture("tnt_top", Direction.POS_Y)),
     RED_GLASS(builder -> builder.texture("red_stained_glass").transparent().filter(new Vec3f(1, 1, 0))),
     GLOWSTONE(builder -> builder.texture().light(new Vec3f(1, 0, 0), 31));
 

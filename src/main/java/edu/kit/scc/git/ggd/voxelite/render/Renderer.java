@@ -90,18 +90,13 @@ public class Renderer {
     }
 
     private void renderSky() {
-        Vec3f blueSky = new Vec3f(0.3f,0.55f,0.8f);
-        Vec3f nightSky = new Vec3f();
         float dayPercentage = Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.75f, 0, 1);
         Vec2f viewportRes = new Vec2f(viewport.width(),viewport.height());
 
         Matrix3f rotation = Util.quatToMatrix(camera.getRotation());
-        //System.out.println(camera.getDirection());
-        //System.out.println(camera.getPosition());
         System.out.println(dayPercentage);
-        //System.out.println(camera.view(false, true));
 
-        skyRenderer.render(nightSky.interpolate(blueSky, dayPercentage),  camera.getDirection(), viewportRes, dayPercentage, camera.getFOV(), rotation);
+        skyRenderer.render(viewportRes, dayPercentage, camera.getFOV(), rotation);
         skyRenderer.renderNightSkyBox(camera.view(false, true), camera.projection(), -1 *dayPercentage + 1);
         skyRenderer.renderSun(camera.view(false, true), camera.projection());
     }
