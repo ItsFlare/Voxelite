@@ -57,7 +57,7 @@ public class WorldRenderer {
         EventType.addListener(this);
 
         try {
-            atlas = new TextureAtlas("/textures/blocks");
+            atlas = new TextureAtlas("/textures/blocks", "/textures/block_normal");
         } catch (IOException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
