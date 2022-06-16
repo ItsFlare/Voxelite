@@ -85,6 +85,12 @@ public class TransparentSlice extends Slice {
         va.use(() -> OpenGL.drawIndexed(OpenGL.Mode.POINTS, quadCount, OpenGL.Type.UNSIGNED_INT));
     }
 
+    @Override
+    public void delete() {
+        super.delete();
+        ibo.delete();
+    }
+
     public synchronized void sort() {
         debug(() -> LOGGER.trace("Sorting (d=%.0f t=%d q=%d)".formatted(
                 Chunk.toBlockPosition(Main.INSTANCE.getRenderer().getCamera().getPosition()).subtract(worldPosition.add(8)).magnitude(),
