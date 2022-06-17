@@ -12,11 +12,9 @@ import net.durchholz.beacon.render.opengl.shader.Program;
 import net.durchholz.beacon.render.opengl.shader.Shader;
 import net.durchholz.beacon.render.opengl.shader.Uniform;
 
-import java.io.IOException;
-
 public class QuadProgram extends Program {
 
-    public QuadProgram() throws IOException {
+    public QuadProgram() {
         super(Shader.vertex(Util.readShaderResource("quad.vs")), Shader.fragment(Util.readShaderResource("quad.fs")));
     }
 

@@ -23,9 +23,41 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.stream.Collectors;
 
+import static org.lwjgl.opengl.GL30.*;
+
+/*
+    Draw ShadowMap
+        Construct PPLL OIT
+            Sort GPU or CPU? One IBO + slow transparency sort for shadow?
+
+    Draw Opaque Geometry Deferred FTB to OPAQUE
+        Write depth to alpha
+        Apply lighting + shadows
+
+    Draw Occlusion Culling (needs only opaque depth)
+
+    Draw Transparent Forward BTF to TRANSPARENT
+        Write to depth
+        Apply VL from current to behind
+        Apply SSR
+
+    Draw SSR + Blend to OPAQUE
+        Use depth from alpha
+        Apply SSR while blending with TRANSPARENT after reflect
+        Blend TRANSPARENT
+
+    Draw Volumetric Lighting
+        Optionally sample Shadow OIT buffer
+        Optionally sample Grid (Density & Block Light, Frustel vs. Voxel)
+
+    See transparent in SSR:
+        Reflect in last frame
+        or Treat reflectors as transparent (bad overdraw)
+        ==> or Split opaque and transparent framebuffers and draw transparent before deferred lighting
+ */
 public class WorldRenderer {
 
-    private static final Comparator<RenderChunk> DISTANCE_COMPARATOR = Comparator.comparingInt(rc -> Chunk.toWorldPosition(rc.getChunk().getPosition()).subtract(new Vec3i(Main.INSTANCE.getRenderer().getCamera().getPosition())).magnitudeSq());
+    private static final Comparator<RenderChunk> DISTANCE_COMPARATOR = Comparator.comparingInt(rc -> Chunk.toWorldPosition(rc.getChunk().getPosition()).subtract(new Vec3i(Main.INSTANCE.getRenderer().getCamera().getPosition())).magnitudeSq()); //Breaks general contract
     private static final int                     SHADOW_MAP_SIZE     = 1 << 13;
     public static        int                     frustumNumber       = 0;
 
@@ -38,6 +70,10 @@ public class WorldRenderer {
     private final ShadowMapRenderer          shadowMapRenderer = new ShadowMapRenderer(SHADOW_MAP_SIZE, 4);
     private final OcclusionRenderer          occlusionRenderer = new OcclusionRenderer();
     private final LineRenderer               lineRenderer      = new LineRenderer();
+    private final GeometryBuffer             gBuffer           = new GeometryBuffer(1, 1);
+    private final CompositeRenderer          compositeRenderer = new CompositeRenderer();
+    private final QuadRenderer quadRenderer = new QuadRenderer();
+
 
     private RenderChunk[] lastSorted = new RenderChunk[0];
 
@@ -57,7 +93,7 @@ public class WorldRenderer {
         EventType.addListener(this);
 
         try {
-            atlas = new TextureAtlas("/textures/blocks", "/textures/block_normal");
+            atlas = new TextureAtlas("/textures/blocks");
         } catch (IOException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -117,7 +153,7 @@ public class WorldRenderer {
         final Vec3f lightDirection = Main.INSTANCE.getWorld().getSunlightDirection();
         if (shadows) shadowMapRenderer.render(lightDirection);
 
-        if(!captureFrustum) {
+        if (!captureFrustum) {
             capturedFrustum = frustum;
             capturedShadowFrustums = new Frustum[shadowMapRenderer.cascades];
 
@@ -172,87 +208,120 @@ public class WorldRenderer {
         OpenGL.depthFunction(OpenGL.CompareFunction.LESS);
         OpenGL.cull(backfaceCull);
 
-        for (RenderType renderType : RenderType.values()) {
-            renderType.setPipelineState();
+        gBuffer.allocate(Main.INSTANCE.getWindow().getWidth(), Main.INSTANCE.getWindow().getHeight());
 
-            final ChunkProgram program = renderType.getProgram();
-            program.use(() -> {
-                program.mvp.set(shadowTransform ? shadowMapRenderer.lightTransform(frustumNumber, lightDirection) : mvp);
-                program.atlas.bind(0, atlas);
-                program.camera.set(cameraPosition);
-                program.lightColor.set(new Vec3f(lightColor.x(), lightColor.y(), lightColor.z()));
-                program.lightDirection.set(lightDirection);
+        OpenGL.use(gBuffer, () -> {
+            OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3);
+            OpenGL.clearAll();
 
-                Vec3f phongParameters = Main.INSTANCE.getWorld().getPhongParameters();
-                program.ambientStrength.set(phongParameters.x());
-                program.diffuseStrength.set(phongParameters.y());
-                program.specularStrength.set(phongParameters.z());
+            //Draw opaque
+            {
+                OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3);
+                RenderType.OPAQUE.setPipelineState();
 
-                program.phongExponent.set(phongExponent);
-                program.normalizedSpriteSize.set(atlas.getNormalizedSpriteSize());
-                program.maxLightValue.set(LightStorage.MAX_TOTAL_VALUE);
-                program.shadowMap.bind(1, shadowMapRenderer.getTexture());
-                program.lightView.set(shadowMapRenderer.lightView(lightDirection));
-                program.shadows.set(shadows && !shadowTransform ? 1 : 0);
-                program.constantBias.set(shadowMapRenderer.constantBias);
+                final ChunkProgram program = RenderType.OPAQUE.getProgram();
+                program.use(() -> {
+                    setCommonUniforms(program, mvp, cameraPosition, lightDirection);
 
+                    for (RenderInfo info : frameRenderInfo) {
+                        final RenderChunk renderChunk = info.chunk();
+                        program.chunk.set(renderChunk.getChunk().getWorldPosition());
 
-                program.cascadeScales.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::scale).toArray(Vec3f[]::new));
-                program.cascadeTranslations.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::translation).toArray(Vec3f[]::new));
-                program.cascadeFar.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::far).toArray(Float[]::new));
+                        renderChunk.render(RenderType.OPAQUE, info.visibility());
+                    }
+                });
+            }
 
-                if (renderType == RenderType.TRANSPARENT) {
+            //Draw occlusion culling
+            {
+                if (occlusionCull) occlusionRenderer.render(mvp);
+            }
+
+            //Draw transparent
+            {
+                OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT1);
+                RenderType.TRANSPARENT.setPipelineState();
+
+                final ChunkProgram program = RenderType.TRANSPARENT.getProgram();
+                program.use(() -> {
+                    setCommonUniforms(program, mvp, cameraPosition, lightDirection);
+
                     for (int i = frameRenderInfo.size() - 1; i >= 0; i--) {
                         RenderInfo info = frameRenderInfo.get(i);
                         final RenderChunk renderChunk = info.chunk();
                         program.chunk.set(renderChunk.getChunk().getWorldPosition());
 
-                        renderChunk.render(renderType, info.visibility());
+                        renderChunk.render(RenderType.TRANSPARENT, info.visibility());
                     }
-                } else {
-                    for (RenderInfo info : frameRenderInfo) {
-                        final RenderChunk renderChunk = info.chunk();
-                        program.chunk.set(renderChunk.getChunk().getWorldPosition());
+                });
+            }
 
-                        renderChunk.render(renderType, info.visibility());
-                    }
+            OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0);
+            if (debugFrustum) {
+                final Matrix4f matrix;
+                if (shadowTransform) {
+                    matrix = shadowMapRenderer.lightTransform(frustumNumber, lightDirection);
+                } else {
+                    //Extend far plane to ensure lines are visible
+                    var f = camera.getFar();
+                    camera.setFar(10_000);
+                    matrix = camera.transform();
+                    camera.setFar(f);
                 }
 
-            });
+                //If red is visible the split is bad (split should draw over)
+                lineRenderer.render(matrix, new Vec4f(1, 0, 0, 1), capturedFrustum);
+
+                for (int i = 0; i < shadowMapRenderer.cascades; i++) {
+                    final float ratio = (shadowMapRenderer.cascades - i) / (float) shadowMapRenderer.cascades;
+                    final Vec4f color = new Vec4f(ratio, ratio, 1f, 1f);
+
+                    lineRenderer.render(matrix, color, capturedShadowFrustums[i]);
+                    lineRenderer.render(matrix, color, capturedSplitFrustums[i]);
+                }
+
+                final Chunk chunk = Main.INSTANCE.getWorld().getChunk(Chunk.toChunkPosition(cameraPosition));
+                if (chunk != null) lineRenderer.render(matrix, new Vec4f(0, 1, 0, 1), chunk.getBoundingBox());
+
+                for (RenderChunk renderChunk : lastSorted) {
+                    lineRenderer.render(matrix, new Vec4f(1, 1, 0, 1), renderChunk.getChunk().getBoundingBox());
+                }
+            }
+        });
+
+        //Draw composite
+        compositeRenderer.render(gBuffer, shadowMapRenderer.getTexture());
+
+        //quadRenderer.render(Matrix4f.identity(), gBuffer.normal(), new Vec2f(0), new Vec2f(1));
+    }
+
+    private void setCommonUniforms(ChunkProgram program, Matrix4f mvp, Vec3f cameraPosition, Vec3f lightDirection) {
+        program.mvp.set(shadowTransform ? shadowMapRenderer.lightTransform(frustumNumber, lightDirection) : mvp);
+        if(program instanceof OpaqueChunkProgram cp) {
+            cp.view.set(Main.INSTANCE.getRenderer().getCamera().view(false, true));
         }
+        program.atlas.bind(0, atlas);
+        program.camera.set(cameraPosition);
+        program.lightColor.set(new Vec3f(lightColor.x(), lightColor.y(), lightColor.z()));
+        program.lightDirection.set(lightDirection);
 
-        if (occlusionCull) occlusionRenderer.render(mvp);
+        Vec3f phongParameters = Main.INSTANCE.getWorld().getPhongParameters();
+        program.ambientStrength.set(phongParameters.x());
+        program.diffuseStrength.set(phongParameters.y());
+        program.specularStrength.set(phongParameters.z());
 
-        if(debugFrustum) {
-            final Matrix4f matrix;
-            if(shadowTransform) {
-                matrix = shadowMapRenderer.lightTransform(frustumNumber, lightDirection);
-            } else {
-                //Extend far plane to ensure lines are visible
-                var f = camera.getFar();
-                camera.setFar(10_000);
-                matrix = camera.transform();
-                camera.setFar(f);
-            }
+        program.phongExponent.set(phongExponent);
+        program.normalizedSpriteSize.set(atlas.getNormalizedSpriteSize());
+        program.maxLightValue.set(LightStorage.MAX_TOTAL_VALUE);
+        program.shadowMap.bind(1, shadowMapRenderer.getTexture());
+        program.lightView.set(shadowMapRenderer.lightView(lightDirection));
+        program.shadows.set(shadows && !shadowTransform ? 1 : 0);
+        program.constantBias.set(shadowMapRenderer.constantBias);
 
-            //If red is visible the split is bad (split should draw over)
-            lineRenderer.render(matrix, new Vec4f(1, 0, 0, 1), capturedFrustum);
 
-            for (int i = 0; i < shadowMapRenderer.cascades; i++) {
-                final float ratio = (shadowMapRenderer.cascades - i) / (float) shadowMapRenderer.cascades;
-                final Vec4f color = new Vec4f(ratio, ratio, 1f, 1f);
-
-                lineRenderer.render(matrix, color, capturedShadowFrustums[i]);
-                lineRenderer.render(matrix, color, capturedSplitFrustums[i]);
-            }
-
-            final Chunk chunk = Main.INSTANCE.getWorld().getChunk(Chunk.toChunkPosition(cameraPosition));
-            if(chunk != null) lineRenderer.render(matrix, new Vec4f(0, 1, 0, 1), chunk.getBoundingBox());
-
-            for (RenderChunk renderChunk : lastSorted) {
-                lineRenderer.render(matrix, new Vec4f(1, 1, 0, 1), renderChunk.getChunk().getBoundingBox());
-            }
-        }
+        program.cascadeScales.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::scale).toArray(Vec3f[]::new));
+        program.cascadeTranslations.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::translation).toArray(Vec3f[]::new));
+        program.cascadeFar.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::far).toArray(Float[]::new));
     }
 
     public record VisibilityNode(RenderChunk renderChunk, Direction source, int directions) {

@@ -1,13 +1,11 @@
 #version 410
-layout(location = 0) out vec4 color;
-layout(location = 1) out vec3 normal;
-layout(location = 2) out vec3 mer;
-
 in vec2 Tex;
 in vec3 Pos;
 flat in ivec3 Normal;
 in vec3 BlockLight;
 in vec3 LightSpacePos;
+
+out vec4 FragColor;
 
 uniform sampler2DArray atlas;
 uniform sampler2DArrayShadow shadowMap;
@@ -19,7 +17,6 @@ uniform float specularStrength;
 uniform float constantBias;
 uniform int phongExponent;
 uniform int shadows;
-uniform mat4 view;
 
 uniform struct Light {
     vec3 direction;
@@ -92,13 +89,8 @@ vec3 DirectionalLight(vec3 normal, vec3 viewDirection) {
 }
 
 void main() {
-    vec3 albedo = texture(atlas, vec3(Tex, 0)).rgb;
-    //vec3 normal = texture(atlas, vec3(Tex, 1)).xyz;
-    vec3 n = Normal;
+    vec4 t = texture(atlas, vec3(Tex, 0));
+    FragColor = vec4(DirectionalLight(Normal, normalize(camera - Pos)) + BlockLight, 1) * t;
 
-    color = vec4((DirectionalLight(n, normalize(camera - Pos)) + BlockLight) * albedo, gl_FragDepth);
-    if(cascadeDebug == 1) color.xyz += debugColor;
-
-    normal = 0.5 * (view * vec4(n, 0)).xyz + 0.5;
-    mer = texture(atlas, vec3(Tex, 2)).rgb;
+    if(cascadeDebug == 1) FragColor += vec4(debugColor, 1);
 }

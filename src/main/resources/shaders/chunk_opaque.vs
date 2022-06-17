@@ -9,7 +9,7 @@ in uint light;
 out vec2 Tex;
 out vec3 Pos;
 flat out ivec3 Normal;
-out vec4 BlockLight;
+out vec3 BlockLight;
 out vec3 LightSpacePos;
 
 uniform mat4 mvp;
@@ -32,6 +32,6 @@ void main() {
     Tex = vec2(ivec2(u, v) + tex) * normalizedSpriteSize;
     Pos = vec3(vp);
     Normal = normal;
-    BlockLight = vec4(light >> 20, (light >> 10) & uint(0x3ff), light & uint(0x3ff), 0) / maxLightValue;
+    BlockLight = vec3(light >> 20, (light >> 10) & uint(0x3ff), light & uint(0x3ff)) / maxLightValue;
     LightSpacePos = (lightView * vec4(vp, 1)).xyz;
 }
