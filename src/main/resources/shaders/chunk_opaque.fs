@@ -3,15 +3,15 @@ in vec2 Tex;
 in vec3 Pos;
 flat in ivec3 Normal;
 in vec4 BlockLight;
-in vec3 LightSpacePos;
 in mat3 TBN;
+in vec3 LightSpacePos;
 
 out vec4 FragColor;
+
 
 uniform sampler2DArrayShadow shadowMap;
 uniform sampler2DArray atlas;
 uniform vec3 camera;
-
 uniform float ambientStrength;
 uniform float diffuseStrength;
 uniform float specularStrength;
@@ -91,10 +91,6 @@ vec3 DirectionalLight(vec3 normal, vec3 viewDirection) {
 }
 
 void main() {
-    vec3 normalMap = texture(atlas, vec3(Tex,1)).rgb;
-    normalMap = normalMap * 2 - 1;
-    normalMap = normalize(TBN * normalMap);
-
 
     vec4 t = texture(atlas, vec3(Tex,0));
     FragColor = (vec4(DirectionalLight(Normal, normalize(camera - Pos)), 1) + BlockLight) * t;
