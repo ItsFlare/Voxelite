@@ -4,6 +4,7 @@ in vec3 Pos;
 flat in ivec3 Normal;
 in vec4 BlockLight;
 in vec3 LightSpacePos;
+in mat3 TBN;
 
 out vec4 FragColor;
 
@@ -70,6 +71,7 @@ float ShadowCalculation(vec3 fragPosLightSpace) {
 
     return shadow;
 }
+
 vec3 DirectionalLight(vec3 normal, vec3 viewDirection) {
     vec3 color = light.color.rgb;
     vec3 lightDirection = normalize(-light.direction);
@@ -89,6 +91,11 @@ vec3 DirectionalLight(vec3 normal, vec3 viewDirection) {
 }
 
 void main() {
+    vec3 normalMap = texture(atlas, vec3(Tex,1)).rgb;
+    normalMap = normalMap * 2 - 1;
+    normalMap = normalize(TBN * normalMap);
+
+
     vec4 t = texture(atlas, vec3(Tex,0));
     FragColor = (vec4(DirectionalLight(Normal, normalize(camera - Pos)), 1) + BlockLight) * t;
 
