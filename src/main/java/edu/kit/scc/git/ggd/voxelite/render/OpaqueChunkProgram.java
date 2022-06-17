@@ -13,4 +13,6 @@ public class OpaqueChunkProgram extends ChunkProgram {
     public final Attribute<Vec3i> position = attribute("pos", OpenGL.Type.INT, 3);
     public final Attribute<Vec2i> texture  = attribute("tex", OpenGL.Type.INT, 2);
     public final Attribute<Vec3i> normal   = attribute("normal", OpenGL.Type.INT, 3);
+    public final Attribute<Vec3i> tangent = attribute("tangent", OpenGL.Type.INT, 3);
+    public final Attribute<Vec3i> bitangent = attribute("bitangent", OpenGL.Type.INT, 3);
 }

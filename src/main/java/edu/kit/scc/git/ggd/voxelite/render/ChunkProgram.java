@@ -44,8 +44,6 @@ public class ChunkProgram extends Program {
 
     public final Attribute<Integer> data  = attribute("data", OpenGL.Type.INT, 1);
     public final Attribute<Integer> light = attribute("light", OpenGL.Type.INT, 1);
-    public final Attribute<Vec3i> tangent = attribute("tangent", OpenGL.Type.INT, 3);
-    public final Attribute<Vec3i> bitangent = attribute("bitangent", OpenGL.Type.INT, 3);
 
     public final Uniform<Matrix4f> mvp                  = uniMatrix4f("mvp", true);
     public final Uniform<Vec3i>    chunk                = uniVec3i("chunk");
