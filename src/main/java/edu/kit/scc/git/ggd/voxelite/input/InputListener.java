@@ -89,7 +89,7 @@ public class InputListener {
 
         switch (event.button()) {
             case GLFW.GLFW_MOUSE_BUTTON_LEFT -> intersection.voxel().setBlock(Block.AIR);
-            case GLFW.GLFW_MOUSE_BUTTON_MIDDLE -> intersection.voxel().getNeighbor(intersection.normal()).setBlock(Block.RED_GLASS);
+            case GLFW.GLFW_MOUSE_BUTTON_MIDDLE -> intersection.voxel().getNeighbor(intersection.normal()).setBlock(Block.TNT);
             case GLFW.GLFW_MOUSE_BUTTON_RIGHT -> intersection.voxel().getNeighbor(intersection.normal()).setBlock(Block.GLOWSTONE);
         }
     }

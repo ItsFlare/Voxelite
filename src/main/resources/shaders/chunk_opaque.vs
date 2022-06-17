@@ -6,7 +6,7 @@ in ivec3 normal;
 in uint data;
 in uint light;
 in ivec3 tangent;
-in ivec3 bitangent
+in ivec3 bitangent;
 
 out vec2 Tex;
 out vec3 Pos;
@@ -22,9 +22,9 @@ uniform int maxLightValue;
 uniform mat4 lightView;
 
 void main() {
-    vec3 T = normalize(vec4(tangent,0));
-    vec3 B = normalize(vec4(bitangent,0));
-    vec3 N = normalize(vec4(normal,0));
+    vec3 T = normalize(vec3(tangent));
+    vec3 B = normalize(vec3(bitangent));
+    vec3 N = normalize(vec3(normal));
 
     uint x = data >> 27;
     uint y = (data >> 22) & uint(0x1f);
