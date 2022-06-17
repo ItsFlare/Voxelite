@@ -67,6 +67,8 @@ public class ChunkProgram extends Program {
     public final Uniform<Integer>  cascadeDebug         = uniInteger("cascadeDebug");
     public final Uniform<Integer>  kernel               = uniInteger("kernel");
 
+    public final Uniform<Integer>  normalMap            = uniInteger("normalMapSet");
+
     public record QuadVertex(Vec3i position, Vec2i texture, Vec3i normal, Vec3i tangent, Vec3i bitangent) implements Vertex {
         public static final VertexLayout<QuadVertex> LAYOUT   = new VertexLayout<>(QuadVertex.class);
         public static final VertexAttribute<Vec3i>   POSITION = LAYOUT.vec3i(false);

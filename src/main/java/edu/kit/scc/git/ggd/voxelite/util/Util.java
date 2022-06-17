@@ -203,4 +203,21 @@ public class Util {
         );
         return rot_matrix;
     }
+
+    public static void getTangent(Vec3i edge1,Vec3i edge2,Vec2i deltaUV1,Vec2i deltaUV2) {
+        float f = 1.0f / (deltaUV1.x() * deltaUV2.y() - deltaUV2.x() * deltaUV1.y());
+
+        Vec3f tangent = new Vec3f(
+                f * (deltaUV2.y() * edge1.x() - deltaUV1.y() * edge2.x()),
+                f * (deltaUV2.y() * edge1.y() - deltaUV1.y() * edge2.y()),
+                f * (deltaUV2.y() * edge1.z() - deltaUV1.y() * edge2.z())
+        );
+
+        Vec3f bitangent = new Vec3f(
+                f * (-deltaUV2.x() * edge1.x() + deltaUV1.x() * edge2.x()),
+                f * (-deltaUV2.x() * edge1.y() + deltaUV1.x() * edge2.y()),
+                f * (-deltaUV2.x() * edge1.z() + deltaUV1.x() * edge2.z())
+        );
+        System.out.println("Tan: " + tangent + "BiTang: " + bitangent);
+    }
 }

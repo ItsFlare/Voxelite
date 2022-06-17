@@ -10,7 +10,7 @@ public enum Direction {
     POS_Y(new Vec3i(0, 1, 0),   new QuadMesh(new Vec3i(0, 1, 1), new Vec3i(1, 1 ,1), new Vec3i(0, 1, 0), new Vec3i(1, 1, 0)), new Vec3i(1,0,0), new Vec3i(0,0,-1)),
     NEG_Y(new Vec3i(0, -1, 0),  new QuadMesh(new Vec3i(1, 0, 1), new Vec3i(0, 0, 1), new Vec3i(1, 0, 0), new Vec3i(0, 0, 0)), new Vec3i(1,0,0), new Vec3i(0,0,1)),
     POS_Z(new Vec3i(0, 0, 1),   new QuadMesh(new Vec3i(0, 0, 1), new Vec3i(1, 0, 1), new Vec3i(0, 1, 1), new Vec3i(1, 1, 1)), new Vec3i(1,0,0), new Vec3i(0,1,0)),
-    NEG_Z(new Vec3i(0, 0, -1),  new QuadMesh(new Vec3i(1, 0, 0), new Vec3i(0, 0, 0), new Vec3i(1, 1, 0), new Vec3i(0, 1, 0)), new Vec3i(1,0,0), new Vec3i(0,-1,0));
+    NEG_Z(new Vec3i(0, 0, -1),  new QuadMesh(new Vec3i(1, 0, 0), new Vec3i(0, 0, 0), new Vec3i(1, 1, 0), new Vec3i(0, 1, 0)), new Vec3i(-1,0,0), new Vec3i(0,1,0));
 
     private final Vec3i    axis, tangent, bitangent;
 

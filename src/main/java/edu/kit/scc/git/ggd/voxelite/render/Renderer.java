@@ -93,6 +93,8 @@ public class Renderer {
         var projection = camera.projection();
         projection.multiply(camera.view(false, true));
 
+        //System.out.println(camera.getDirection());
+
         skyRenderer.render(viewportRes, dayPercentage, camera.getFOV(), Matrix3f.rotation(camera.getRotation()));
         skyRenderer.renderNightSkyBox(projection, -1 * dayPercentage + 1);
         skyRenderer.renderPlanets(projection);

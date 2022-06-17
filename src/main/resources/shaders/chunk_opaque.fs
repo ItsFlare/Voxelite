@@ -17,6 +17,7 @@ uniform float specularStrength;
 uniform float constantBias;
 uniform int phongExponent;
 uniform int shadows;
+uniform int normalMapSet;
 
 uniform struct Light {
     vec3 direction;
@@ -93,6 +94,10 @@ void main() {
     vec3 normalMap = texture(atlas, vec3(Tex,1)).rgb;
     normalMap = normalMap * 2 - 1;
     normalMap = normalize(TBN * normalMap);
+
+    if(normalMapSet == 0) {
+        normalMap = Normal;
+    }
 
     vec4 t = texture(atlas, vec3(Tex,0));
     FragColor = (vec4(DirectionalLight(normalMap, normalize(camera - Pos)), 1) + BlockLight) * t;
