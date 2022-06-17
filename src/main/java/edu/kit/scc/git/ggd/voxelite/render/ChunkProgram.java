@@ -1,6 +1,11 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
+import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
+import edu.kit.scc.git.ggd.voxelite.util.Util;
+import edu.kit.scc.git.ggd.voxelite.world.Chunk;
+import edu.kit.scc.git.ggd.voxelite.world.LightStorage;
+import net.durchholz.beacon.data.IntVector;
 import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec2i;
 import net.durchholz.beacon.math.Vec3f;
@@ -20,11 +25,13 @@ public class ChunkProgram extends Program {
         for (int i = 0; i < Direction.values().length; i++) {
             final Direction direction = Direction.values()[i];
             final Vec3i normal = direction.getAxis();
+            final Vec3i tangent = direction.getTangent();
+            final Vec3i bitangent = direction.getBitangent();
 
-            QUAD_VERTICES[i * 4 + 0] = new QuadVertex(direction.getUnitQuad().v0(), new Vec2i(0, 0), normal);
-            QUAD_VERTICES[i * 4 + 1] = new QuadVertex(direction.getUnitQuad().v1(), new Vec2i(1, 0), normal);
-            QUAD_VERTICES[i * 4 + 2] = new QuadVertex(direction.getUnitQuad().v2(), new Vec2i(0, 1), normal);
-            QUAD_VERTICES[i * 4 + 3] = new QuadVertex(direction.getUnitQuad().v3(), new Vec2i(1, 1), normal);
+            QUAD_VERTICES[i * 4 + 0] = new QuadVertex(direction.getUnitQuad().v0(), new Vec2i(0, 0), normal, tangent, bitangent);
+            QUAD_VERTICES[i * 4 + 1] = new QuadVertex(direction.getUnitQuad().v1(), new Vec2i(1, 0), normal, tangent, bitangent);
+            QUAD_VERTICES[i * 4 + 2] = new QuadVertex(direction.getUnitQuad().v2(), new Vec2i(0, 1), normal, tangent, bitangent);
+            QUAD_VERTICES[i * 4 + 3] = new QuadVertex(direction.getUnitQuad().v3(), new Vec2i(1, 1), normal, tangent, bitangent);
         }
 
         QUAD_VB.use(() -> QUAD_VB.data(QUAD_VERTICES));
@@ -37,6 +44,8 @@ public class ChunkProgram extends Program {
 
     public final Attribute<Integer> data  = attribute("data", OpenGL.Type.INT, 1);
     public final Attribute<Integer> light = attribute("light", OpenGL.Type.INT, 1);
+    public final Attribute<Vec3i> tangent = attribute("tangent", OpenGL.Type.INT, 3);
+    public final Attribute<Vec3i> bitangent = attribute("bitangent", OpenGL.Type.INT, 3);
 
     public final Uniform<Matrix4f> mvp                  = uniMatrix4f("mvp", true);
     public final Uniform<Vec3i>    chunk                = uniVec3i("chunk");
@@ -60,11 +69,15 @@ public class ChunkProgram extends Program {
     public final Uniform<Integer>  cascadeDebug         = uniInteger("cascadeDebug");
     public final Uniform<Integer>  kernel               = uniInteger("kernel");
 
-    public record QuadVertex(Vec3i position, Vec2i texture, Vec3i normal) implements Vertex {
+    public record QuadVertex(Vec3i position, Vec2i texture, Vec3i normal, Vec3i tangent, Vec3i bitangent) implements Vertex {
         public static final VertexLayout<QuadVertex> LAYOUT   = new VertexLayout<>(QuadVertex.class);
         public static final VertexAttribute<Vec3i>   POSITION = LAYOUT.vec3i(false);
         public static final VertexAttribute<Vec2i>   TEXTURE  = LAYOUT.vec2i(false);
         public static final VertexAttribute<Vec3i>   NORMAL   = LAYOUT.vec3i(false);
+
+        public static final VertexAttribute<Vec3i> TANGENT = LAYOUT.vec3i(false);
+
+        public static final VertexAttribute<Vec3i> BITANGENT = LAYOUT.vec3i(false);
 
         @Override
         public VertexLayout<QuadVertex> getLayout() {

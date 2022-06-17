@@ -1,10 +1,12 @@
 package edu.kit.scc.git.ggd.voxelite.util;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
+import net.durchholz.beacon.math.Matrix3f;
+import net.durchholz.beacon.math.Quaternion;
 import net.durchholz.beacon.math.Vec3i;
+import net.durchholz.beacon.math.*;
 import net.durchholz.beacon.render.opengl.shader.Shader;
 import org.slf4j.LoggerFactory;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -173,5 +175,32 @@ public class Util {
                 return next;
             }
         };
+    }
+
+    public static Matrix3f quatToMatrix(Quaternion quaternion) {
+        float q0 = quaternion.r();
+        float q1 = quaternion.i();
+        float q2 = quaternion.j();
+        float q3 = quaternion.k();
+
+
+        float  r00 = 2 * (q0 * q0 + q1 * q1) - 1;
+        float  r01 = 2 * (q1 * q2 - q0 * q3);
+        float r02 = 2 * (q1 * q3 + q0 * q2);
+
+        float r10 = 2 * (q1 * q2 + q0 * q3);
+        float r11 = 2 * (q0 * q0 + q2 * q2) - 1;
+        float r12 = 2 * (q2 * q3 - q0 * q1);
+
+        float r20 = 2 * (q1 * q3 - q0 * q2);
+        float  r21 = 2 * (q2 * q3 + q0 * q1);
+        float r22 = 2 * (q0 * q0 + q3 * q3) - 1;
+
+        Matrix3f rot_matrix = new Matrix3f(
+                r00, r01, r02,
+                r10, r11, r12,
+                r20, r21, r22
+        );
+        return rot_matrix;
     }
 }
