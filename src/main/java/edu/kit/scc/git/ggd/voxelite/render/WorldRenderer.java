@@ -104,6 +104,7 @@ public class WorldRenderer {
         final Vec3f cameraDirection = camera.getDirection();
 
         final Matrix4f mvp = camera.transform();
+        final Matrix4f viewMatrix = camera.view(true, true);
         final Frustum frustum = new Frustum(camera.getPosition(), mvp);
 
         final Vec3f lightDirection = Main.INSTANCE.getWorld().getSunlightDirection();
@@ -159,6 +160,7 @@ public class WorldRenderer {
             final ChunkProgram program = renderType.getProgram();
             program.use(() -> {
                 program.mvp.set(shadowTransform ? shadowMapRenderer.lightTransform(frustumNumber, lightDirection) : mvp);
+                program.viewMatrix.set(viewMatrix);
                 program.atlas.bind(0, atlas);
                 program.camera.set(cameraPosition);
                 program.lightColor.set(new Vec3f(lightColor.x(), lightColor.y(), lightColor.z()));

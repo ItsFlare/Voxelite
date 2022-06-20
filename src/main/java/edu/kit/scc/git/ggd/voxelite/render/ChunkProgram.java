@@ -1,11 +1,6 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
-import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
-import edu.kit.scc.git.ggd.voxelite.util.Util;
-import edu.kit.scc.git.ggd.voxelite.world.Chunk;
-import edu.kit.scc.git.ggd.voxelite.world.LightStorage;
-import net.durchholz.beacon.data.IntVector;
 import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec2i;
 import net.durchholz.beacon.math.Vec3f;
@@ -46,6 +41,7 @@ public class ChunkProgram extends Program {
     public final Attribute<Integer> light = attribute("light", OpenGL.Type.INT, 1);
 
     public final Uniform<Matrix4f> mvp                  = uniMatrix4f("mvp", true);
+    public final Uniform<Matrix4f> viewMatrix           = uniMatrix4f("viewMatrix", true);
     public final Uniform<Vec3i>    chunk                = uniVec3i("chunk");
     public final Sampler           atlas                = sampler("atlas");
     public final Sampler           shadowMap            = sampler("shadowMap");

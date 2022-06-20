@@ -10,8 +10,10 @@ out vec3 Pos;
 flat out ivec3 Normal;
 out vec4 BlockLight;
 out vec3 LightSpacePos;
+out vec4 eyeSpacePosition;
 
 uniform mat4 mvp;
+uniform mat4 viewMatrix;
 uniform ivec3 chunk;
 uniform float normalizedSpriteSize;
 uniform int maxLightValue;
@@ -48,6 +50,7 @@ void main() {
         Tex = vec2(ivec2(u, v) + texCoords[4 * d + i]) * normalizedSpriteSize;
         Pos = vec3(vp);
         LightSpacePos = (lightView * vec4(vp, 1)).xyz;
+        eyeSpacePosition = viewMatrix * vec4(vp, 1);
         EmitVertex();
     }
 
