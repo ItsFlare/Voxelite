@@ -10,6 +10,7 @@ import net.durchholz.beacon.render.opengl.buffers.*;
 import net.durchholz.beacon.render.opengl.shader.Program;
 import net.durchholz.beacon.render.opengl.shader.Shader;
 import net.durchholz.beacon.render.opengl.shader.Uniform;
+import org.apache.logging.log4j.core.appender.rolling.action.IfNot;
 
 public class ChunkProgram extends Program {
 
@@ -39,6 +40,8 @@ public class ChunkProgram extends Program {
 
     public final Attribute<Integer> data  = attribute("data", OpenGL.Type.INT, 1);
     public final Attribute<Integer> light = attribute("light", OpenGL.Type.INT, 1);
+    public final Attribute<Integer> ao = attribute("ao", OpenGL.Type.INT, 1);
+
 
     public final Uniform<Matrix4f> mvp                  = uniMatrix4f("mvp", true);
     public final Uniform<Matrix4f> viewMatrix           = uniMatrix4f("viewMatrix", true);
@@ -64,6 +67,8 @@ public class ChunkProgram extends Program {
     public final Uniform<Integer>  kernel               = uniInteger("kernel");
 
     public final Uniform<Integer>  normalMap            = uniInteger("normalMapSet");
+
+    public final Uniform<Integer>  fogSet               = uniInteger("fogSet");
 
     public record QuadVertex(Vec3i position, Vec2i texture, Vec3i normal, Vec3i tangent, Vec3i bitangent) implements Vertex {
         public static final VertexLayout<QuadVertex> LAYOUT   = new VertexLayout<>(QuadVertex.class);
@@ -97,6 +102,16 @@ public class ChunkProgram extends Program {
 
         @Override
         public VertexLayout<InstanceLightVertex> getLayout() {
+            return LAYOUT;
+        }
+    }
+
+    public record AOVertex(int ao) implements Vertex {
+        public static final VertexLayout<AOVertex> LAYOUT = new VertexLayout<>(AOVertex.class);
+        public static final VertexAttribute<Integer> AO = LAYOUT.primitive(false);
+
+        @Override
+        public VertexLayout<AOVertex> getLayout() {
             return LAYOUT;
         }
     }

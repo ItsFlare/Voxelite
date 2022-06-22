@@ -17,10 +17,14 @@ public abstract class Slice {
     protected final     VertexArray                                    vertexArray       = new VertexArray();
     protected final     VertexArray                                    shadowVertexArray = new VertexArray();
     protected final     VertexBuffer<ChunkProgram.InstanceVertex>      instanceBuffer    = new VertexBuffer<>(ChunkProgram.InstanceVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
+
+    protected final VertexBuffer<ChunkProgram.AOVertex> aoBuffer = new VertexBuffer<>(ChunkProgram.AOVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
     protected final     VertexBuffer<ChunkProgram.InstanceLightVertex> lightBuffer       = new VertexBuffer<>(ChunkProgram.InstanceLightVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
 
     protected List<QueuedQuad>                   queue = new ArrayList<>();
     protected ChunkProgram.InstanceVertex[]      nextVertices;
+
+    protected ChunkProgram.AOVertex[] nextAOVertex;
     protected ChunkProgram.InstanceLightVertex[] nextLightVertices;
     protected int quadCount;
 
@@ -52,6 +56,10 @@ public abstract class Slice {
             instanceBuffer.data(nextVertices);
         });
 
+        aoBuffer.use(() -> {
+            aoBuffer.data(nextAOVertex);
+        });
+
         lightBuffer.use(() -> {
             lightBuffer.data(nextLightVertices);
         });
@@ -64,6 +72,7 @@ public abstract class Slice {
     public void delete() {
         vertexArray.delete();
         instanceBuffer.delete();
+        aoBuffer.delete();
         lightBuffer.delete();
     }
 
@@ -81,6 +90,33 @@ public abstract class Slice {
         return queuedQuads.stream()
                 .map(queuedQuad -> new ChunkProgram.InstanceVertex(packInstance(queuedQuad)))
                 .toArray(ChunkProgram.InstanceVertex[]::new);
+    }
+
+    protected static ChunkProgram.AOVertex[] toAOVertices(List<QueuedQuad> queuedQuads) {
+        int length = (int) Math.ceil(queuedQuads.size() / 4f);
+        int rest = queuedQuads.size() % 4;
+        ChunkProgram.AOVertex[] aoVertices = new ChunkProgram.AOVertex[length];
+        for (int i = 0; i < length; i++) {
+            QueuedQuad q0;
+            QueuedQuad q1;
+            QueuedQuad q2;
+            QueuedQuad q3;
+            if (i < length - 1) {
+                q0 = queuedQuads.get(i * 4);
+                q1 = queuedQuads.get(i * 4 + 1);
+                q2 = queuedQuads.get(i * 4 + 2);
+                q3 = queuedQuads.get(i * 4 + 3);
+
+            } else {
+                byte zero = 0;
+                q0 = rest >= 1 ? queuedQuads.get(i * 4) : new QueuedQuad(null, null, null, null, zero);
+                q1 = rest >= 2 ? queuedQuads.get(i * 4 + 1) : new QueuedQuad(null, null, null, null, zero);
+                q2 = rest >= 3 ? queuedQuads.get(i * 4) : new QueuedQuad(null, null, null, null, zero);
+                q3 = new QueuedQuad(null, null, null, null, zero);
+            }
+            aoVertices[i] = new ChunkProgram.AOVertex(packAO(q0, q1, q2, q3));
+        }
+        return aoVertices;
     }
 
     public static int packInstance(QueuedQuad queuedQuad) {
@@ -126,7 +162,19 @@ public abstract class Slice {
         return result;
     }
 
-    record QueuedQuad(Direction direction, Vec3i position, Vec2i texture, Vec3i light) {}
+    public static int packAO(QueuedQuad q0, QueuedQuad q1, QueuedQuad q2, QueuedQuad q3) {
+        int result = 0;
+
+        result |= q0.ao;
+        result |= q1.ao << 8;
+        result |= q2.ao << 16;
+        result |= q3.ao << 24;
+
+        return result;
+    }
+
+
+    record QueuedQuad(Direction direction, Vec3i position, Vec2i texture, Vec3i light, byte ao) {}
 
     record Command(int commands, int offset) {}
 }

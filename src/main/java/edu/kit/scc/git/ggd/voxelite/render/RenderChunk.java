@@ -95,7 +95,7 @@ public class RenderChunk {
                     Vec3i light = neighbor == null ? new Vec3i() : neighbor.chunk().getLightStorage().getLight(neighbor.position());
 
                     synchronized (slice) {
-                        slice.queue(new OpaqueSlice.QueuedQuad(direction, Chunk.toChunkSpace(voxel.position()), texture, light));
+                        slice.queue(new OpaqueSlice.QueuedQuad(direction, Chunk.toChunkSpace(voxel.position()), texture, light, aoByte(voxel, direction)));
                     }
                 }
             }
@@ -176,4 +176,94 @@ public class RenderChunk {
         return getQuadCount() >= Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCullThreshold
                 && occlusionFrame == Main.INSTANCE.getRenderer().getFrame();
     }
+
+
+    public static byte aoByte(Voxel voxel, Direction direction) {
+        Direction sideDirection;
+        Direction upDirection;
+
+        if(direction == Direction.POS_X || direction == Direction.NEG_X) {
+            sideDirection = direction == Direction.POS_X ? Direction.NEG_Z : Direction.POS_Z;
+        } else if(direction == Direction.POS_Z || direction == Direction.NEG_Z) {
+            sideDirection = direction == Direction.POS_Z ? Direction.POS_X : Direction.NEG_X;
+        } else {
+            sideDirection = Direction.POS_X;
+        }
+        if(direction == Direction.POS_Y || direction == Direction.NEG_Y) {
+            upDirection = direction == Direction.POS_Y ? Direction.NEG_Z : Direction.POS_Z;
+        } else {
+            upDirection = Direction.POS_Y;
+        }
+
+        Voxel bottomSide;
+        Voxel topSide;
+        Voxel rightSide;
+        Voxel leftSide;
+        Voxel bottomRightCorner;
+        Voxel bottomLeftCorner;
+        Voxel topRightCorner;
+        Voxel topLeftCorner;
+        try{
+            bottomSide = voxel.getNeighbor(upDirection.getOpposite()).getNeighbor(direction);
+        } catch (NullPointerException e) {
+            bottomSide = null;
+        }
+        try{
+            topSide = voxel.getNeighbor(upDirection).getNeighbor(direction);
+        } catch (NullPointerException e) {
+            topSide = null;
+        }
+        try{
+            rightSide = voxel.getNeighbor(sideDirection).getNeighbor(direction);
+        } catch (NullPointerException e) {
+            rightSide = null;
+        }
+        try{
+            leftSide = voxel.getNeighbor(sideDirection.getOpposite()).getNeighbor(direction);
+        } catch (NullPointerException e) {
+            leftSide = null;
+        }
+        try{
+            bottomRightCorner = voxel.getNeighbor(sideDirection).getNeighbor(direction).getNeighbor(upDirection.getOpposite());
+        } catch (NullPointerException e) {
+            bottomRightCorner = null;
+        }
+        try{
+            bottomLeftCorner = voxel.getNeighbor(sideDirection.getOpposite()).getNeighbor(direction).getNeighbor(upDirection.getOpposite());
+        } catch (NullPointerException e) {
+            bottomLeftCorner = null;
+        }
+        try{
+            topRightCorner = voxel.getNeighbor(sideDirection).getNeighbor(direction).getNeighbor(upDirection);
+        } catch (NullPointerException e) {
+            topRightCorner = null;
+        }
+        try{
+            topLeftCorner = voxel.getNeighbor(sideDirection.getOpposite()).getNeighbor(direction).getNeighbor(upDirection);
+        } catch (NullPointerException e) {
+            topLeftCorner = null;
+        }
+
+        int v0 = vertexAO(rightSide == null ? 0 : 1, bottomSide == null ? 0 : 1, bottomRightCorner == null ? 0 : 1);
+        int v1 = vertexAO(leftSide == null ? 0 : 1, bottomSide == null ? 0 : 1, bottomLeftCorner == null ? 0 : 1);
+        int v2 = vertexAO(rightSide == null ? 0 : 1, topSide == null ? 0 : 1, topRightCorner == null ? 0 : 1);
+        int v3 = vertexAO(leftSide == null ? 0 : 1, topSide == null ? 0 : 1, topLeftCorner == null ? 0 : 1);
+
+        byte result = 0;
+
+        result |= v0;
+        result |= v1 << 2;
+        result |= v2 << 4;
+        result |= v3 << 6;
+
+        return result;
+    }
+
+    private static int vertexAO(int side1, int side2, int corner) {
+        if(side1 == 1 && side2 == 1) {
+            return 0;
+        }
+        return 3 - (side1 + side2 + corner);
+    }
+
 }

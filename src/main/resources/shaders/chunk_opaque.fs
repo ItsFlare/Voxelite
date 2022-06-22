@@ -6,6 +6,7 @@ in vec4 BlockLight;
 in vec3 LightSpacePos;
 in mat3 TBN;
 in vec4 eyeSpacePosition;
+in float aoFactor;
 
 out vec4 FragColor;
 
@@ -19,6 +20,7 @@ uniform float constantBias;
 uniform int phongExponent;
 uniform int shadows;
 uniform int normalMapSet;
+uniform int fogSet;
 
 uniform struct Light {
     vec3 direction;
@@ -112,9 +114,11 @@ void main() {
     }
 
     vec4 t = texture(atlas, vec3(Tex,0));
-    FragColor = (vec4(DirectionalLight(normalMap, normalize(camera - Pos)), 1) + BlockLight) * t;
+    FragColor = (vec4(DirectionalLight(normalMap, normalize(camera - Pos)), 1) + BlockLight) * t * aoFactor;
 
     if(cascadeDebug == 1) FragColor += vec4(debugColor, 1);
 
-    FragColor = mix(FragColor, fog_colour, getFogFactor(fogCoordinate));
+    if(fogSet == 1) {
+        FragColor = mix(FragColor, fog_colour, getFogFactor(fogCoordinate));
+    }
 }
