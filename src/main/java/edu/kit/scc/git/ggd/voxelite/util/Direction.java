@@ -59,4 +59,26 @@ public enum Direction {
         return nearest;
     }
 
+    public static Direction negate(Direction direction) {
+        if(direction.equals(POS_X)) {
+            return NEG_X;
+        }
+        if(direction.equals(NEG_X)) {
+            return POS_X;
+        }
+        if(direction.equals(POS_Y)) {
+            return NEG_Y;
+        }
+        if(direction.equals(NEG_Y)) {
+            return POS_Y;
+        }
+        if(direction.equals(POS_Z)) {
+            return NEG_Z;
+        }
+        if(direction.equals(NEG_Z)) {
+            return POS_Z;
+        }
+        return null;
+    }
+
 }

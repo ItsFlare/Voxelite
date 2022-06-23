@@ -24,7 +24,7 @@ public abstract class Slice {
     protected List<QueuedQuad>                   queue = new ArrayList<>();
     protected ChunkProgram.InstanceVertex[]      nextVertices;
 
-    protected ChunkProgram.AOVertex[] nextAOVertex;
+    protected ChunkProgram.AOVertex[] nextAOVertices;
     protected ChunkProgram.InstanceLightVertex[] nextLightVertices;
     protected int quadCount;
 
@@ -51,13 +51,14 @@ public abstract class Slice {
     public synchronized void upload() {
         if (nextVertices == null) return;
         assert nextVertices.length == nextLightVertices.length;
+        assert nextVertices.length == (4 * (nextAOVertices.length - 1) + (nextAOVertices.length % 4));
 
         instanceBuffer.use(() -> {
             instanceBuffer.data(nextVertices);
         });
 
         aoBuffer.use(() -> {
-            aoBuffer.data(nextAOVertex);
+            aoBuffer.data(nextAOVertices);
         });
 
         lightBuffer.use(() -> {
@@ -66,6 +67,7 @@ public abstract class Slice {
 
         this.quadCount = nextVertices.length;
         this.nextVertices = null;
+        this.nextAOVertices = null;
         this.nextLightVertices = null;
     }
 
@@ -95,6 +97,7 @@ public abstract class Slice {
     protected static ChunkProgram.AOVertex[] toAOVertices(List<QueuedQuad> queuedQuads) {
         int length = (int) Math.ceil(queuedQuads.size() / 4f);
         int rest = queuedQuads.size() % 4;
+        //System.out.println("size:" + queuedQuads.size() + " rest:" + rest + " length:" + length);
         ChunkProgram.AOVertex[] aoVertices = new ChunkProgram.AOVertex[length];
         for (int i = 0; i < length; i++) {
             QueuedQuad q0;
@@ -108,14 +111,30 @@ public abstract class Slice {
                 q3 = queuedQuads.get(i * 4 + 3);
 
             } else {
-                byte zero = 0;
-                q0 = rest >= 1 ? queuedQuads.get(i * 4) : new QueuedQuad(null, null, null, null, zero);
-                q1 = rest >= 2 ? queuedQuads.get(i * 4 + 1) : new QueuedQuad(null, null, null, null, zero);
-                q2 = rest >= 3 ? queuedQuads.get(i * 4) : new QueuedQuad(null, null, null, null, zero);
-                q3 = new QueuedQuad(null, null, null, null, zero);
+                if (rest == 0) {
+                    q0 = queuedQuads.get(i * 4);
+                    q1 = queuedQuads.get(i * 4 + 1);
+                    q2 = queuedQuads.get(i * 4 + 2);
+                    q3 = queuedQuads.get(i * 4 + 3);
+                } else {
+                    //System.out.println("length:" + length + " index:" + i + " rest:" + rest);
+                    q0 = queuedQuads.get(i * 4);
+                    q1 = rest >= 2 ? queuedQuads.get(i * 4 + 1) : new QueuedQuad(null, null, null, null, 0);
+                    q2 = rest >= 3 ? queuedQuads.get(i * 4 + 2) : new QueuedQuad(null, null, null, null, 0);
+                    q3 = new QueuedQuad(null, null, null, null, 0);
+                    //System.out.println("q0" + q0 + " q1:" + q1 + " q2:" + q2 + " q3:" + q3);
+                }
             }
+            //System.out.println(packAO(q0, q1, q2, q3));
             aoVertices[i] = new ChunkProgram.AOVertex(packAO(q0, q1, q2, q3));
+            //System.out.println(aoVertices[i]);
         }
+        /*for (int i = 0; i < length; i++) {
+            System.out.println(aoVertices[i] + " index:" + i);
+            System.out.println(aoVertices[i + 1] + " index:" + (i + 1));
+            System.out.println(aoVertices[i + 2] + " index:" + (i + 2));
+            System.out.println(aoVertices[i + 3] + " index:" + (i + 3));
+        }*/
         return aoVertices;
     }
 
@@ -163,6 +182,12 @@ public abstract class Slice {
     }
 
     public static int packAO(QueuedQuad q0, QueuedQuad q1, QueuedQuad q2, QueuedQuad q3) {
+        assert q0.ao < 256;
+        assert q1.ao < 256;
+        assert q2.ao < 256;
+        assert q3.ao < 256;
+
+
         int result = 0;
 
         result |= q0.ao;
@@ -170,11 +195,28 @@ public abstract class Slice {
         result |= q2.ao << 16;
         result |= q3.ao << 24;
 
+        /*int byteIndex = 2;
+        int byteShift = (byteIndex << 3); // equivalent to byteIndex * 8
+        int byteMask = 255 << byteShift;
+        int aoByte = (result & byteMask) >> byteShift;
+
+        int bitIndex = 2;
+        int bitShift = (bitIndex << 1); // equivalent to bitIndex * 2
+        int bitMask = 3 << bitShift;
+        int aoBit = (aoByte & bitMask) >> bitShift;*/
+
+
+        /*System.out.println("a0:" + q0.ao + " a1:" + q1.ao + " a2:" + q2.ao + " a3:" + q3.ao + " result:" + result);
+        System.out.println((result >>> 24) + " a3:" + q3.ao);
+        System.out.println(((result << 8) >>> 24)+ "a2:" + q2.ao);
+        System.out.println(((result << 16) >>> 24)+ "a1:" + q1.ao);
+        System.out.println(((result << 24) >>> 24)+ "a0:" + q0.ao);*/
+
         return result;
     }
 
 
-    record QueuedQuad(Direction direction, Vec3i position, Vec2i texture, Vec3i light, byte ao) {}
+    record QueuedQuad(Direction direction, Vec3i position, Vec2i texture, Vec3i light, int ao) {}
 
     record Command(int commands, int offset) {}
 }

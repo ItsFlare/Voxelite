@@ -48,7 +48,7 @@ void main() {
 
     uint byteIndex = BYTEINDEX[0];
     uint byteShift = (byteIndex << 3);
-    uint byteMask = 15 << byteShift;
+    uint byteMask = 255 << byteShift;
     uint aoByte = (ao & byteMask) >> byteShift;
 
     uint bitIndex = BITINDEX[0];

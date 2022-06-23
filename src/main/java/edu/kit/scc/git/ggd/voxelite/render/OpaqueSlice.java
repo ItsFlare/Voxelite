@@ -71,7 +71,7 @@ public class OpaqueSlice extends Slice {
         var queuedQuads = queue.stream().sorted(Comparator.comparingInt(value -> value.direction().ordinal())).toList();
 
         this.nextVertices = toInstanceVertices(queuedQuads);
-        this.nextAOVertex = toAOVertices(queuedQuads);
+        this.nextAOVertices = toAOVertices(queuedQuads);
         this.nextLightVertices = toLightVertices(queuedQuads);
         this.nextCommands = generateCommands();
 

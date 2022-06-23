@@ -2,6 +2,7 @@ package edu.kit.scc.git.ggd.voxelite.input;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.render.Camera;
+import edu.kit.scc.git.ggd.voxelite.render.RenderChunk;
 import edu.kit.scc.git.ggd.voxelite.world.Block;
 import edu.kit.scc.git.ggd.voxelite.world.Intersection;
 import net.durchholz.beacon.event.Listener;
@@ -88,7 +89,7 @@ public class InputListener {
         if(intersection == null) return;
 
         switch (event.button()) {
-            case GLFW.GLFW_MOUSE_BUTTON_LEFT -> intersection.voxel().setBlock(Block.AIR);
+            case GLFW.GLFW_MOUSE_BUTTON_LEFT -> RenderChunk.aoByte(intersection.voxel(), intersection.normal(), true);
             case GLFW.GLFW_MOUSE_BUTTON_MIDDLE -> intersection.voxel().getNeighbor(intersection.normal()).setBlock(Block.TNT);
             case GLFW.GLFW_MOUSE_BUTTON_RIGHT -> intersection.voxel().getNeighbor(intersection.normal()).setBlock(Block.GLOWSTONE);
         }

@@ -54,7 +54,7 @@ public class TransparentSlice extends Slice {
         var queuedQuads = sortQuads();
 
         this.nextVertices = toInstanceVertices(queuedQuads);
-        this.nextAOVertex = toAOVertices(queuedQuads);
+        this.nextAOVertices = toAOVertices(queuedQuads);
         this.nextLightVertices = toLightVertices(queuedQuads);
 
         queue.clear();
