@@ -5,31 +5,25 @@ import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 
 public enum Direction {
-    POS_X(new Vec3i(1, 0, 0),   new QuadMesh(new Vec3i(1, 0, 1), new Vec3i(1, 0, 0), new Vec3i(1, 1, 1), new Vec3i(1, 1, 0)), new Vec3i(0,0,-1), new Vec3i(0,1,0)),
-    NEG_X(new Vec3i(-1, 0, 0),  new QuadMesh(new Vec3i(0, 0, 0), new Vec3i(0, 0, 1), new Vec3i(0, 1, 0), new Vec3i(0, 1, 1)), new Vec3i(0,0,1), new Vec3i(0,1,0)),
-    POS_Y(new Vec3i(0, 1, 0),   new QuadMesh(new Vec3i(0, 1, 1), new Vec3i(1, 1 ,1), new Vec3i(0, 1, 0), new Vec3i(1, 1, 0)), new Vec3i(1,0,0), new Vec3i(0,0,-1)),
-    NEG_Y(new Vec3i(0, -1, 0),  new QuadMesh(new Vec3i(1, 0, 1), new Vec3i(0, 0, 1), new Vec3i(1, 0, 0), new Vec3i(0, 0, 0)), new Vec3i(1,0,0), new Vec3i(0,0,1)),
-    POS_Z(new Vec3i(0, 0, 1),   new QuadMesh(new Vec3i(0, 0, 1), new Vec3i(1, 0, 1), new Vec3i(0, 1, 1), new Vec3i(1, 1, 1)), new Vec3i(1,0,0), new Vec3i(0,1,0)),
-    NEG_Z(new Vec3i(0, 0, -1),  new QuadMesh(new Vec3i(1, 0, 0), new Vec3i(0, 0, 0), new Vec3i(1, 1, 0), new Vec3i(0, 1, 0)), new Vec3i(-1,0,0), new Vec3i(0,1,0));
+    POS_X(new Vec3i(1, 0, 0),   new QuadMesh(new Vec3i(1, 0, 1), new Vec3i(1, 0, 0), new Vec3i(1, 1, 1), new Vec3i(1, 1, 0), new Vec3i(0,0,-1), new Vec3i(0,1,0))),
+    NEG_X(new Vec3i(-1, 0, 0),  new QuadMesh(new Vec3i(0, 0, 0), new Vec3i(0, 0, 1), new Vec3i(0, 1, 0), new Vec3i(0, 1, 1), new Vec3i(0,0,1), new Vec3i(0,1,0))),
+    POS_Y(new Vec3i(0, 1, 0),   new QuadMesh(new Vec3i(0, 1, 1), new Vec3i(1, 1 ,1), new Vec3i(0, 1, 0), new Vec3i(1, 1, 0), new Vec3i(1,0,0), new Vec3i(0,0,-1))),
+    NEG_Y(new Vec3i(0, -1, 0),  new QuadMesh(new Vec3i(1, 0, 1), new Vec3i(0, 0, 1), new Vec3i(1, 0, 0), new Vec3i(0, 0, 0), new Vec3i(1,0,0), new Vec3i(0,0,1))),
+    POS_Z(new Vec3i(0, 0, 1),   new QuadMesh(new Vec3i(0, 0, 1), new Vec3i(1, 0, 1), new Vec3i(0, 1, 1), new Vec3i(1, 1, 1), new Vec3i(1,0,0), new Vec3i(0,1,0))),
+    NEG_Z(new Vec3i(0, 0, -1),  new QuadMesh(new Vec3i(1, 0, 0), new Vec3i(0, 0, 0), new Vec3i(1, 1, 0), new Vec3i(0, 1, 0), new Vec3i(-1,0,0), new Vec3i(0,1,0)));
 
-    private final Vec3i    axis, tangent, bitangent;
+    private final Vec3i    axis;
 
     private final QuadMesh unitQuad;
 
-    Direction(Vec3i axis, QuadMesh unitQuad, Vec3i tangent, Vec3i bitangent) {
+    Direction(Vec3i axis, QuadMesh unitQuad) {
         this.axis = axis;
         this.unitQuad = unitQuad;
-        this.tangent = tangent;
-        this.bitangent = bitangent;
     }
 
     public Vec3i getAxis() {
         return axis;
     }
-
-    public Vec3i getTangent() { return tangent; }
-
-    public Vec3i getBitangent() { return bitangent; }
 
     public QuadMesh getUnitQuad() {
         return unitQuad;
@@ -57,28 +51,6 @@ public enum Direction {
         }
 
         return nearest;
-    }
-
-    public static Direction negate(Direction direction) {
-        if(direction.equals(POS_X)) {
-            return NEG_X;
-        }
-        if(direction.equals(NEG_X)) {
-            return POS_X;
-        }
-        if(direction.equals(POS_Y)) {
-            return NEG_Y;
-        }
-        if(direction.equals(NEG_Y)) {
-            return POS_Y;
-        }
-        if(direction.equals(POS_Z)) {
-            return NEG_Z;
-        }
-        if(direction.equals(NEG_Z)) {
-            return POS_Z;
-        }
-        return null;
     }
 
 }

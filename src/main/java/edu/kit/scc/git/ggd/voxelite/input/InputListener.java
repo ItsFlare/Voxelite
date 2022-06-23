@@ -89,7 +89,7 @@ public class InputListener {
         if(intersection == null) return;
 
         switch (event.button()) {
-            case GLFW.GLFW_MOUSE_BUTTON_LEFT -> RenderChunk.aoByte(intersection.voxel(), intersection.normal(), true);
+            case GLFW.GLFW_MOUSE_BUTTON_LEFT -> intersection.voxel().setBlock(Block.AIR);
             case GLFW.GLFW_MOUSE_BUTTON_MIDDLE -> intersection.voxel().getNeighbor(intersection.normal()).setBlock(Block.TNT);
             case GLFW.GLFW_MOUSE_BUTTON_RIGHT -> intersection.voxel().getNeighbor(intersection.normal()).setBlock(Block.GLOWSTONE);
         }

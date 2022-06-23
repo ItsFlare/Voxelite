@@ -20,8 +20,8 @@ public class ChunkProgram extends Program {
         for (int i = 0; i < Direction.values().length; i++) {
             final Direction direction = Direction.values()[i];
             final Vec3i normal = direction.getAxis();
-            final Vec3i tangent = direction.getTangent();
-            final Vec3i bitangent = direction.getBitangent();
+            final Vec3i tangent = direction.getUnitQuad().tangent();
+            final Vec3i bitangent = direction.getUnitQuad().bitangent();
 
             QUAD_VERTICES[i * 4 + 0] = new QuadVertex(direction.getUnitQuad().v0(), new Vec2i(0, 0), normal, tangent, bitangent);
             QUAD_VERTICES[i * 4 + 1] = new QuadVertex(direction.getUnitQuad().v1(), new Vec2i(1, 0), normal, tangent, bitangent);
