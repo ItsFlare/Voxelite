@@ -26,7 +26,7 @@ public class TransparentSlice extends Slice {
             });
 
             aoBuffer.use(() -> {
-                vertexArray.set(PROGRAM.ao, ChunkProgram.AOVertex.AO, aoBuffer, 4);
+                vertexArray.set(PROGRAM.ao, ChunkProgram.AOVertex.AO, aoBuffer, 1);
             });
 
             lightBuffer.use(() -> {

@@ -10,12 +10,11 @@ import net.durchholz.beacon.render.opengl.buffers.*;
 import net.durchholz.beacon.render.opengl.shader.Program;
 import net.durchholz.beacon.render.opengl.shader.Shader;
 import net.durchholz.beacon.render.opengl.shader.Uniform;
-import org.apache.logging.log4j.core.appender.rolling.action.IfNot;
 
 public class ChunkProgram extends Program {
 
-    public static final QuadVertex[] QUAD_VERTICES = new QuadVertex[Direction.values().length * 4];
-    public static final VertexBuffer<QuadVertex> QUAD_VB = new VertexBuffer<>(QuadVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
+    public static final QuadVertex[]             QUAD_VERTICES = new QuadVertex[Direction.values().length * 4];
+    public static final VertexBuffer<QuadVertex> QUAD_VB       = new VertexBuffer<>(QuadVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
 
     static {
         for (int i = 0; i < Direction.values().length; i++) {
@@ -38,9 +37,9 @@ public class ChunkProgram extends Program {
     }
 
 
-    public final Attribute<Integer> data  = attribute("data", OpenGL.Type.INT, 1);
-    public final Attribute<Integer> light = attribute("light", OpenGL.Type.INT, 1);
-    public final Attribute<Integer> ao = attribute("ao", OpenGL.Type.INT, 1);
+    public final Attribute<Integer> data  = attribute("data", OpenGL.Type.UNSIGNED_INT, 1);
+    public final Attribute<Integer> light = attribute("light", OpenGL.Type.UNSIGNED_INT, 1);
+    public final Attribute<Byte>    ao    = attribute("ao", OpenGL.Type.UNSIGNED_INT, 1);
 
 
     public final Uniform<Matrix4f> mvp                  = uniMatrix4f("mvp", true);
@@ -66,11 +65,11 @@ public class ChunkProgram extends Program {
     public final Uniform<Integer>  cascadeDebug         = uniInteger("cascadeDebug");
     public final Uniform<Integer>  kernel               = uniInteger("kernel");
 
-    public final Uniform<Integer>  normalMap            = uniInteger("normalMapSet");
+    public final Uniform<Integer> normalMap = uniInteger("normalMapSet");
 
-    public final Uniform<Integer>  fogSet               = uniInteger("fogSet");
+    public final Uniform<Integer> fogSet = uniInteger("fogSet");
 
-    public final Uniform<Integer>  aoSet                = uniInteger("aoSet");
+    public final Uniform<Integer> aoSet = uniInteger("aoSet");
 
     public record QuadVertex(Vec3i position, Vec2i texture, Vec3i normal, Vec3i tangent, Vec3i bitangent) implements Vertex {
         public static final VertexLayout<QuadVertex> LAYOUT   = new VertexLayout<>(QuadVertex.class);
@@ -108,9 +107,9 @@ public class ChunkProgram extends Program {
         }
     }
 
-    public record AOVertex(int ao) implements Vertex {
+    public record AOVertex(byte ao) implements Vertex {
         public static final VertexLayout<AOVertex> LAYOUT = new VertexLayout<>(AOVertex.class);
-        public static final VertexAttribute<Integer> AO = LAYOUT.primitive(false);
+        public static final VertexAttribute<Byte>  AO     = LAYOUT.primitive(false);
 
         @Override
         public VertexLayout<AOVertex> getLayout() {

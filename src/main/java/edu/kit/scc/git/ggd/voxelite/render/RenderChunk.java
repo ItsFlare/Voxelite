@@ -9,12 +9,15 @@ import edu.kit.scc.git.ggd.voxelite.world.Voxel;
 import net.durchholz.beacon.math.Vec2i;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Objects;
 
 public class RenderChunk {
-    public static final int FULL_VISIBILITY = (1 << Direction.values().length) - 1;
+    public static final int    FULL_VISIBILITY = (1 << Direction.values().length) - 1;
+    public static final Logger LOGGER          = LoggerFactory.getLogger(RenderChunk.class);
 
     private final Chunk   chunk;
     private final Slice[] slices = new Slice[RenderType.values().length];
@@ -179,7 +182,7 @@ public class RenderChunk {
     }
 
 
-    public static int aoByte(Voxel voxel, Direction direction, boolean bool) {
+    public static byte aoByte(Voxel voxel, Direction direction, boolean bool) {
         Direction sideDirection;
         Direction upDirection;
 
@@ -264,7 +267,7 @@ public class RenderChunk {
 
 
 
-        int result = 0;
+        byte result = 0;
 
         /*result |= v0;
         result |= v1 << 2;
@@ -277,11 +280,11 @@ public class RenderChunk {
         result |= v2 << 6;
 
         if (bool) {
-            System.out.println("v0:" + rightSide.getBlock()+ " " + bottomSide.getBlock() + " " + bottomRightCorner.getBlock());
-            System.out.println("v1:" + leftSide.getBlock() + " " + bottomSide.getBlock() + " " + bottomLeftCorner.getBlock());
-            System.out.println("v2:" + rightSide.getBlock() + " " + topSide.getBlock() + " " + topRightCorner.getBlock());
-            System.out.println("v3:" + leftSide.getBlock() + " " + topSide.getBlock() + " " + topLeftCorner.getBlock());
-            System.out.println("v0:" + v0 + " v1:" + v1 + " v2:" + v2 + " v3:" + v3 + " result:" + result + " direction:" + direction);
+            LOGGER.debug("v0:" + rightSide.getBlock()+ " " + bottomSide.getBlock() + " " + bottomRightCorner.getBlock());
+            LOGGER.debug("v1:" + leftSide.getBlock() + " " + bottomSide.getBlock() + " " + bottomLeftCorner.getBlock());
+            LOGGER.debug("v2:" + rightSide.getBlock() + " " + topSide.getBlock() + " " + topRightCorner.getBlock());
+            LOGGER.debug("v3:" + leftSide.getBlock() + " " + topSide.getBlock() + " " + topLeftCorner.getBlock());
+            LOGGER.debug("v0:" + v0 + " v1:" + v1 + " v2:" + v2 + " v3:" + v3 + " result:" + result + " direction:" + direction);
         }
 
         //System.out.println(num);

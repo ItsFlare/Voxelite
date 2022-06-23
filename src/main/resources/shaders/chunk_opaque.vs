@@ -26,7 +26,7 @@ uniform float normalizedSpriteSize;
 uniform int maxLightValue;
 uniform mat4 lightView;
 
-const float[] aoMap = {0.5, 0.7, 0.9, 1};
+const float aoMap[4] = float[4](0.5, 0.7, 0.9, 1);
 
 void main() {
     vec3 T = normalize(vec3(tangent));
@@ -43,15 +43,10 @@ void main() {
     ivec3 vp = chunk + pos + ivec3(x, y, z);
     gl_Position = mvp * vec4(vp, 1);
 
-    uint byteIndex = gl_InstanceID % 4;
-    uint byteShift = (byteIndex << 3); // equivalent to byteIndex * 8
-    uint byteMask = 255 << byteShift;
-    uint aoByte = (ao & byteMask) >> byteShift;
-
     uint bitIndex = gl_VertexID % 4;
     uint bitShift = (bitIndex << 1);
     uint bitMask = 3 << bitShift;
-    uint aoBit = (aoByte & bitMask) >> bitShift;
+    uint aoBit = (ao & bitMask) >> bitShift;
 
     TBN = mat3(T,B,N);
     Tex = vec2(ivec2(u, v) + tex) * normalizedSpriteSize;

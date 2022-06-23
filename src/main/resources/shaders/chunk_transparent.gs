@@ -29,7 +29,7 @@ uniform ivec2 texCoords[6 * 4];
 
 uniform int visibility;
 
-const float[] aoMap = {0.25, 0.5, 0.75, 1};
+const float aoMap[4] = float[4](0.5, 0.7, 0.9, 1);
 
 void main() {
     uint data = Data[0];
