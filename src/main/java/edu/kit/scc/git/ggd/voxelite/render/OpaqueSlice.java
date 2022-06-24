@@ -40,6 +40,10 @@ public class OpaqueSlice extends Slice {
                 vertexArray.set(PROGRAM.data, ChunkProgram.InstanceVertex.DATA, instanceBuffer, 1);
             });
 
+            aoBuffer.use(() -> {
+                vertexArray.set(PROGRAM.ao, ChunkProgram.AOVertex.AO, aoBuffer, 1);
+            });
+
             lightBuffer.use(() -> {
                 vertexArray.set(PROGRAM.light, ChunkProgram.InstanceLightVertex.LIGHT, lightBuffer, 1);
             });
@@ -67,6 +71,7 @@ public class OpaqueSlice extends Slice {
         var queuedQuads = queue.stream().sorted(Comparator.comparingInt(value -> value.direction().ordinal())).toList();
 
         this.nextVertices = toInstanceVertices(queuedQuads);
+        this.nextAOVertices = toAOVertices(queuedQuads);
         this.nextLightVertices = toLightVertices(queuedQuads);
         this.nextCommands = generateCommands();
 

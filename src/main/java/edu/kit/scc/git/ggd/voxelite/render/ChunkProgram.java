@@ -1,11 +1,6 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
-import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
-import edu.kit.scc.git.ggd.voxelite.util.Util;
-import edu.kit.scc.git.ggd.voxelite.world.Chunk;
-import edu.kit.scc.git.ggd.voxelite.world.LightStorage;
-import net.durchholz.beacon.data.IntVector;
 import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec2i;
 import net.durchholz.beacon.math.Vec3f;
@@ -18,15 +13,15 @@ import net.durchholz.beacon.render.opengl.shader.Uniform;
 
 public class ChunkProgram extends Program {
 
-    public static final QuadVertex[] QUAD_VERTICES = new QuadVertex[Direction.values().length * 4];
-    public static final VertexBuffer<QuadVertex> QUAD_VB = new VertexBuffer<>(QuadVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
+    public static final QuadVertex[]             QUAD_VERTICES = new QuadVertex[Direction.values().length * 4];
+    public static final VertexBuffer<QuadVertex> QUAD_VB       = new VertexBuffer<>(QuadVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
 
     static {
         for (int i = 0; i < Direction.values().length; i++) {
             final Direction direction = Direction.values()[i];
             final Vec3i normal = direction.getAxis();
-            final Vec3i tangent = direction.getTangent();
-            final Vec3i bitangent = direction.getBitangent();
+            final Vec3i tangent = direction.getUnitQuad().tangent();
+            final Vec3i bitangent = direction.getUnitQuad().bitangent();
 
             QUAD_VERTICES[i * 4 + 0] = new QuadVertex(direction.getUnitQuad().v0(), new Vec2i(0, 0), normal, tangent, bitangent);
             QUAD_VERTICES[i * 4 + 1] = new QuadVertex(direction.getUnitQuad().v1(), new Vec2i(1, 0), normal, tangent, bitangent);
@@ -42,10 +37,13 @@ public class ChunkProgram extends Program {
     }
 
 
-    public final Attribute<Integer> data  = attribute("data", OpenGL.Type.INT, 1);
-    public final Attribute<Integer> light = attribute("light", OpenGL.Type.INT, 1);
+    public final Attribute<Integer> data  = attribute("data", OpenGL.Type.UNSIGNED_INT, 1);
+    public final Attribute<Integer> light = attribute("light", OpenGL.Type.UNSIGNED_INT, 1);
+    public final Attribute<Byte>    ao    = attribute("ao", OpenGL.Type.UNSIGNED_INT, 1);
+
 
     public final Uniform<Matrix4f> mvp                  = uniMatrix4f("mvp", true);
+    public final Uniform<Matrix4f> viewMatrix           = uniMatrix4f("viewMatrix", true);
     public final Uniform<Vec3i>    chunk                = uniVec3i("chunk");
     public final Sampler           atlas                = sampler("atlas");
     public final Sampler           shadowMap            = sampler("shadowMap");
@@ -67,7 +65,11 @@ public class ChunkProgram extends Program {
     public final Uniform<Integer>  cascadeDebug         = uniInteger("cascadeDebug");
     public final Uniform<Integer>  kernel               = uniInteger("kernel");
 
-    public final Uniform<Integer>  normalMap            = uniInteger("normalMapSet");
+    public final Uniform<Integer> normalMap = uniInteger("normalMapSet");
+
+    public final Uniform<Integer> fogSet = uniInteger("fogSet");
+
+    public final Uniform<Integer> aoSet = uniInteger("aoSet");
 
     public record QuadVertex(Vec3i position, Vec2i texture, Vec3i normal, Vec3i tangent, Vec3i bitangent) implements Vertex {
         public static final VertexLayout<QuadVertex> LAYOUT   = new VertexLayout<>(QuadVertex.class);
@@ -101,6 +103,16 @@ public class ChunkProgram extends Program {
 
         @Override
         public VertexLayout<InstanceLightVertex> getLayout() {
+            return LAYOUT;
+        }
+    }
+
+    public record AOVertex(byte ao) implements Vertex {
+        public static final VertexLayout<AOVertex> LAYOUT = new VertexLayout<>(AOVertex.class);
+        public static final VertexAttribute<Byte>  AO     = LAYOUT.primitive(false);
+
+        @Override
+        public VertexLayout<AOVertex> getLayout() {
             return LAYOUT;
         }
     }

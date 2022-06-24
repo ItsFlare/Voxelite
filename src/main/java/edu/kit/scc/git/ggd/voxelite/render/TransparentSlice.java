@@ -25,6 +25,10 @@ public class TransparentSlice extends Slice {
                 vertexArray.set(PROGRAM.data, ChunkProgram.InstanceVertex.DATA, instanceBuffer, 0);
             });
 
+            aoBuffer.use(() -> {
+                vertexArray.set(PROGRAM.ao, ChunkProgram.AOVertex.AO, aoBuffer, 1);
+            });
+
             lightBuffer.use(() -> {
                 vertexArray.set(PROGRAM.light, ChunkProgram.InstanceLightVertex.LIGHT, lightBuffer, 0);
             });
@@ -50,6 +54,7 @@ public class TransparentSlice extends Slice {
         var queuedQuads = sortQuads();
 
         this.nextVertices = toInstanceVertices(queuedQuads);
+        this.nextAOVertices = toAOVertices(queuedQuads);
         this.nextLightVertices = toLightVertices(queuedQuads);
 
         queue.clear();
@@ -71,10 +76,15 @@ public class TransparentSlice extends Slice {
         var queuedQuads = sortQuads();
 
         var v = toInstanceVertices(queuedQuads);
+        var ao = toAOVertices(queuedQuads);
         var l = toLightVertices(queuedQuads);
 
         instanceBuffer.use(() -> {
             instanceBuffer.data(v);
+        });
+
+        aoBuffer.use(() -> {
+            aoBuffer.data(ao);
         });
 
         lightBuffer.use(() -> {

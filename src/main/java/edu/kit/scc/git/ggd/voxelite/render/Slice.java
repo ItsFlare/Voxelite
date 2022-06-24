@@ -13,16 +13,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class Slice {
-    protected final     RenderType                                     renderType;
-    protected final     VertexArray                                    vertexArray       = new VertexArray();
-    protected final     VertexArray                                    shadowVertexArray = new VertexArray();
-    protected final     VertexBuffer<ChunkProgram.InstanceVertex>      instanceBuffer    = new VertexBuffer<>(ChunkProgram.InstanceVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
-    protected final     VertexBuffer<ChunkProgram.InstanceLightVertex> lightBuffer       = new VertexBuffer<>(ChunkProgram.InstanceLightVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
+    protected final RenderType                                renderType;
+    protected final VertexArray                               vertexArray       = new VertexArray();
+    protected final VertexArray                               shadowVertexArray = new VertexArray();
+    protected final VertexBuffer<ChunkProgram.InstanceVertex> instanceBuffer    = new VertexBuffer<>(ChunkProgram.InstanceVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
 
-    protected List<QueuedQuad>                   queue = new ArrayList<>();
-    protected ChunkProgram.InstanceVertex[]      nextVertices;
+    protected final VertexBuffer<ChunkProgram.AOVertex>            aoBuffer    = new VertexBuffer<>(ChunkProgram.AOVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
+    protected final VertexBuffer<ChunkProgram.InstanceLightVertex> lightBuffer = new VertexBuffer<>(ChunkProgram.InstanceLightVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
+
+    protected List<QueuedQuad>              queue = new ArrayList<>();
+    protected ChunkProgram.InstanceVertex[] nextVertices;
+
+    protected ChunkProgram.AOVertex[]            nextAOVertices;
     protected ChunkProgram.InstanceLightVertex[] nextLightVertices;
-    protected int quadCount;
+    protected int                                quadCount;
 
     public Slice(RenderType renderType) {
         this.renderType = renderType;
@@ -47,9 +51,14 @@ public abstract class Slice {
     public synchronized void upload() {
         if (nextVertices == null) return;
         assert nextVertices.length == nextLightVertices.length;
+        assert nextVertices.length == nextAOVertices.length;
 
         instanceBuffer.use(() -> {
             instanceBuffer.data(nextVertices);
+        });
+
+        aoBuffer.use(() -> {
+            aoBuffer.data(nextAOVertices);
         });
 
         lightBuffer.use(() -> {
@@ -58,12 +67,14 @@ public abstract class Slice {
 
         this.quadCount = nextVertices.length;
         this.nextVertices = null;
+        this.nextAOVertices = null;
         this.nextLightVertices = null;
     }
 
     public void delete() {
         vertexArray.delete();
         instanceBuffer.delete();
+        aoBuffer.delete();
         lightBuffer.delete();
     }
 
@@ -81,6 +92,12 @@ public abstract class Slice {
         return queuedQuads.stream()
                 .map(queuedQuad -> new ChunkProgram.InstanceVertex(packInstance(queuedQuad)))
                 .toArray(ChunkProgram.InstanceVertex[]::new);
+    }
+
+    protected static ChunkProgram.AOVertex[] toAOVertices(List<QueuedQuad> queuedQuads) {
+        return queuedQuads.stream()
+                .map(queuedQuad -> new ChunkProgram.AOVertex(queuedQuad.ao))
+                .toArray(ChunkProgram.AOVertex[]::new);
     }
 
     public static int packInstance(QueuedQuad queuedQuad) {
@@ -126,7 +143,7 @@ public abstract class Slice {
         return result;
     }
 
-    record QueuedQuad(Direction direction, Vec3i position, Vec2i texture, Vec3i light) {}
+    record QueuedQuad(Direction direction, Vec3i position, Vec2i texture, Vec3i light, byte ao) {}
 
     record Command(int commands, int offset) {}
 }

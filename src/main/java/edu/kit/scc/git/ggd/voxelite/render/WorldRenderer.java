@@ -42,7 +42,7 @@ public class WorldRenderer {
     public Vec4f             lightColor      = new Vec4f(1);
     public float             ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f;
     public int phongExponent = 32, uploadRate = 5;
-    public boolean directionCull = true, backfaceCull = true, dotCull = true, frustumCull = true, caveCull = true, occlusionCull = true, shadows = true, shadowTransform = false, transparentSort = true, normalMap = true;
+    public boolean directionCull = true, backfaceCull = true, dotCull = true, frustumCull = true, caveCull = true, occlusionCull = true, shadows = true, shadowTransform = false, transparentSort = true, normalMap = true, fog = true, ao = true;
     public int emptyCount, frustumCullCount, dotCullCount, caveCullCount, occlusionCullCount, totalCullCount;
     public int occlusionCullThreshold;
 
@@ -104,6 +104,7 @@ public class WorldRenderer {
         final Vec3f cameraDirection = camera.getDirection();
 
         final Matrix4f mvp = camera.transform();
+        final Matrix4f viewMatrix = camera.view(true, true);
         final Frustum frustum = new Frustum(camera.getPosition(), mvp);
 
         final Vec3f lightDirection = Main.INSTANCE.getWorld().getSunlightDirection();
@@ -159,6 +160,7 @@ public class WorldRenderer {
             final ChunkProgram program = renderType.getProgram();
             program.use(() -> {
                 program.mvp.set(shadowTransform ? shadowMapRenderer.lightTransform(frustumNumber, lightDirection) : mvp);
+                program.viewMatrix.set(viewMatrix);
                 program.atlas.bind(0, atlas);
                 program.camera.set(cameraPosition);
                 program.lightColor.set(new Vec3f(lightColor.x(), lightColor.y(), lightColor.z()));
@@ -177,6 +179,8 @@ public class WorldRenderer {
                 program.shadows.set(shadows && !shadowTransform ? 1 : 0);
                 program.constantBias.set(shadowMapRenderer.constantBias);
                 program.normalMap.set(normalMap ? 1 : 0);
+                program.fogSet.set(fog ? 1 : 0);
+                program.aoSet.set(ao ? 1 : 0);
 
 
                 program.cascadeScales.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::scale).toArray(Vec3f[]::new));
