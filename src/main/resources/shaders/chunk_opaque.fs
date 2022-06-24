@@ -4,8 +4,8 @@ in vec3 Pos;
 flat in ivec3 Normal;
 in vec4 BlockLight;
 in vec3 LightSpacePos;
-in mat3 TBN;
-in vec4 eyeSpacePosition;
+in vec3 ViewSpacePos;
+flat in mat3 TBN;
 in float aoFactor;
 
 out vec4 FragColor;
@@ -40,7 +40,7 @@ uniform int kernel;
 uniform int cascadeDebug;
 float kernelFactor = 1 / pow(kernel * 2 + 1, 2);
 
-vec3 debugColor;
+vec3 debugColor = vec3(0);
 
 float ShadowCalculation(vec3 fragPosLightSpace) {
     int c;
@@ -103,24 +103,28 @@ float getFogFactor(float fogCoordinate) {
 }
 
 void main() {
-    vec3 normalMap = texture(atlas, vec3(Tex,1)).rgb;
-    normalMap = normalMap * 2 - 1;
-    normalMap = normalize(TBN * normalMap);
-    float ao = (aoSet == 0) ? 1 : aoFactor;
 
-    float fogCoordinate = abs(eyeSpacePosition.z / eyeSpacePosition.w);
-    vec4  fog_colour = vec4(0.4, 0.4, 0.4, 1.0);
-
-    if(normalMapSet == 0) {
-        normalMap = Normal;
+    vec3 n;
+    if(normalMapSet == 1) {
+        n = texture(atlas, vec3(Tex,1)).rgb;
+        n = n * 2 - 1;
+        n = normalize(TBN * n);
+    } else {
+        n = Normal;
     }
 
-    vec4 t = texture(atlas, vec3(Tex,0));
-    FragColor = (vec4(DirectionalLight(normalMap, normalize(camera - Pos)), 1) + BlockLight) * t * ao;
+    vec4 t = texture(atlas, vec3(Tex, 0));
+    vec4 l = vec4(DirectionalLight(n, normalize(camera - Pos)), 1) + BlockLight;
+    FragColor = l * t;
+
+    float ao = (aoSet == 0) ? 1 : aoFactor;
+    FragColor.rgb *= ao;
 
     if(cascadeDebug == 1) FragColor += vec4(debugColor, 1);
 
     if(fogSet == 1) {
-        FragColor = mix(FragColor, fog_colour, getFogFactor(fogCoordinate));
+        float fogCoordinate = abs(ViewSpacePos.z);
+        vec4  fogColor = vec4(0.4, 0.4, 0.4, 1.0);
+        FragColor = mix(FragColor, fogColor, getFogFactor(fogCoordinate));
     }
 }

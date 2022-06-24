@@ -42,9 +42,9 @@ public class ChunkProgram extends Program {
     public final Attribute<Byte>    ao    = attribute("ao", OpenGL.Type.UNSIGNED_INT, 1);
 
 
-    public final Uniform<Matrix4f> mvp                  = uniMatrix4f("mvp", true);
-    public final Uniform<Matrix4f> viewMatrix           = uniMatrix4f("viewMatrix", true);
-    public final Uniform<Vec3i>    chunk                = uniVec3i("chunk");
+    public final Uniform<Matrix4f> mvp   = uniMatrix4f("mvp", true);
+    public final Uniform<Matrix4f> view  = uniMatrix4f("view", true);
+    public final Uniform<Vec3i>    chunk = uniVec3i("chunk");
     public final Sampler           atlas                = sampler("atlas");
     public final Sampler           shadowMap            = sampler("shadowMap");
     public final Uniform<Vec3f>    camera               = uniVec3f("camera");

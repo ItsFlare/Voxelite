@@ -160,7 +160,7 @@ public class WorldRenderer {
             final ChunkProgram program = renderType.getProgram();
             program.use(() -> {
                 program.mvp.set(shadowTransform ? shadowMapRenderer.lightTransform(frustumNumber, lightDirection) : mvp);
-                program.viewMatrix.set(viewMatrix);
+                program.view.set(viewMatrix);
                 program.atlas.bind(0, atlas);
                 program.camera.set(cameraPosition);
                 program.lightColor.set(new Vec3f(lightColor.x(), lightColor.y(), lightColor.z()));

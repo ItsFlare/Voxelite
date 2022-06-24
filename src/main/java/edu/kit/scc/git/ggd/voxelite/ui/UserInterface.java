@@ -65,7 +65,8 @@ public class UserInterface {
             var ticksPerDay = new IntSliderElement("Day Length", 2000, 200, 20000, value -> Main.ticksPerDay = value);
 
 
-            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe, normalMap, fog, ao, ImGui::sameLine, transparentSort,
+            this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe,
+                    normalMap, ImGui::sameLine, fog, ImGui::sameLine, ao, ImGui::sameLine, transparentSort,
                     ticksPerDay
             );
         }

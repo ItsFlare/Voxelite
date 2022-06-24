@@ -6,13 +6,11 @@ in uint ao;
 out uint Data;
 out uint Light;
 out uint AO;
-out uint BYTEINDEX;
-out uint BITINDEX;
+out uint AO_SHIFT;
 
 void main() {
     Data = data;
     Light = light;
     AO = ao;
-    BYTEINDEX = gl_InstanceID % 4;
-    BITINDEX = gl_VertexID % 4;
+    AO_SHIFT = (gl_VertexID & 3) << 1;
 }

@@ -9,18 +9,17 @@ in uint ao;
 in ivec3 tangent;
 in ivec3 bitangent;
 
-
 out vec2 Tex;
 out vec3 Pos;
 flat out ivec3 Normal;
 out vec4 BlockLight;
+out vec3 ViewSpacePos;
 out vec3 LightSpacePos;
-out mat3 TBN;
-out vec4 eyeSpacePosition;
+flat out mat3 TBN;
 out float aoFactor;
 
 uniform mat4 mvp;
-uniform mat4 viewMatrix;
+uniform mat4 view;
 uniform ivec3 chunk;
 uniform float normalizedSpriteSize;
 uniform int maxLightValue;
@@ -43,17 +42,12 @@ void main() {
     ivec3 vp = chunk + pos + ivec3(x, y, z);
     gl_Position = mvp * vec4(vp, 1);
 
-    uint bitIndex = gl_VertexID % 4;
-    uint bitShift = (bitIndex << 1);
-    uint bitMask = 3 << bitShift;
-    uint aoBit = (ao & bitMask) >> bitShift;
-
-    TBN = mat3(T,B,N);
+    TBN = mat3(T, B, N);
     Tex = vec2(ivec2(u, v) + tex) * normalizedSpriteSize;
     Pos = vec3(vp);
     Normal = normal;
-    eyeSpacePosition = viewMatrix * vec4(vp, 1);
     BlockLight = vec4(light >> 20, (light >> 10) & uint(0x3ff), light & uint(0x3ff), 0) / maxLightValue;
+    ViewSpacePos = (view * vec4(vp, 1)).xyz;
     LightSpacePos = (lightView * vec4(vp, 1)).xyz;
-    aoFactor = aoMap[aoBit];
+    aoFactor = aoMap[(ao >> ((gl_VertexID & 3) << 1)) & 3u];
 }

@@ -192,6 +192,7 @@ public class RenderChunk {
         } else {
             sideDirection = Direction.POS_X;
         }
+
         if(direction == Direction.POS_Y || direction == Direction.NEG_Y) {
             upDirection = direction == Direction.POS_Y ? Direction.NEG_Z : Direction.POS_Z;
         } else {
@@ -206,36 +207,36 @@ public class RenderChunk {
         Voxel bottomLeftCorner;
         Voxel topRightCorner;
         Voxel topLeftCorner;
-        Voxel neighbour1;
-        Voxel neighbour2;
+        Voxel neighbor1;
+        Voxel neighbor2;
 
-        neighbour1 = voxel.getNeighbor(upDirection.getOpposite());
-        bottomSide = neighbour1 == null ? null : neighbour1.getNeighbor(direction);
+        neighbor1 = voxel.getNeighbor(upDirection.getOpposite());
+        bottomSide = neighbor1 == null ? null : neighbor1.getNeighbor(direction);
 
-        neighbour1 = voxel.getNeighbor(upDirection);
-        topSide = neighbour1 == null ? null : neighbour1.getNeighbor(direction);
+        neighbor1 = voxel.getNeighbor(upDirection);
+        topSide = neighbor1 == null ? null : neighbor1.getNeighbor(direction);
 
-        neighbour1 = voxel.getNeighbor(sideDirection);
-        rightSide = neighbour1 == null ? null : neighbour1.getNeighbor(direction);
+        neighbor1 = voxel.getNeighbor(sideDirection);
+        rightSide = neighbor1 == null ? null : neighbor1.getNeighbor(direction);
 
-        neighbour1 = voxel.getNeighbor(sideDirection.getOpposite());
-        leftSide = neighbour1 == null ? null : neighbour1.getNeighbor(direction);
+        neighbor1 = voxel.getNeighbor(sideDirection.getOpposite());
+        leftSide = neighbor1 == null ? null : neighbor1.getNeighbor(direction);
 
-        neighbour1 = voxel.getNeighbor(sideDirection);
-        neighbour2 = neighbour1 == null ? null : neighbour1.getNeighbor(direction);
-        bottomRightCorner = neighbour2 == null ? null : neighbour2.getNeighbor(upDirection.getOpposite());
+        neighbor1 = voxel.getNeighbor(sideDirection);
+        neighbor2 = neighbor1 == null ? null : neighbor1.getNeighbor(direction);
+        bottomRightCorner = neighbor2 == null ? null : neighbor2.getNeighbor(upDirection.getOpposite());
 
-        neighbour1 = voxel.getNeighbor(sideDirection.getOpposite());
-        neighbour2 = neighbour1 == null ? null : neighbour1.getNeighbor(direction);
-        bottomLeftCorner = neighbour2 == null ? null : neighbour2.getNeighbor(upDirection.getOpposite());
+        neighbor1 = voxel.getNeighbor(sideDirection.getOpposite());
+        neighbor2 = neighbor1 == null ? null : neighbor1.getNeighbor(direction);
+        bottomLeftCorner = neighbor2 == null ? null : neighbor2.getNeighbor(upDirection.getOpposite());
 
-        neighbour1 = voxel.getNeighbor(sideDirection);
-        neighbour2 = neighbour1 == null ? null : neighbour1.getNeighbor(direction);
-        topRightCorner = neighbour2 == null ? null : neighbour2.getNeighbor(upDirection);
+        neighbor1 = voxel.getNeighbor(sideDirection);
+        neighbor2 = neighbor1 == null ? null : neighbor1.getNeighbor(direction);
+        topRightCorner = neighbor2 == null ? null : neighbor2.getNeighbor(upDirection);
 
-        neighbour1 = voxel.getNeighbor(sideDirection.getOpposite());
-        neighbour2 = neighbour1 == null ? null : neighbour1.getNeighbor(direction);
-        topLeftCorner = neighbour2 == null ? null : neighbour2.getNeighbor(upDirection);
+        neighbor1 = voxel.getNeighbor(sideDirection.getOpposite());
+        neighbor2 = neighbor1 == null ? null : neighbor1.getNeighbor(direction);
+        topLeftCorner = neighbor2 == null ? null : neighbor2.getNeighbor(upDirection);
 
         int v0 = vertexAO(
                 (rightSide == null || rightSide.getBlock().equals(Block.AIR)) ? 0 : 1,
