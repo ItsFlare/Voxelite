@@ -51,6 +51,9 @@ vec3 toScreenSpace(vec3 view) {
 const float MAX_DISTANCE = 50;
 const float RESOLUTION  = 0.3;
 const float EPSILON   = 0.5;
+const int SEARCH_STEPS = 30;
+const int MAX_STEPS = 10;
+const int RAY_STRIDE = 5;
 
 //Broken
 vec3 rayMarchScreen(vec3 position, vec3 direction) {
@@ -95,7 +98,7 @@ vec3 rayMarchScreen(vec3 position, vec3 direction) {
 vec3 search(vec3 position, vec3 direction) {
     float z;
 
-    for (int i = 0; i < 1; ++i){
+    for (int i = 0; i < SEARCH_STEPS; ++i){
         direction *= 0.8;
 
         z = SampleDepth(toScreenSpace(position).xy);
@@ -106,9 +109,9 @@ vec3 search(vec3 position, vec3 direction) {
     return vec3(toScreenSpace(position).xy, z);
 }
 vec3 rayMarchView(vec3 position, vec3 direction) {
-    direction *= 5;
+    direction *= RAY_STRIDE;
 
-    for(int i = 0; i < 10; i++) {
+    for(int i = 0; i < MAX_STEPS; i++) {
         position += direction;
         vec2 ss = toScreenSpace(position).xy;
         if(ss.y < 0 || ss.y > 1) break;
@@ -128,6 +131,16 @@ vec4 blend(vec2 uv) {
     vec4 o = texture(opaque, uv);
     vec4 t = texture(transparent, uv);
     return mix(o, t, t.a);
+}
+
+//Hermanns. Screen Space Cone Tracing for Glossy Reflections. 2015.
+float CalculateFade(vec2 hit) {
+    float I_end = 1;
+    float I_start = 0.01;
+    float D_boundary = length(hit.xy - vec2(0.5)) * 2;
+    float f_border = clamp((D_boundary - I_start) / (I_end - I_start), 0, 1);
+
+    return f_border;
 }
 
 void main() {
@@ -150,7 +163,7 @@ void main() {
     if(dot(vec3(0, 0, -1), rayDirection) > 0) {
         vec3 hit = rayMarchView(viewPos, rayDirection);
 
-        if(hit.z != 0) o = mix(blend(hit.xy), o, roughness);
+        if(hit.z != 0) o = mix(mix(blend(hit.xy), o, roughness), o, CalculateFade(hit.xy));
     }
 
 
