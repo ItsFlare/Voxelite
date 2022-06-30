@@ -25,6 +25,7 @@ uniform int phongExponent;
 uniform bool shadows;
 uniform bool normalMapSet;
 uniform bool fogSet;
+uniform int fogRange;
 
 uniform struct Light {
     vec3 direction;
@@ -98,11 +99,16 @@ vec3 DirectionalLight(vec3 normal, vec3 viewDirection) {
 }
 
 float getFogFactor(float fogCoordinate) {
-    float fogFactor;
-    float density = 0.05;
-    fogFactor = exp(-density * fogCoordinate);
-    fogFactor = 1.0 - clamp(fogFactor, 0.0, 1.0);
-    return fogFactor;
+    float density = 0.015;
+    float start = fogRange - 10;
+    float end = fogRange + 30;
+
+    if (fogCoordinate < start) {
+        return 0;
+    } else {
+
+        return clamp((fogCoordinate - start) / (end - start), 0, 1);
+    }
 }
 
 void main() {
@@ -123,7 +129,7 @@ void main() {
     if(cascadeDebug) color += debugColor;
 
     if(fogSet) {
-        float fogCoordinate = abs(ViewSpacePos.z);
+        float fogCoordinate = length(ViewSpacePos.xyz);
         vec3  fogColor = vec3(0.4, 0.4, 0.4);
         color = mix(color, fogColor, getFogFactor(fogCoordinate));
     }
