@@ -66,14 +66,8 @@ public class UserInterface {
             var frustumCapture = new CheckboxElement("Capture Frustum", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().captureFrustum = value);
             var ticksPerDay = new IntSliderElement("Day Length", 2000, 200, 20000, value -> Main.ticksPerDay = value);
             var roughness = new FloatSliderElement("Roughness Delta", 0, -2f, 2f, value -> Main.INSTANCE.getRenderer().getWorldRenderer().debugRoughness = value);
-            var reflections = new CheckboxElement("SSR", false, value -> {
-                final CompositeProgram program = CompositeRenderer.PROGRAM;
-                program.use(() -> program.reflections.set(value ? 1 : 0));
-            });
-            var coneTracing = new CheckboxElement("CT", false, value -> {
-                final CompositeProgram program = CompositeRenderer.PROGRAM;
-                program.use(() -> program.coneTracing.set(value ? 1 : 0));
-            });
+            var reflections = new CheckboxElement("SSR", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().reflections = value);
+            var coneTracing = new CheckboxElement("CT", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().coneTracing = value);
 
 
             this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe, ImGui::sameLine, transparentSort,
@@ -143,7 +137,7 @@ public class UserInterface {
             var caveCull = new CheckboxElement("Cave", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().caveCull = value);
             var dotCull = new CheckboxElement("Dot", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().dotCull = value);
             var frustumCull = new CheckboxElement("Frustum", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().frustumCull = value);
-            var occlusionCull = new CheckboxElement("Occlusion", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCull = value);
+            var occlusionCull = new CheckboxElement("Occlusion", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCull = value);
             var directionCull = new CheckboxElement("Direction", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().directionCull = value);
             var backfaceCull = new CheckboxElement("Backface", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().backfaceCull = value);
             var occlusionCullThreshold = new IntSliderElement("Occlusion Threshold", 0, 0, (Chunk.VOLUME * 6) / 2, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCullThreshold = value);

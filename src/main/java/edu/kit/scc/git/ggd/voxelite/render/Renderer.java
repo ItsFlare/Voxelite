@@ -95,7 +95,7 @@ public class Renderer {
         if (!viewport.equals(v)) {
             OpenGL.setViewport(v);
             viewport = v;
-            gBuffer.allocate(viewport.width(), viewport.height());
+            if(viewport.width() + viewport.height() > 0) gBuffer.allocate(viewport.width(), viewport.height());
         }
     }
 

@@ -50,7 +50,7 @@ public class WorldRenderer {
     public Vec4f             lightColor      = new Vec4f(1);
     public float             ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f, debugRoughness;
     public int phongExponent = 32, uploadRate = 5, sortRate = 5;
-    public boolean directionCull = true, backfaceCull = true, dotCull = true, frustumCull = true, caveCull = true, occlusionCull = true, shadows = true, shadowTransform = false, transparentSort = true, captureFrustum = false, debugFrustum = false, normalMap = true, fog = true, ao = true;
+    public boolean directionCull = true, backfaceCull = true, dotCull = true, frustumCull = true, caveCull = true, occlusionCull = false, shadows = true, shadowTransform = false, transparentSort = true, captureFrustum = false, debugFrustum = false, normalMap = true, fog = true, ao = true, reflections = true, coneTracing = false;
     public int emptyCount, frustumCullCount, dotCullCount, caveCullCount, occlusionCullCount, totalCullCount;
     public int occlusionCullThreshold;
 
@@ -246,14 +246,21 @@ public class WorldRenderer {
         {
             RenderType.TRANSPARENT.setPipelineState();
 
-            final ChunkProgram program = RenderType.TRANSPARENT.getProgram();
+            final TransparentChunkProgram program = (TransparentChunkProgram) RenderType.TRANSPARENT.getProgram(); //TODO Remove cast
             program.use(() -> {
                 setCommonUniforms(program, mvp, cameraPosition, lightDirection);
+                program.opaque.bind(2, gBuffer.opaque());
+                program.depth.bind(3, gBuffer.depth());
+                program.debugRoughness.set(debugRoughness);
+                program.reflections.set(reflections ? 1 : 0);
+                program.coneTracing.set(coneTracing ? 1 : 0);
+                program.projection.set(camera.projection());
 
                 for (int i = frameRenderInfo.size() - 1; i >= 0; i--) {
                     RenderInfo info = frameRenderInfo.get(i);
                     final RenderChunk renderChunk = info.chunk();
                     program.chunk.set(renderChunk.getChunk().getWorldPosition());
+
 
                     renderChunk.render(RenderType.TRANSPARENT, info.visibility());
                 }

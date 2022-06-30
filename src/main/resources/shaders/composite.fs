@@ -69,6 +69,7 @@ vec2 search(vec3 position, vec3 direction) {
 
     return toScreenSpace(position);
 }
+
 bool rayMarchView(vec3 position, vec3 direction, out vec2 hitPixel) {
     direction *= RAY_STRIDE;
 
