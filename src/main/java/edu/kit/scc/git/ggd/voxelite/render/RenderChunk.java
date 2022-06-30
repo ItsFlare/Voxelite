@@ -49,6 +49,14 @@ public class RenderChunk {
         occlusionQueryId = worldRenderer.getOcclusionRenderer().getQueries().add(query);
     }
 
+    public OpaqueSlice opaqueSlice() {
+        return (OpaqueSlice) slices[RenderType.OPAQUE.ordinal()];
+    }
+
+    public TransparentSlice transparentSlice() {
+        return (TransparentSlice) slices[RenderType.TRANSPARENT.ordinal()];
+    }
+
     public static int directionCull(Vec3f cameraPosition, Vec3i chunkWorldPosition) {
         final int visibilityBitset;
 
@@ -143,8 +151,7 @@ public class RenderChunk {
 
     public void sortTransparent() {
         assert valid;
-
-        ((TransparentSlice) slices[RenderType.TRANSPARENT.ordinal()]).sort();
+        transparentSlice().sort();
     }
 
     public int getQuadCount() {

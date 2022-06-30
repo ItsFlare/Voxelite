@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
+import static edu.kit.scc.git.ggd.voxelite.util.Util.debug;
 import static org.lwjgl.opengl.GL44.*;
 
 public class OcclusionRenderer {
@@ -127,7 +128,7 @@ public class OcclusionRenderer {
 
     public void read() {
         final int frame = Main.INSTANCE.getRenderer().getFrame();
-        LOGGER.trace("Reading %d occlusion results in frame %d".formatted(queries.size(), frame));
+        debug(() -> LOGGER.trace("Reading %d occlusion results in frame %d".formatted(queries.size(), frame)));
 
         //These mapped buffer reads are unsynchronized and may return stale or incoherent values.
 
@@ -135,7 +136,7 @@ public class OcclusionRenderer {
         final int occlusionFrame = mappedBuffer.get(0);
         final int latency = frame - occlusionFrame;
 
-        if(latency > grace) {
+        if (latency > grace) {
             LOGGER.warn("Occlusion latency exceeded (%d>%d frames)".formatted(latency, grace));
             return;
         }
