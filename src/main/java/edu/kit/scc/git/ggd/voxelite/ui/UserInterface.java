@@ -62,10 +62,21 @@ public class UserInterface {
             var frustumDebug = new CheckboxElement("Debug Frustum", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().debugFrustum = value);
             var frustumCapture = new CheckboxElement("Capture Frustum", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().captureFrustum = value);
             var ticksPerDay = new IntSliderElement("Day Length", 2000, 200, 20000, value -> Main.ticksPerDay = value);
+            var roughness = new FloatSliderElement("Roughness Delta", 0, -2f, 2f, value -> Main.INSTANCE.getRenderer().getWorldRenderer().debugRoughness = value);
+            var reflections = new CheckboxElement("SSR", false, value -> {
+                final CompositeProgram program = CompositeRenderer.PROGRAM;
+                program.use(() -> program.reflections.set(value ? 1 : 0));
+            });
+            var coneTracing = new CheckboxElement("CT", false, value -> {
+                final CompositeProgram program = CompositeRenderer.PROGRAM;
+                program.use(() -> program.coneTracing.set(value ? 1 : 0));
+            });
 
 
             this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe, ImGui::sameLine, transparentSort, frustumDebug, frustumCapture,
-                    ticksPerDay
+                    ticksPerDay,
+                    reflections, ImGui::sameLine, coneTracing,
+                    roughness
             );
         }
 

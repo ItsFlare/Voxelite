@@ -1,10 +1,10 @@
-#version 330
+#version 430
 
 in vec2 pixel;
 
 out vec4 FragColor;
 
-uniform vec2 planes;
+uniform float debugRoughness;
 uniform sampler2D opaque;
 uniform sampler2D transparent;
 uniform sampler2D normal;
@@ -12,119 +12,83 @@ uniform sampler2D mer;
 uniform sampler2D depth;
 uniform mat4 projection;
 
-float LinearDepth(float depth) {
-    float z_n = 2 * depth - 1;
-    float near = planes.x;
-    float far = planes.y;
+uniform bool reflections;
+uniform bool coneTracing;
 
-    return 2 * near * far / (far + near - z_n * (far - near));
+const int SEARCH_STEPS = 25;
+const int MAX_STEPS = 200;
+const float RAY_STRIDE = 1;
+const int CONE_STEPS = 8;
+
+vec2 viewport = textureSize(opaque, 0);
+float aspectRatio = viewport.x / viewport.y;
+
+float LinearDepth(float depth) {
+    depth = depth * 2 - 1; //Convert to NDC
+    float a = projection[2][2];
+    float b = projection[3][2];
+    float z_view = b / (a + depth);
+
+    return z_view;
 }
 
 float SampleDepth(vec2 uv) {
     return LinearDepth(texture(depth, uv).x);
 }
 
-vec3 toViewSpace(vec2 screen, float z) {
-    vec2 viewport = textureSize(opaque, 0);
-    float aspectRatio = viewport.x / viewport.y;
-    vec2 clipCoord = (2 * screen) - 1;
-    clipCoord.x *= aspectRatio;
-    float fov = 120;
+//vec3 toViewSpace(vec2 screen) {
+//    return texture(position, screen).xyz;
+//}
 
-    vec3 rayDirection = vec3(clipCoord * tan(radians(fov / 2)), -1);
-    rayDirection = normalize(rayDirection);
+vec3 toViewSpace(vec2 uv) {
+    float z = SampleDepth(uv);
 
-    return rayDirection * z;
+    uv = uv * 2 - 1; //Convert to NDC
+    vec3 viewPos = vec3(0);
+    viewPos.x = z * uv.x / projection[0][0];
+    viewPos.y = z * uv.y / projection[1][1];
+    viewPos.z = -z;
+
+    return viewPos;
 }
 
-vec3 toViewSpace(vec2 screen) {
-    return toViewSpace(screen, SampleDepth(screen));
+vec2 toScreenSpace(vec3 view) {
+    vec4 projected = projection * vec4(view, 1);
+    projected.xy /= projected.w;
+    projected.xy = projected.xy * 0.5 + 0.5;
+    return projected.xy;
 }
 
-vec3 toScreenSpace(vec3 view) {
-    vec4 projectedCoords = projection * vec4(view, 1);
-    projectedCoords.xy /= projectedCoords.w;
-    projectedCoords.xy = projectedCoords.xy * 0.5 + 0.5;
-    return projectedCoords.xyz;
-}
-
-const float MAX_DISTANCE = 50;
-const float RESOLUTION  = 0.3;
-const float EPSILON   = 0.5;
-const int SEARCH_STEPS = 30;
-const int MAX_STEPS = 10;
-const int RAY_STRIDE = 5;
-
-//Broken
-vec3 rayMarchScreen(vec3 position, vec3 direction) {
-    vec2 texSize  = textureSize(opaque, 0).xy;
-
-    vec3 originV = position;
-    vec3 targetV   = position + (direction * MAX_DISTANCE);
-
-    vec3 originF    = toScreenSpace(originV);
-    originF.xy *= texSize;
-    vec3 targetF      = toScreenSpace(targetV);
-    targetF.xy *= texSize;
-
-    float deltaX    = targetF.x - originF.x;
-    float deltaY    = targetF.y - originF.y;
-    float useX      = abs(deltaX) >= abs(deltaY) ? 1 : 0;
-    float delta     = mix(abs(deltaY), abs(deltaX), useX) * clamp(RESOLUTION, 0.0, 1.0);
-    vec2  increment = vec2(deltaX, deltaY) / max(delta, 0.001);
-
-
-    vec2 frag  = originF.xy;
-    vec2 uv = originF.xy / texSize;
-
-    for (float i = 0; i < min(int(delta), 1000); i++) {
-        frag += increment;
-        uv = frag / texSize;
-        if(uv.x < 0 || uv.x > 1) break;
-        if(uv.y < 0 || uv.y > 1) break;
-
-        float search = mix((frag.y - originF.y) / deltaY, (frag.x - originF.x) / deltaX, useX);
-
-        float viewDistance = (originV.z * targetV.z) / mix(targetV.z, originV.z, search);
-        float depth        = viewDistance - SampleDepth(uv);
-
-        if (depth > 0 && depth < EPSILON) {
-            return(vec3(uv, 1));
-        }
-    }
-
-    return vec3(0);
-}
-vec3 search(vec3 position, vec3 direction) {
-    float z;
-
-    for (int i = 0; i < SEARCH_STEPS; ++i){
+vec2 search(vec3 position, vec3 direction) {
+    for (int i = 0; i < SEARCH_STEPS; i++){
         direction *= 0.8;
 
-        z = SampleDepth(toScreenSpace(position).xy);
+        float z = -SampleDepth(toScreenSpace(position));
 
         position += sign(z - position.z) * direction;
     }
 
-    return vec3(toScreenSpace(position).xy, z);
+    return toScreenSpace(position);
 }
-vec3 rayMarchView(vec3 position, vec3 direction) {
+bool rayMarchView(vec3 position, vec3 direction, out vec2 hitPixel) {
     direction *= RAY_STRIDE;
 
-    for(int i = 0; i < MAX_STEPS; i++) {
+    for (int i = 0; i < MAX_STEPS; i++) {
         position += direction;
         vec2 ss = toScreenSpace(position).xy;
-        if(ss.y < 0 || ss.y > 1) break;
-        if(ss.x < 0 || ss.x > 1) break;
+        if (ss.y < 0 || ss.y > 1) break;
+        if (ss.x < 0 || ss.x > 1) break;
 
-        float z = SampleDepth(ss);
+        float z = -SampleDepth(ss);
 
-        if(position.z < z) {
-            return search(position, direction);
+        if (position.z <= z) {
+            hitPixel = search(position, direction);
+            //hitPixel = ss;
+            return true;
         }
     }
 
-    return vec3(0);
+    return false;
 }
 
 vec4 blend(vec2 uv) {
@@ -133,41 +97,91 @@ vec4 blend(vec2 uv) {
     return mix(o, t, t.a);
 }
 
-//Hermanns. Screen Space Cone Tracing for Glossy Reflections. 2015.
+/*
+Uludag. Hi-z screen-space cone-traced reflections. 2014.
+*/
+
+float CalculateConeAngle(float roughness) {
+    float a = 2 + (16 - 2) * roughness;
+    return cos(0.244 / (a + 1));
+}
+
+float CalculateIsoscelesTriangleBase(float angle, float rayLength) {
+    return 2 * rayLength * tan(angle);
+}
+
+float CalculateIsoscelesInRadius(float base, float rayLength) {
+    return (base * (sqrt(base * base + 4 * rayLength * rayLength) - base)) / (4 * rayLength);
+}
+
 float CalculateFade(vec2 hit) {
     float I_end = 1;
-    float I_start = 0.01;
-    float D_boundary = length(hit.xy - vec2(0.5)) * 2;
-    float f_border = clamp((D_boundary - I_start) / (I_end - I_start), 0, 1);
+    float I_start = 0.7;
+    float D_boundary = length(hit - vec2(0.5)) * 2;
+    float f_border = clamp((D_boundary - I_start) / (I_end - I_start), 0.0, 1.0);
 
     return f_border;
 }
 
+vec4 ConeTrace(vec2 rayOrigin, vec2 rayDirection, float roughness) {
+    vec4 color = vec4(0);
+    vec2 rayDirectionNormalized = normalize(rayDirection);
+    float rayLength = length(rayDirection);
+
+    float glossiness = 1 - roughness;
+    int maxLevel = textureQueryLevels(opaque);
+
+    for (int i = 0; i < CONE_STEPS; i++) {
+        float angle = CalculateConeAngle(roughness);
+        float base = CalculateIsoscelesTriangleBase(angle, rayLength);
+        float radius = CalculateIsoscelesInRadius(base, rayLength);
+
+        vec2 pos = rayOrigin + rayDirectionNormalized * (rayLength - radius);
+        float level = clamp(log2(radius * max(viewport.x, viewport.y)), 0, maxLevel);
+
+        color += vec4(textureLod(opaque, pos.xy, level).rgb * glossiness, glossiness);
+        rayLength -= 2 * radius;
+        glossiness *= glossiness;
+    }
+
+    return color / color.a;
+}
+
+/* ----- */
+
+
 void main() {
     vec4 o = texture(opaque, pixel);
-    float opaqueZ = LinearDepth(o.a);
     o.a = 1;
 
     vec4 t = texture(transparent, pixel);
     vec3 n = texture(normal, pixel).xyz;
     if (n == 0) return;
-    n = 2 * n - 1;
-    vec3 mer = texture(mer, pixel).rgb;
 
-    float roughness = mer.b;
+    if(reflections) {
+        vec3 mer = texture(mer, pixel).rgb;
+        float roughness = clamp(mer.b + debugRoughness, 0, 1);
 
-    vec3 viewPos = toViewSpace(pixel, opaqueZ);
-    vec3 rayDirection = normalize(viewPos);
-    rayDirection = reflect(rayDirection, n);
+        vec3 viewPos = toViewSpace(pixel);
+        vec3 rayDirection = reflect(normalize(viewPos), normalize(n));
 
-    if(dot(vec3(0, 0, -1), rayDirection) > 0) {
-        vec3 hit = rayMarchView(viewPos, rayDirection);
+        if (dot(vec3(0, 0, -1), rayDirection) > 0) {
+            vec2 hitPixel;
+            bool hit = rayMarchView(viewPos, rayDirection, hitPixel);
 
-        if(hit.z != 0) o = mix(mix(blend(hit.xy), o, roughness), o, CalculateFade(hit.xy));
+            if (hit) {
+                vec4 reflectionColor = (coneTracing && roughness < 1) ? ConeTrace(hitPixel, hitPixel - toScreenSpace(viewPos), roughness) : vec4(texture(opaque, hitPixel).rgb, 1);
+                o = mix(mix(reflectionColor, o, roughness), o, CalculateFade(hitPixel.xy));
+                //o = mix(o, vec4(1, 0, 0, 1), 0.1);
+            }
+        }
     }
 
-
     FragColor = mix(o, t, t.a);
+    //FragColor = mix(vec4(rayDirection, 1), FragColor, 0.00001);
+    //FragColor = mix(vec4(toScreenSpace(toViewSpace(pixel)), 1, 1), FragColor, 0.00001);
+    //FragColor = mix(vec4(toViewSpaceReconstruct(pixel) - toViewSpace(pixel), 1) / 100, FragColor, 0.00001);
+    //FragColor = mix(vec4(SampleDepth(pixel) / 100), FragColor, 0.00001);
     //FragColor = mix(vec4(rayDirection, 1), FragColor, 0.00001);
     //FragColor = mix(vec4(n, 1), FragColor, 0.00001);
 }

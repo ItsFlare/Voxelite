@@ -79,7 +79,7 @@ public class WorldRenderer {
 
     public List<RenderChunk> renderList      = new ArrayList<>();
     public Vec4f             lightColor      = new Vec4f(1);
-    public float             ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f;
+    public float             ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f, debugRoughness;
     public int phongExponent = 32, uploadRate = 5, sortRate = 5;
     public boolean directionCull = true, backfaceCull = true, dotCull = true, frustumCull = true, caveCull = true, occlusionCull = true, shadows = true, shadowTransform = false, transparentSort = true, captureFrustum = false, debugFrustum = false;
     public int emptyCount, frustumCullCount, dotCullCount, caveCullCount, occlusionCullCount, totalCullCount;
@@ -211,12 +211,12 @@ public class WorldRenderer {
         gBuffer.allocate(Main.INSTANCE.getWindow().getWidth(), Main.INSTANCE.getWindow().getHeight());
 
         OpenGL.use(gBuffer, () -> {
-            OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3);
+            OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4);
             OpenGL.clearAll();
 
             //Draw opaque
             {
-                OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3);
+                OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4);
                 RenderType.OPAQUE.setPipelineState();
 
                 final ChunkProgram program = RenderType.OPAQUE.getProgram();
@@ -289,6 +289,8 @@ public class WorldRenderer {
             }
         });
 
+        gBuffer.opaque().use(() -> gBuffer.opaque().generateMipmap());
+
         //Draw composite
         compositeRenderer.render(gBuffer, shadowMapRenderer.getTexture());
 
@@ -298,7 +300,7 @@ public class WorldRenderer {
     private void setCommonUniforms(ChunkProgram program, Matrix4f mvp, Vec3f cameraPosition, Vec3f lightDirection) {
         program.mvp.set(shadowTransform ? shadowMapRenderer.lightTransform(frustumNumber, lightDirection) : mvp);
         if(program instanceof OpaqueChunkProgram cp) {
-            cp.view.set(Main.INSTANCE.getRenderer().getCamera().view(false, true));
+            cp.view.set(Main.INSTANCE.getRenderer().getCamera().view(true, true));
         }
         program.atlas.bind(0, atlas);
         program.camera.set(cameraPosition);
@@ -497,5 +499,9 @@ public class WorldRenderer {
 
     public OcclusionRenderer getOcclusionRenderer() {
         return occlusionRenderer;
+    }
+
+    public CompositeRenderer getCompositeRenderer() {
+        return compositeRenderer;
     }
 }

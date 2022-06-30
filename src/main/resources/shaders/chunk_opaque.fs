@@ -96,9 +96,9 @@ void main() {
     //vec3 normal = texture(atlas, vec3(Tex, 1)).xyz;
     vec3 n = Normal;
 
-    color = vec4((DirectionalLight(n, normalize(camera - Pos)) + BlockLight) * albedo, gl_FragDepth);
+    color = vec4((DirectionalLight(n, normalize(camera - Pos)) + BlockLight) * albedo, (view * vec4(Pos, 1)).z);
     if(cascadeDebug == 1) color.xyz += debugColor;
 
-    normal = 0.5 * (view * vec4(n, 0)).xyz + 0.5;
+    normal = (view * vec4(n, 0)).xyz;
     mer = texture(atlas, vec3(Tex, 2)).rgb;
 }
