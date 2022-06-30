@@ -1,7 +1,4 @@
 #version 410
-layout(location = 0) out vec3 color;
-layout(location = 1) out vec3 normal;
-layout(location = 2) out vec3 mer;
 
 in vec2 Tex;
 in vec3 Pos;
@@ -12,10 +9,11 @@ in vec3 ViewSpacePos;
 flat in mat3 TBN;
 in float aoFactor;
 
-uniform sampler2DArrayShadow shadowMap;
+out vec4 FragColor;
+
 uniform sampler2DArray atlas;
+uniform sampler2DArrayShadow shadowMap;
 uniform vec3 camera;
-uniform mat4 view;
 
 uniform float ambientStrength;
 uniform float diffuseStrength;
@@ -43,7 +41,7 @@ uniform int kernel;
 uniform bool cascadeDebug;
 float kernelFactor = 1 / pow(kernel * 2 + 1, 2);
 
-vec3 debugColor = vec3(0);
+vec3 debugColor;
 
 float ShadowCalculation(vec3 fragPosLightSpace) {
     int c;
@@ -78,7 +76,6 @@ float ShadowCalculation(vec3 fragPosLightSpace) {
 
     return shadow;
 }
-
 vec3 DirectionalLight(vec3 normal, vec3 viewDirection) {
     vec3 color = light.color.rgb;
     vec3 lightDirection = normalize(-light.direction);
@@ -106,28 +103,24 @@ float getFogFactor(float fogCoordinate) {
 }
 
 void main() {
-
     vec3 n;
     if(normalMapSet) {
-        n = texture(atlas, vec3(Tex, 1)).rgb;
+        n = texture(atlas, vec3(Tex,1)).rgb;
         n = n * 2 - 1;
         n = normalize(TBN * n);
     } else {
         n = Normal;
     }
 
-    vec3 t = texture(atlas, vec3(Tex, 0)).rgb;
-    vec3 l = DirectionalLight(n, normalize(camera - Pos)) + BlockLight;
-    color = l * t * aoFactor;
-
-    if(cascadeDebug) color += debugColor;
+    vec4 t = texture(atlas, vec3(Tex, 0));
+    FragColor = vec4(DirectionalLight(n, normalize(camera - Pos)) + BlockLight, 1) * t;
+    FragColor.rgb *= aoFactor;
 
     if(fogSet) {
         float fogCoordinate = abs(ViewSpacePos.z);
-        vec3  fogColor = vec3(0.4, 0.4, 0.4);
-        color = mix(color, fogColor, getFogFactor(fogCoordinate));
+        vec4  fogColor = vec4(0.4, 0.4, 0.4, 1.0);
+        FragColor = mix(FragColor, fogColor, getFogFactor(fogCoordinate));
     }
 
-    normal = (view * vec4(Normal, 0)).xyz;
-    mer = texture(atlas, vec3(Tex, 2)).rgb;
+    if(cascadeDebug) FragColor += vec4(debugColor, 1);
 }

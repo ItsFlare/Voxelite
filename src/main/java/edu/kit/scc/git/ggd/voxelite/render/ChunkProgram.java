@@ -66,9 +66,7 @@ public class ChunkProgram extends Program {
     public final Uniform<Integer>  kernel               = uniInteger("kernel");
 
     public final Uniform<Integer> normalMap = uniInteger("normalMapSet");
-
     public final Uniform<Integer> fogSet = uniInteger("fogSet");
-
     public final Uniform<Integer> aoSet = uniInteger("aoSet");
 
     public record QuadVertex(Vec3i position, Vec2i texture, Vec3i normal, Vec3i tangent, Vec3i bitangent) implements Vertex {

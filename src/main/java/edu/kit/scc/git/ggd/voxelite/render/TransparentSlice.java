@@ -24,7 +24,7 @@ public class TransparentSlice extends Slice {
     private final Vec3i worldPosition;
     private final IBO   ibo = new IBO();
 
-    private UploadedQuad[] quads;
+    private UploadedQuad[] quads; //TODO Compress
     private long           lastSortTick;
 
     public TransparentSlice(Vec3i worldPosition, RenderType renderType) {

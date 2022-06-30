@@ -18,21 +18,19 @@ import java.util.Map;
 
 public class TextureAtlas implements GLTexture {
 
-    private final ArrayTexture2D arrayTexture;
+    private final ArrayTexture2D     arrayTexture;
     private final Map<String, Vec2i> map = new HashMap<>();
     private final float              normalizedSpriteSize;
 
-    public TextureAtlas(String folder, String normalMapFolder) throws IOException, URISyntaxException {
+    record Sprite(String name, Image color, Image normal, Image mer) {}
+
+    public TextureAtlas(String folder) throws IOException, URISyntaxException {
         arrayTexture = new ArrayTexture2D();
-        List<Path> pathList = (List<Path>) Util.listResourceFolder(folder);
-        List<Path> pathListNormal = (List<Path>) Util.listResourceFolder(normalMapFolder);
+        List<Path> pathList = (List<Path>) Util.listResourceFolder(folder + "/color");
         pathList.removeIf(Files::isDirectory);
-        pathListNormal.removeIf(Files::isDirectory);
         int atlasGridSize = (int) Math.ceil(Math.sqrt(pathList.size()));
         normalizedSpriteSize = 1 / (float) atlasGridSize;
-        List<Image> imageList = new ArrayList<>();
-        List<Image> normalMapList = new ArrayList<>();
-
+        List<Sprite> spriteList = new ArrayList<>();
 
         arrayTexture.use(() -> {
             arrayTexture.magFilter(MagFilter.NEAREST);
@@ -41,26 +39,26 @@ public class TextureAtlas implements GLTexture {
             int spriteSize = 0;
 
             try {
-                for (int i = 0; i < pathList.size(); i++) {
-                    Path path = pathList.get(i);
-                    Path normalMapPath = pathListNormal.get(i);
+                for (Path path : pathList) {
+                    final String name = path.getFileName().toString().split("\\.")[0];
+                    final Path normalPath = path.getParent().resolveSibling("normal").resolve(name + "_normal.png");
+                    final Path merPath = path.getParent().resolveSibling("mer").resolve(name + "_mer.png");
 
-                    Image img = new Image(Files.newInputStream(path));
-                    Image imgNormal = new Image(Files.newInputStream(normalMapPath));
+                    final Image color = new Image(Files.newInputStream(path));
+                    final Image normal = Files.isRegularFile(normalPath) ? new Image(Files.newInputStream(normalPath)) : null;
+                    final Image mer = Files.isRegularFile(merPath) ? new Image(Files.newInputStream(merPath)) : null;
 
-                    if (i == 0) {
-                        spriteSize = img.width();
+                    if (spriteSize == 0) {
+                        spriteSize = color.width();
                     }
 
-                    if (img.width() != spriteSize || img.height() != spriteSize) {
+                    if (color.width() != spriteSize || color.height() != spriteSize
+                            || normal.width() != spriteSize || normal.height() != spriteSize
+                            || mer.width() != spriteSize || mer.height() != spriteSize) {
                         throw new IllegalArgumentException("All sprites should have the same size");
                     }
-                    if (imgNormal.width() != spriteSize || imgNormal.height() != spriteSize) {
-                        throw new IllegalArgumentException("All normal sprites should have the same size as regular sprites");
-                    }
 
-                    imageList.add(img);
-                    normalMapList.add(imgNormal);
+                    spriteList.add(new Sprite(name, color, normal, mer));
                 }
 
                 final int maxLevel = log2(spriteSize);
@@ -69,89 +67,39 @@ public class TextureAtlas implements GLTexture {
                 for (int level = 0; level <= maxLevel; level++) {
                     int targetSize = spriteSize >> level;
                     int atlasPixelSize = atlasGridSize * targetSize;
-                    arrayTexture.allocate(atlasPixelSize, atlasPixelSize, 2, GLTexture.SizedFormat.RGBA_8, level);
-                    for (int i = 0; i < imageList.size(); i++) {
+                    arrayTexture.allocate(atlasPixelSize, atlasPixelSize, 3, GLTexture.SizedFormat.RGBA_8, level);
+
+                    for (int i = 0; i < spriteList.size(); i++) {
                         final int x = i % atlasGridSize, y = i / atlasGridSize;
-                        Image image = imageList.get(i);
-                        Image imageNormal = normalMapList.get(i);
+                        final Sprite sprite = spriteList.get(i);
+                        final Image color, normal, mer;
 
                         if (level == 0) {
-                            String path = pathList.get(i).getFileName().toString();
-                            map.put(path, new Vec2i(x, y));
+                            map.put(sprite.name, new Vec2i(x, y));
+                            color = sprite.color;
+                            normal = sprite.normal;
+                            mer = sprite.mer;
                         } else {
-                            BufferedImage resizedBufferedImage = resizeImage(image.image(), targetSize, targetSize);
-                            BufferedImage resizedBufferedImageNormal = resizeImage(imageNormal.image(), targetSize, targetSize);
-                            image = new Image(resizedBufferedImage);
-                            imageNormal = new Image(resizedBufferedImageNormal);
+                            color = resizeImage(sprite.color, targetSize, targetSize, false);
+                            normal = resizeImage(sprite.normal, targetSize, targetSize, true);
+                            mer = resizeImage(sprite.normal, targetSize, targetSize, false);
                         }
-                        arrayTexture.subImage(image, x * targetSize,y * targetSize, 0, level);
-                        arrayTexture.subImage(imageNormal,x * targetSize,y * targetSize, 1, level);
+
+                        final int posX = x * targetSize;
+                        final int posY = y * targetSize;
+                        arrayTexture.subImage(color, posX, posY, 0, level);
+                        arrayTexture.subImage(normal, posX, posY, 1, level);
+                        arrayTexture.subImage(mer, posX, posY, 2, level);
                     }
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         });
-
-
-
-        /*texture.use(() -> {
-            texture.magFilter(MagFilter.NEAREST);
-            texture.minFilter(MinFilter.LINEAR);
-
-            int spriteSize = 0;
-
-            try {
-                //Load images
-                for (int i = 0; i < pathList.size(); i++) {
-                    Path path = pathList.get(i);
-                    Image img = new Image(Files.newInputStream(path));
-
-                    if (i == 0) {
-                        spriteSize = img.width();
-                    }
-
-                    if (img.width() != spriteSize || img.height() != spriteSize) {
-                        throw new IllegalArgumentException("All sprites should have the same size");
-                    }
-
-                    imageList.add(img);
-                }
-
-                final int maxLevel = log2(spriteSize);
-
-                //Upload all mipmap levels
-                for (int level = 0; level <= maxLevel; level++) {
-                    int targetSize = spriteSize >> level;
-                    int atlasPixelSize = atlasGridSize * targetSize;
-                    texture.allocate(atlasPixelSize, atlasPixelSize, GLTexture.SizedFormat.RGBA_8, level);
-
-                    for (int i = 0; i < imageList.size(); i++) {
-                        final int x = i % atlasGridSize, y = i / atlasGridSize;
-                        Image image = imageList.get(i);
-
-                        if (level == 0) {
-                            map.put(pathList.get(i).getFileName().toString(), new Vec2i(x, y));
-                        } else {
-                            BufferedImage resizedBufferedImage = resizeImage(image.image(), targetSize, targetSize);
-                            image = new Image(resizedBufferedImage);
-                        }
-
-                        texture.subImage(image, x * targetSize, y * targetSize, level);
-                    }
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });*/
     }
 
     public Vec2i getSprite(String name) {
         return map.get(name);
-    }
-
-    public Vec2i getSpriteNormal(String name) {
-        return map.get(name.replace("_normal", ""));
     }
 
     public float getNormalizedSpriteSize() {
@@ -168,11 +116,12 @@ public class TextureAtlas implements GLTexture {
         return arrayTexture.type();
     }
 
-    private static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) throws IOException {
-        java.awt.Image resultingImage = originalImage.getScaledInstance(targetWidth, targetHeight, java.awt.Image.SCALE_DEFAULT);
-        BufferedImage outputImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
-        outputImage.getGraphics().drawImage(resultingImage, 0, 0, null);
-        return outputImage;
+    private static Image resizeImage(Image originalImage, int targetWidth, int targetHeight, boolean normalize) throws IOException {
+        //TODO Normalize
+        java.awt.Image resultingImage = originalImage.image().getScaledInstance(targetWidth, targetHeight, java.awt.Image.SCALE_DEFAULT);
+        BufferedImage bi = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
+        bi.getGraphics().drawImage(resultingImage, 0, 0, null);
+        return new Image(bi);
     }
 
     private static int log2(int n) {
