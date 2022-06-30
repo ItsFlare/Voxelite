@@ -294,6 +294,7 @@ public class WorldRenderer {
         program.normalMap.set(normalMap ? 1 : 0);
         program.fogSet.set(fog ? 1 : 0);
         program.aoSet.set(ao ? 1 : 0);
+        program.fogRange.set(Main.INSTANCE.getWorld().getChunkRadius() * Chunk.WIDTH);
 
         program.cascadeScales.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::scale).toArray(Vec3f[]::new));
         program.cascadeTranslations.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::translation).toArray(Vec3f[]::new));

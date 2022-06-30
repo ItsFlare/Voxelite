@@ -156,7 +156,7 @@ void main() {
     vec3 n = texture(normal, pixel).xyz;
 
     //No geometry (background)
-    if (n == 0) {
+    if (n == vec3(0)) {
         FragColor = o;
         return;
     }
