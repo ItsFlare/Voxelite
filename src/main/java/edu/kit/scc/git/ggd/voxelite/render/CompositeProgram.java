@@ -16,7 +16,6 @@ public class CompositeProgram extends Program {
 
     public final Uniform<Float> debugRoughness      = uniFloat("debugRoughness");
     public final Sampler        opaque      = sampler("opaque");
-    public final Sampler        transparent = sampler("transparent");
     public final Sampler        normal      = sampler("normal");
     public final Sampler        mer         = sampler("mer");
     public final Sampler        depth       = sampler("depth");

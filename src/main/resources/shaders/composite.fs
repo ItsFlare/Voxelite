@@ -6,7 +6,6 @@ out vec4 FragColor;
 
 uniform float debugRoughness;
 uniform sampler2D opaque;
-uniform sampler2D transparent;
 uniform sampler2D normal;
 uniform sampler2D mer;
 uniform sampler2D depth;
@@ -91,12 +90,6 @@ bool rayMarchView(vec3 position, vec3 direction, out vec2 hitPixel) {
     return false;
 }
 
-vec4 blend(vec2 uv) {
-    vec4 o = texture(opaque, uv);
-    vec4 t = texture(transparent, uv);
-    return mix(o, t, t.a);
-}
-
 /*
 Uludag. Hi-z screen-space cone-traced reflections. 2014.
 */
@@ -151,12 +144,19 @@ vec4 ConeTrace(vec2 rayOrigin, vec2 rayDirection, float roughness) {
 
 
 void main() {
+    //Copy depth into default framebuffer
+    gl_FragDepth = texture(depth, pixel).x;
+
     vec4 o = texture(opaque, pixel);
     o.a = 1;
 
-    vec4 t = texture(transparent, pixel);
     vec3 n = texture(normal, pixel).xyz;
-    if (n == 0) return;
+
+    //No geometry (background)
+    if (n == 0) {
+        FragColor = o;
+        return;
+    }
 
     if(reflections) {
         vec3 mer = texture(mer, pixel).rgb;
@@ -177,7 +177,8 @@ void main() {
         }
     }
 
-    FragColor = mix(o, t, t.a);
+    FragColor = o;
+
     //FragColor = mix(vec4(rayDirection, 1), FragColor, 0.00001);
     //FragColor = mix(vec4(toScreenSpace(toViewSpace(pixel)), 1, 1), FragColor, 0.00001);
     //FragColor = mix(vec4(toViewSpaceReconstruct(pixel) - toViewSpace(pixel), 1) / 100, FragColor, 0.00001);

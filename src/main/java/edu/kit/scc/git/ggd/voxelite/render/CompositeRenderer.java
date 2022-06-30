@@ -6,7 +6,6 @@ import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.buffers.BufferLayout;
 import net.durchholz.beacon.render.opengl.buffers.VertexArray;
 import net.durchholz.beacon.render.opengl.buffers.VertexBuffer;
-import net.durchholz.beacon.render.opengl.textures.ArrayTexture2D;
 
 public class CompositeRenderer {
 
@@ -31,24 +30,26 @@ public class CompositeRenderer {
         OpenGL.use(va, VB, () -> va.set(PROGRAM.pos, CompositeProgram.QuadVertex.POSITION, VB, 0));
     }
 
-    public void render(GeometryBuffer gBuffer, ArrayTexture2D shadowMap) {
-        OpenGL.depthTest(false);
-        OpenGL.depthMask(false);
+    public void render(GeometryBuffer gBuffer) {
+        OpenGL.depthTest(true); //Must be enabled for depth writing
+        OpenGL.depthFunction(OpenGL.CompareFunction.ALWAYS); //Disable depth testing the other way
+        OpenGL.depthMask(true); //Write gBuffer depth to default framebuffer
+        OpenGL.colorMask(true);
         OpenGL.blend(false);
 
         OpenGL.use(PROGRAM, va, () -> {
             final Camera camera = Main.INSTANCE.getRenderer().getCamera();
             PROGRAM.debugRoughness.set(Main.INSTANCE.getRenderer().getWorldRenderer().debugRoughness);
             PROGRAM.opaque.bind(0, gBuffer.opaque());
-            PROGRAM.transparent.bind(1, gBuffer.transparent());
-            PROGRAM.normal.bind(2, gBuffer.normal());
-            PROGRAM.mer.bind(3, gBuffer.mer());
-            PROGRAM.depth.bind(5, gBuffer.depth());
+            PROGRAM.normal.bind(1, gBuffer.normal());
+            PROGRAM.mer.bind(2, gBuffer.mer());
+            PROGRAM.depth.bind(3, gBuffer.depth());
             PROGRAM.projection.set(camera.projection());
-//            PROGRAM.shadowMap.bind(5, shadowMap);
 
             OpenGL.drawArrays(OpenGL.Mode.TRIANGLE_STRIP, 0, 4);
         });
+
+        OpenGL.depthFunction(OpenGL.CompareFunction.LESS_EQUAL); //TODO Eliminate reset responsibility
     }
 
 }

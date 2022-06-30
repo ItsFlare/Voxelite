@@ -1,5 +1,5 @@
 #version 410
-layout(location = 0) out vec4 color;
+layout(location = 0) out vec3 color;
 layout(location = 1) out vec3 normal;
 layout(location = 2) out vec3 mer;
 
@@ -93,12 +93,10 @@ vec3 DirectionalLight(vec3 normal, vec3 viewDirection) {
 
 void main() {
     vec3 albedo = texture(atlas, vec3(Tex, 0)).rgb;
-    //vec3 normal = texture(atlas, vec3(Tex, 1)).xyz;
-    vec3 n = Normal;
 
-    color = vec4((DirectionalLight(n, normalize(camera - Pos)) + BlockLight) * albedo, (view * vec4(Pos, 1)).z);
+    color = vec3((DirectionalLight(Normal, normalize(camera - Pos)) + BlockLight) * albedo);
     if(cascadeDebug == 1) color.xyz += debugColor;
 
-    normal = (view * vec4(n, 0)).xyz;
+    normal = (view * vec4(Normal, 0)).xyz;
     mer = texture(atlas, vec3(Tex, 2)).rgb;
 }

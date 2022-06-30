@@ -70,7 +70,6 @@ public class WorldRenderer {
     private final ShadowMapRenderer          shadowMapRenderer = new ShadowMapRenderer(SHADOW_MAP_SIZE, 4);
     private final OcclusionRenderer          occlusionRenderer = new OcclusionRenderer();
     private final LineRenderer               lineRenderer      = new LineRenderer();
-    private final GeometryBuffer             gBuffer           = new GeometryBuffer(1, 1);
     private final CompositeRenderer          compositeRenderer = new CompositeRenderer();
     private final QuadRenderer quadRenderer = new QuadRenderer();
 
@@ -208,15 +207,12 @@ public class WorldRenderer {
         OpenGL.depthFunction(OpenGL.CompareFunction.LESS);
         OpenGL.cull(backfaceCull);
 
-        gBuffer.allocate(Main.INSTANCE.getWindow().getWidth(), Main.INSTANCE.getWindow().getHeight());
+        var gBuffer = Main.INSTANCE.getRenderer().getGeometryBuffer();
 
         OpenGL.use(gBuffer, () -> {
-            OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4);
-            OpenGL.clearAll();
-
             //Draw opaque
             {
-                OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4);
+                OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2);
                 RenderType.OPAQUE.setPipelineState();
 
                 final ChunkProgram program = RenderType.OPAQUE.getProgram();
@@ -237,26 +233,6 @@ public class WorldRenderer {
                 if (occlusionCull) occlusionRenderer.render(mvp);
             }
 
-            //Draw transparent
-            {
-                OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT1);
-                RenderType.TRANSPARENT.setPipelineState();
-
-                final ChunkProgram program = RenderType.TRANSPARENT.getProgram();
-                program.use(() -> {
-                    setCommonUniforms(program, mvp, cameraPosition, lightDirection);
-
-                    for (int i = frameRenderInfo.size() - 1; i >= 0; i--) {
-                        RenderInfo info = frameRenderInfo.get(i);
-                        final RenderChunk renderChunk = info.chunk();
-                        program.chunk.set(renderChunk.getChunk().getWorldPosition());
-
-                        renderChunk.render(RenderType.TRANSPARENT, info.visibility());
-                    }
-                });
-            }
-
-            OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0);
             if (debugFrustum) {
                 final Matrix4f matrix;
                 if (shadowTransform) {
@@ -284,15 +260,36 @@ public class WorldRenderer {
                 if (chunk != null) lineRenderer.render(matrix, new Vec4f(0, 1, 0, 1), chunk.getBoundingBox());
 
                 for (RenderChunk renderChunk : lastSorted) {
+                    System.out.println(Arrays.toString(lastSorted));
                     lineRenderer.render(matrix, new Vec4f(1, 1, 0, 1), renderChunk.getChunk().getBoundingBox());
                 }
             }
         });
 
+        //Generate mipmaps for cone tracing
         gBuffer.opaque().use(() -> gBuffer.opaque().generateMipmap());
 
         //Draw composite
-        compositeRenderer.render(gBuffer, shadowMapRenderer.getTexture());
+        compositeRenderer.render(gBuffer);
+
+        //Draw transparent
+        {
+            RenderType.TRANSPARENT.setPipelineState();
+            OpenGL.depthTest(true);
+
+            final ChunkProgram program = RenderType.TRANSPARENT.getProgram();
+            program.use(() -> {
+                setCommonUniforms(program, mvp, cameraPosition, lightDirection);
+
+                for (int i = frameRenderInfo.size() - 1; i >= 0; i--) {
+                    RenderInfo info = frameRenderInfo.get(i);
+                    final RenderChunk renderChunk = info.chunk();
+                    program.chunk.set(renderChunk.getChunk().getWorldPosition());
+
+                    renderChunk.render(RenderType.TRANSPARENT, info.visibility());
+                }
+            });
+        }
 
         //quadRenderer.render(Matrix4f.identity(), gBuffer.normal(), new Vec2f(0), new Vec2f(1));
     }

@@ -12,9 +12,8 @@ public class OpaqueChunkProgram extends ChunkProgram {
         super(shaders);
     }
 
-    public final Attribute<Vec3i> position = attribute("pos", OpenGL.Type.INT, 3);
-    public final Attribute<Vec2i> texture  = attribute("tex", OpenGL.Type.INT, 2);
-    public final Attribute<Vec3i> normal   = attribute("normal", OpenGL.Type.INT, 3);
-
-    public final Uniform<Matrix4f> view = uniMatrix4f("view", true);
+    public final Attribute<Vec3i>  position = attribute("pos", OpenGL.Type.INT, 3);
+    public final Attribute<Vec2i>  texture  = attribute("tex", OpenGL.Type.INT, 2);
+    public final Attribute<Vec3i>  normal   = attribute("normal", OpenGL.Type.INT, 3);
+    public final Uniform<Matrix4f> view     = uniMatrix4f("view", true);
 }
