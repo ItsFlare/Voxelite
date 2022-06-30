@@ -87,7 +87,9 @@ bool rayMarchView(vec3 position, vec3 direction, out vec2 hitPixel) {
         }
     }
 
-    return false;
+    //Pretend our ray converged to infinity
+    hitPixel = toScreenSpace(position).xy;
+    return true;
 }
 
 /*

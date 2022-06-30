@@ -69,6 +69,7 @@ public class Renderer {
 
         gBuffer.use(() -> {
             OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3);
+            glClearDepth(1); //Background is at infinity (required for sky reflection)
             OpenGL.clearAll();
         });
 
