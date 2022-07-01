@@ -22,7 +22,7 @@ import java.util.List;
 public class InputListener {
 
     public static final float DEFAULT_SENSITIVITY  = 0.5f;
-    public static final int DEFAULT_CAMERA_SPEED = 20;
+    public static final int DEFAULT_CAMERA_SPEED = 100;
 
     record Input(Button button, Runnable action) {}
 

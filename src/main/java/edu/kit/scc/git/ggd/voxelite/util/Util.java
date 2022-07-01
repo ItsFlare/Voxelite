@@ -13,6 +13,8 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
@@ -22,6 +24,12 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class Util {
+
+    public static final ThreadFactory DAEMON_THREAD_FACTORY = r -> {
+        Thread t = Executors.defaultThreadFactory().newThread(r);
+        t.setDaemon(true);
+        return t;
+    };
 
     public static String readShaderResource(String name) {
         return readStringResource("shaders/" + name);
@@ -100,6 +108,10 @@ public class Util {
     }
 
     public static float clamp(float val, float min, float max) {
+        return Math.max(min, Math.min(max, val));
+    }
+
+    public static int clamp(int val, int min, int max) {
         return Math.max(min, Math.min(max, val));
     }
 

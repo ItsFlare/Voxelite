@@ -5,10 +5,10 @@ import net.durchholz.beacon.math.Vec3i;
 import java.util.Collections;
 
 public class NaiveLightStorage implements LightStorage {
-    private final Chunk   chunk;
-    private final Vec3i[] lights = Collections.nCopies(Chunk.VOLUME << CHANNELS_EXP, new Vec3i()).toArray(Vec3i[]::new);
+    private final WorldChunk chunk;
+    private final Vec3i[]    lights = Collections.nCopies(Chunk.VOLUME << CHANNELS_EXP, new Vec3i()).toArray(Vec3i[]::new);
 
-    public NaiveLightStorage(Chunk chunk) {
+    public NaiveLightStorage(WorldChunk chunk) {
         this.chunk = chunk;
     }
 

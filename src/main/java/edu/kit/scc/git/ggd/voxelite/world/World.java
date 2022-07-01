@@ -5,7 +5,7 @@ import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.util.Util;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
-import edu.kit.scc.git.ggd.voxelite.world.generator.WorldGenerator;
+import edu.kit.scc.git.ggd.voxelite.world.generator.natural.NaturalWorldGenerator;
 import net.durchholz.beacon.math.Quaternion;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
@@ -16,14 +16,14 @@ import java.util.function.Predicate;
 
 import static java.lang.Math.sin;
 
-public class World {
+public class World implements ChunkDomain {
     private static final Comparator<Vec3i> DISTANCE_COMPARATOR = Comparator.comparingInt(position -> Chunk.toWorldPosition(position).subtract(new Vec3i(Main.INSTANCE.getRenderer().getCamera().getPosition())).magnitudeSq());
 
-    private final WorldGenerator    generator;
-    private final Map<Vec3i, Chunk> chunks = new ConcurrentHashMap<>();
+    private final NaturalWorldGenerator  generator;
+    private final Map<Vec3i, WorldChunk> chunks = new ConcurrentHashMap<>();
 
     private final BlockingQueue<Vec3i> loadQueue = new LinkedBlockingQueue<>();
-    private final AsyncChunkLoader     chunkLoader;
+    private final AsyncChunkLoader<NaturalWorldGenerator>     chunkLoader;
 
     private boolean loadChunks = true;
     private int     radius     = 2;
@@ -32,9 +32,9 @@ public class World {
     private volatile Vec3i           lastChunk;
     private volatile ForkJoinTask<?> chunkMapTask;
 
-    public World(WorldGenerator generator) {
+    public World(NaturalWorldGenerator generator) {
         this.generator = generator;
-        this.chunkLoader = new AsyncChunkLoader(generator, loadQueue, 128, ForkJoinPool.getCommonPoolParallelism() / 4 + 1);
+        this.chunkLoader = new AsyncChunkLoader<>(generator, loadQueue, 128, 1);
         this.chunkLoader.start();
     }
 
@@ -48,15 +48,15 @@ public class World {
         if (chunk != null) new ChunkUnloadEvent(chunk).fire();
     }
 
-    public Chunk getChunk(Vec3i chunkPosition) {
+    public WorldChunk getChunk(Vec3i chunkPosition) {
         return chunks.get(chunkPosition);
     }
 
-    public WorldGenerator getGenerator() {
+    public NaturalWorldGenerator getGenerator() {
         return generator;
     }
 
-    public Collection<Chunk> getChunks() {
+    public Collection<WorldChunk> getChunks() {
         return chunks.values();
     }
 
@@ -73,7 +73,7 @@ public class World {
     }
 
     public void regenerate() {
-        final List<Vec3i> list = getChunks().stream().map(Chunk::getPosition).sorted(DISTANCE_COMPARATOR).toList();
+        final List<Vec3i> list = getChunks().stream().map(WorldChunk::getPosition).sorted(DISTANCE_COMPARATOR).toList();
         list.forEach(this::unloadChunk);
         list.forEach(this::loadChunk);
     }
@@ -102,7 +102,7 @@ public class World {
 
             //Add all expected chunks
             for (int x = -radius; x <= radius; x++) {
-                for (int y = Math.max(-radius, -3); y <= Math.min(radius, 3); y++) {
+                for (int y = Math.max(-radius, -4); y <= Math.min(radius, 4); y++) {
                     for (int z = -radius; z <= radius; z++) {
                         expected.add(currentChunk.add(new Vec3i(x, y, z)));
                     }
@@ -112,7 +112,7 @@ public class World {
             //Unload loadedChunks \ expected
             var toUnload = getChunks()
                     .stream()
-                    .map(Chunk::getPosition)
+                    .map(WorldChunk::getPosition)
                     .filter(Predicate.not(expected::contains))
                     .toArray(Vec3i[]::new);
 
@@ -125,7 +125,7 @@ public class World {
             //Remove loaded chunks from expected
             getChunks()
                     .stream()
-                    .map(Chunk::getPosition)
+                    .map(WorldChunk::getPosition)
                     .forEach(expected::remove);
 
             //Load chunks
@@ -140,7 +140,7 @@ public class World {
     }
 
     public Voxel getVoxel(Vec3i position) {
-        final Chunk chunk = getChunk(Chunk.toChunkPosition(position));
+        final WorldChunk chunk = getChunk(Chunk.toChunkPosition(position));
         if (chunk == null) return null;
         return new Voxel(chunk, position);
     }

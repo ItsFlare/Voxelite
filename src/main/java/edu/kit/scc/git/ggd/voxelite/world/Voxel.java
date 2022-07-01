@@ -26,7 +26,7 @@ public record Voxel(Chunk chunk, Vec3i position) {
         if(chunkPosition.equals(chunk.getPosition())) {
             return new Voxel(chunk, relativePosition);
         } else {
-            final Chunk c = chunk.getWorld().getChunk(chunkPosition);
+            final Chunk c = chunk.getDomain().getChunk(chunkPosition);
             return c == null ? null : new Voxel(c, relativePosition);
         }
     }

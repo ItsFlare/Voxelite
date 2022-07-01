@@ -6,7 +6,7 @@ import edu.kit.scc.git.ggd.voxelite.util.TimerRingBuffer;
 import edu.kit.scc.git.ggd.voxelite.util.VoxeliteExecutor;
 import edu.kit.scc.git.ggd.voxelite.world.Block;
 import edu.kit.scc.git.ggd.voxelite.world.World;
-import edu.kit.scc.git.ggd.voxelite.world.generator.NaturalWorldGenerator;
+import edu.kit.scc.git.ggd.voxelite.world.generator.natural.NaturalWorldGenerator;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.input.InputSystem;
 import net.durchholz.beacon.render.opengl.OpenGL;
@@ -46,6 +46,9 @@ public class Main {
     static {
         System.setProperty("log4j.skipJansi", "false");
         LOGGER = LoggerFactory.getLogger(Main.class);
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+            LOGGER.error("Uncaught exception in Thread %s".formatted(t), e);
+        });
         INSTANCE = new Main();
     }
 
@@ -97,6 +100,7 @@ public class Main {
 
     public void run() {
         init();
+        window.show();
 
         LOGGER.info("Run...");
         long accumulator = 0, deltaTime = 0;

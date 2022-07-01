@@ -3,36 +3,55 @@ package edu.kit.scc.git.ggd.voxelite.ui;
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.input.InputListener;
 import edu.kit.scc.git.ggd.voxelite.render.*;
-import edu.kit.scc.git.ggd.voxelite.util.LongRingBuffer;
-import edu.kit.scc.git.ggd.voxelite.util.SuppliedLongRingBuffer;
+import edu.kit.scc.git.ggd.voxelite.util.*;
 import edu.kit.scc.git.ggd.voxelite.world.Block;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import edu.kit.scc.git.ggd.voxelite.world.CompressedLightStorage;
-import edu.kit.scc.git.ggd.voxelite.world.generator.NaturalWorldGenerator;
+import edu.kit.scc.git.ggd.voxelite.world.WorldChunk;
+import edu.kit.scc.git.ggd.voxelite.world.generator.natural.NaturalWorldGenerator;
+import edu.kit.scc.git.ggd.voxelite.world.generator.noise.LinearSpline;
+import edu.kit.scc.git.ggd.voxelite.world.generator.noise.Noise;
 import imgui.ImGui;
+import imgui.ImVec2;
+import imgui.extension.implot.ImPlot;
+import imgui.extension.implot.ImPlotContext;
+import imgui.extension.implot.flag.ImPlotAxisFlags;
+import imgui.extension.implot.flag.ImPlotFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
+import imgui.internal.ImGuiContext;
+import net.durchholz.beacon.math.Vec2f;
+import net.durchholz.beacon.math.Vec2i;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec4f;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.window.Window;
 
+import java.awt.image.BufferedImage;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 public class UserInterface {
     private static final boolean SAVE_GUI = true;
+    public static final Executor EXECUTOR = Executors.newSingleThreadScheduledExecutor(Util.DAEMON_THREAD_FACTORY);
 
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private final ImGuiImplGl3  imGuiGl3  = new ImGuiImplGl3();
+    private       ImGuiContext  imGuiContext;
+    private       ImPlotContext imPlotContext;
 
-    private final Accordion camera, world, render, shadow, cull, light, perf;
+    private final Accordion camera, world, generator, render, shadow, cull, light, perf;
 
     private final LongRingBuffer loadQueueRingBuffer = new SuppliedLongRingBuffer(() -> Main.INSTANCE.getWorld().getLoadQueueSize());
     private final LongRingBuffer buildRingBuffer     = new SuppliedLongRingBuffer(() -> Main.INSTANCE.getRenderer().getWorldRenderer().getBuildQueueSize());
     private final LongRingBuffer uploadRingBuffer    = new SuppliedLongRingBuffer(() -> Main.INSTANCE.getRenderer().getWorldRenderer().getUploadQueueSize());
-    private final LongRingBuffer memoryRingBuffer    = new SuppliedLongRingBuffer(() -> (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1_000_000);
+    private final LongRingBuffer memoryRingBuffer = new SuppliedLongRingBuffer(() -> (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1_000_000);
 
     public UserInterface() {
         {
@@ -104,7 +123,7 @@ public class UserInterface {
                 final float totalChunks = Main.INSTANCE.getRenderer().getWorldRenderer().getRenderChunks().size();
                 final ShadowMapRenderer shadowMapRenderer = Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer();
                 for (int c = 0; c < shadowMapRenderer.cascades; c++) {
-                    if(c > 0) sb.append(" | ");
+                    if (c > 0) sb.append(" | ");
                     sb.append(c).append(": ").append(shadowMapRenderer.cullCounts[c]).append(" (").append("%.1f%%".formatted(100 * shadowMapRenderer.cullCounts[c] / totalChunks)).append(")");
                 }
                 return sb.toString();
@@ -123,10 +142,10 @@ public class UserInterface {
         }
 
         {
-            var caveCull = new CheckboxElement("Cave", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().caveCull = value);
+            var caveCull = new CheckboxElement("Cave", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().caveCull = value);
             var dotCull = new CheckboxElement("Dot", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().dotCull = value);
             var frustumCull = new CheckboxElement("Frustum", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().frustumCull = value);
-            var occlusionCull = new CheckboxElement("Occlusion", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCull = value);
+            var occlusionCull = new CheckboxElement("Occlusion", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCull = value);
             var directionCull = new CheckboxElement("Direction", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().directionCull = value);
             var backfaceCull = new CheckboxElement("Backface", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().backfaceCull = value);
             var occlusionCullThreshold = new IntSliderElement("Occlusion Threshold", 0, 0, (Chunk.VOLUME * 6) / 2, value -> Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCullThreshold = value);
@@ -144,29 +163,120 @@ public class UserInterface {
                 );
             });
 
-            this.cull = new Accordion("Culling", false, caveCull, ImGui::sameLine, dotCull, ImGui::sameLine, frustumCull, ImGui::sameLine, occlusionCull, ImGui::sameLine, directionCull, ImGui::sameLine, backfaceCull,
+            this.cull = new Accordion("Culling", true, caveCull, ImGui::sameLine, dotCull, ImGui::sameLine, frustumCull, ImGui::sameLine, occlusionCull, ImGui::sameLine, directionCull, ImGui::sameLine, backfaceCull,
                     occlusionCullThreshold,
                     cullStats);
         }
 
         {
             var load = new CheckboxElement("Update Area", true, value -> Main.INSTANCE.getWorld().setLoadChunks(value));
-            var radius = new IntSliderElement("Chunk radius", 4, 0, 50, value -> Main.INSTANCE.getWorld().setChunkRadius(value));
-            var frequency = new FloatSliderElement("Frequency", 0.007f, 0, 0.1f, value -> {
-                if(Main.INSTANCE.getWorld().getGenerator() instanceof NaturalWorldGenerator g) {
-                    g.getPasses().get(0).setFrequency(value);
-                }
-            });
-            var amplitude = new IntSliderElement("Amplitude", 30, 0, 50, value -> {
-                if(Main.INSTANCE.getWorld().getGenerator() instanceof NaturalWorldGenerator g) {
-                    g.getPasses().get(0).setAmplitude(value);
-                }
-            });
+            var radius = new IntSliderElement("Chunk radius", 3, 0, 50, value -> Main.INSTANCE.getWorld().setChunkRadius(value));
             var buildRate = new IntSliderElement("Upload rate", 8, 0, 64, value -> Main.INSTANCE.getRenderer().getWorldRenderer().uploadRate = value);
             var uploadRate = new IntSliderElement("Build rate", 8, 0, 64, value -> Main.INSTANCE.getWorld().buildRate = value);
             var rebuild = new ButtonElement("Force rebuild", () -> Main.INSTANCE.getRenderer().getWorldRenderer().queueAll());
             var regenerate = new ButtonElement("Force regenerate", () -> Main.INSTANCE.getWorld().regenerate());
-            this.world = new Accordion("World", true, load, radius, frequency, amplitude, buildRate, uploadRate, rebuild, ImGui::sameLine, regenerate);
+            this.world = new Accordion("World", true, load, radius, buildRate, uploadRate, rebuild, ImGui::sameLine, regenerate);
+        }
+
+        {
+            var output = new TextElement(() -> {
+                final NaturalWorldGenerator g = Main.INSTANCE.getWorld().getGenerator();
+                final Vec3f position = Main.INSTANCE.getRenderer().getCamera().getPosition();
+
+                return "C: %.2f | E: %.2f".formatted(g.getContinentalness().sample(position.xz()), g.getErosion().sample(position.xz()));
+            });
+            var frequency = new FloatSliderElement("Frequency", 0.005f, 0.001f, 0.01f, value -> Main.INSTANCE.getWorld().getGenerator().frequency = value);
+            //var octaves = new IntSliderElement("Octaves", 4, 1, 20, value -> Main.INSTANCE.getWorld().getGenerator().setOctaves(value));
+
+            var noiseSelector = new DropdownElement<Supplier<Noise>>("Noise", Map.of("continentalness", () -> Main.INSTANCE.getWorld().getGenerator().getContinentalness(), "erosion", () -> Main.INSTANCE.getWorld().getGenerator().getErosion(), "ridge", () -> Main.INSTANCE.getWorld().getGenerator().getRidge()));
+
+            var noiseImageRenderer = new Function<Vec2i, BufferedImage>() {
+                private float zoom = 1;
+                private boolean spline = false;
+
+                @Override
+                public BufferedImage apply(Vec2i size) {
+                    var g = Main.INSTANCE.getWorld().getGenerator();
+                    var noise = noiseSelector.read().get();
+                    var currentPosition = Main.INSTANCE.getRenderer().getCamera().getPosition();
+
+                    if (spline) {
+                        var s = g.getBaseHeightSpline();
+                        //TODO Bad assumption
+                        var min = s.sample(new NaturalWorldGenerator.NoisePoint(-1, 1, -1));
+                        var max = s.sample(new NaturalWorldGenerator.NoisePoint(1, -1, 1));
+
+                        return NoiseImageGenerator.generate(position -> {
+                            var height = g.getBaseHeight(position);
+
+                            return (height - min) / (max - min);
+                        }, currentPosition, size, zoom);
+                    } else {
+                       return NoiseImageGenerator.generate(position -> {
+                            var n = noise.sample(position);
+                            return 0.5f * n + 0.5f;
+                        }, currentPosition, size, zoom);
+                    }
+                }
+            };
+
+            var noiseImage = new ImageElement("Noise Image", () -> new Vec2i(ImGui.getColumnWidth(), 500), noiseImageRenderer);
+            var zoom = new FloatSliderElement("Zoom", 1f, 0.001f, 2f, value -> noiseImageRenderer.zoom = value);
+            var applySpline = new CheckboxElement("Apply Spline", false, value -> noiseImageRenderer.spline = value);
+
+            var spline = new Element() {
+                @Override
+                public void draw() {
+                    final Object baseHeightSpline = Main.INSTANCE.getWorld().getGenerator().getBaseHeightSpline();
+
+                    if(baseHeightSpline instanceof LinearSpline l) {
+                        if(ImPlot.beginPlot("Spline")) {
+                            ImPlot.getStyle().setAntiAliasedLines(true);
+                            final var x = IntStream.range(0, l.getX().length).mapToDouble(i -> l.getX()[i]).boxed().toArray(Double[]::new);
+                            final var y = IntStream.range(0, l.getY().length).mapToDouble(i -> l.getY()[i]).boxed().toArray(Double[]::new);
+                            ImPlot.plotLine("Line", x, y);
+                            ImPlot.endPlot();
+                        }
+                    }
+                }
+            };
+
+            var noiseSlice = new Element() {
+                record PlotData(Double[] axis, Double[] x, Double[] z) {}
+
+                final AsyncProducer<PlotData> asyncProducer = new AsyncProducer<>(this::sample, EXECUTOR);
+
+                private PlotData sample() {
+                    final int range = (int) (500f / zoom.read());
+                    final int samples = range << 1;
+                    final Double[] x = new Double[samples];
+                    final Double[] z = new Double[samples];
+                    final Noise noise = noiseSelector.read().get();
+
+                    for (int i = 0; i < samples; i++) {
+                        final Vec3f position = Main.INSTANCE.getRenderer().getCamera().getPosition();
+                        final float offset = i - (samples >> 1);
+                        x[i] = (double) noise.sample(position.xz().add(new Vec2f(1, 0).scale(offset)));
+                        z[i] = (double) noise.sample(position.xz().add(new Vec2f(0, 1).scale(offset)));
+                    }
+
+                    final Double[] axis = IntStream.range(-(samples >> 1), samples >> 1).mapToDouble(value -> value).boxed().toArray(Double[]::new);
+                    return new PlotData(axis, x, z);
+                }
+
+                @Override
+                public void draw() {
+                    final int axisFlags = ImPlotAxisFlags.AutoFit | ImPlotAxisFlags.NoLabel;
+                    if(ImPlot.beginPlot("Noise Slice", "", "", new ImVec2(ImGui.getColumnWidth(), 200), ImPlotFlags.CanvasOnly, axisFlags, axisFlags)) {
+                        var data = asyncProducer.get();
+                        ImPlot.plotLine("Along X", data.axis, data.x);
+                        ImPlot.plotLine("Along Z", data.axis, data.z);
+                        ImPlot.endPlot();
+                    }
+                }
+            };
+
+            this.generator = new Accordion("Noise", true, output, frequency, noiseImage, zoom, applySpline, noiseSelector, spline, noiseSlice);
         }
 
         {
@@ -233,13 +343,17 @@ public class UserInterface {
     }
 
     public void init() {
-        ImGui.createContext();
+        imGuiContext = ImGui.createContext();
+        imPlotContext = ImPlot.createContext();
+        ImPlot.getStyle().setAntiAliasedLines(true);
+
         if (!SAVE_GUI) ImGui.getIO().setIniFilename(null);
         imGuiGlfw.init(Main.INSTANCE.getWindow().id(), true);
         imGuiGl3.init("#version 430");
     }
 
     public void shutdown() {
+        ImPlot.destroyContext(imPlotContext);
         ImGui.destroyContext();
     }
 
@@ -258,6 +372,7 @@ public class UserInterface {
 
         drawProfiler();
         camera.draw();
+        generator.draw();
         render.draw();
         shadow.draw();
         cull.draw();
@@ -278,7 +393,7 @@ public class UserInterface {
                 .formatted(
                         Main.INSTANCE.getWorld().getChunks().size(),
                         Main.INSTANCE.getRenderer().getWorldRenderer().renderList.size(),
-                        Main.INSTANCE.getWorld().getChunks().stream().mapToInt(Chunk::getBlockCount).sum(),
+                        Main.INSTANCE.getWorld().getChunks().stream().mapToInt(WorldChunk::getBlockCount).sum(),
                         Main.INSTANCE.getRenderer().getWorldRenderer().getRenderChunks().stream().mapToInt(RenderChunk::getQuadCount).sum()
                 ));
 

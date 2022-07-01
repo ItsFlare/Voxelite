@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class CompressedBlockStorageTest {
 
-    private BlockStorage storage, control;
+    private ChunkStorage<Block> storage, control;
 
     @BeforeEach
     void setUp() {
@@ -22,13 +22,13 @@ class CompressedBlockStorageTest {
         final int max = Chunk.VOLUME;
         for (int i = 0; i < max; i++) {
             final Block block = Block.values()[ThreadLocalRandom.current().nextInt(Block.values().length)];
-            storage.setBlock(i, block);
-            control.setBlock(i, block);
-            assertEquals(block, storage.getBlock(i));
+            storage.set(i, block);
+            control.set(i, block);
+            assertEquals(block, storage.get(i));
         }
 
         for (int i = 0; i < max; i++) {
-            assertEquals(control.getBlock(i), storage.getBlock(i), Integer.toString(i));
+            assertEquals(control.get(i), storage.get(i), Integer.toString(i));
         }
     }
 }

@@ -18,7 +18,7 @@ public class VisibilityStorage {
     private static final int[] HULL = Util.init(int[]::new, () -> Chunk.VOLUME - (int) Math.pow(Chunk.WIDTH - 2, 3), array -> {
         int i = 0;
 
-        for (Vec3i v : Chunk.iterate()) {
+        for (Vec3i v : WorldChunk.iterate()) {
             if (v.min() == 0 || v.max() == Chunk.MAX_WIDTH) array[i++] = Chunk.toLinearSpace(v);
         }
 
