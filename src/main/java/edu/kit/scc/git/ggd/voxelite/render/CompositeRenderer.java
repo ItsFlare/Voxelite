@@ -39,12 +39,15 @@ public class CompositeRenderer {
 
         OpenGL.use(PROGRAM, va, () -> {
             final Camera camera = Main.INSTANCE.getRenderer().getCamera();
-            PROGRAM.debugRoughness.set(Main.INSTANCE.getRenderer().getWorldRenderer().debugRoughness);
+            final WorldRenderer worldRenderer = Main.INSTANCE.getRenderer().getWorldRenderer();
+            PROGRAM.debugRoughness.set(worldRenderer.debugRoughness);
             PROGRAM.opaque.bind(0, gBuffer.opaque());
             PROGRAM.normal.bind(1, gBuffer.normal());
             PROGRAM.mer.bind(2, gBuffer.mer());
             PROGRAM.depth.bind(3, gBuffer.depth());
             PROGRAM.projection.set(camera.projection());
+            PROGRAM.reflections.set(worldRenderer.reflections ? 1 : 0);
+            PROGRAM.coneTracing.set(worldRenderer.coneTracing ? 1 : 0);
 
             OpenGL.drawArrays(OpenGL.Mode.TRIANGLE_STRIP, 0, 4);
         });

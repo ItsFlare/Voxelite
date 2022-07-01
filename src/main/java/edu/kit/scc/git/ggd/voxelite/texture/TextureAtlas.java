@@ -53,8 +53,8 @@ public class TextureAtlas implements GLTexture {
                     }
 
                     if (color.width() != spriteSize || color.height() != spriteSize
-                            || normal.width() != spriteSize || normal.height() != spriteSize
-                            || mer.width() != spriteSize || mer.height() != spriteSize) {
+                            || normal != null && (normal.width() != spriteSize || normal.height() != spriteSize)
+                            || mer != null && (mer.width() != spriteSize || mer.height() != spriteSize)) {
                         throw new IllegalArgumentException("All sprites should have the same size");
                     }
 
@@ -81,15 +81,15 @@ public class TextureAtlas implements GLTexture {
                             mer = sprite.mer;
                         } else {
                             color = resizeImage(sprite.color, targetSize, targetSize, false);
-                            normal = resizeImage(sprite.normal, targetSize, targetSize, true);
-                            mer = resizeImage(sprite.normal, targetSize, targetSize, false);
+                            normal = sprite.normal != null ? resizeImage(sprite.normal, targetSize, targetSize, true) : null;
+                            mer = sprite.mer != null ? resizeImage(sprite.mer, targetSize, targetSize, false) : null;
                         }
 
                         final int posX = x * targetSize;
                         final int posY = y * targetSize;
                         arrayTexture.subImage(color, posX, posY, 0, level);
-                        arrayTexture.subImage(normal, posX, posY, 1, level);
-                        arrayTexture.subImage(mer, posX, posY, 2, level);
+                        if (normal != null) arrayTexture.subImage(normal, posX, posY, 1, level);
+                        if(mer != null) arrayTexture.subImage(mer, posX, posY, 2, level);
                     }
                 }
             } catch (IOException e) {

@@ -10,6 +10,7 @@ in mat3[] inTBN;
 out vec2 Tex;
 out vec3 Pos;
 flat out ivec3 Normal;
+out vec3 ViewNormal;
 out vec3 BlockLight;
 out vec3 LightSpacePos;
 out vec3 ViewSpacePos;
@@ -50,6 +51,7 @@ void main() {
     uint light = Light[0];
     BlockLight = vec3(light >> 20, (light >> 10) & uint(0x3ff), light & uint(0x3ff)) / maxLightValue;
     Normal = normals[d];
+    ViewNormal = (view * vec4(Normal, 0)).xyz;
     TBN = inTBN[0];
 
     ivec3 blockPos = chunk + ivec3(x, y, z);
