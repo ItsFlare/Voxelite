@@ -21,6 +21,9 @@ public class NaturalWorldGenerator implements MultiPassGenerator<NaturalWorldGen
     private final Noise ridgeNoise;
     private final Noise surfaceNoise;
 
+    private final Noise temperatureNoise;
+    private final Noise humidityNoise;
+
     private final long        seed;
     private final TerrainPass terrainPass;
     private final SurfacePass surfacePass;
@@ -37,9 +40,15 @@ public class NaturalWorldGenerator implements MultiPassGenerator<NaturalWorldGen
     public final IndirectSpline<NoisePoint> baseHeightSpline;
     private      float                      masterScale = 1;
 
-    public record NoisePoint(float continentalness, float erosion, float ridge) {
+    public record NoisePoint(float continentalness, float erosion, float ridge, float temperature, float humidity) {
         public NoisePoint clamp(float min, float max) {
-            return new NoisePoint(Util.clamp(continentalness, min, max), Util.clamp(erosion, min, max), Util.clamp(ridge, min, max));
+            return new NoisePoint(
+                    Util.clamp(continentalness, min, max),
+                    Util.clamp(erosion, min, max),
+                    Util.clamp(ridge, min, max),
+                    Util.clamp(temperature, min, max),
+                    Util.clamp(humidity, min, max)
+            );
         }
     }
 
@@ -49,6 +58,8 @@ public class NaturalWorldGenerator implements MultiPassGenerator<NaturalWorldGen
         this.erosionNoise = new Noise2D(new FBM(new SimplexNoise(seed + 2), 2, 2f, 0.5f, 0.001f, 1.1f));
         this.ridgeNoise = new Noise2D(new Spline(createRidgeSpline(0.8f, -0.2f), new FBM(new SimplexNoise(seed + 3), 1, 2f, 0.25f, 0.005f, 1f)));
         this.surfaceNoise = new FBM(new SimplexNoise(seed + 4), 4, 1.75f, 0.3f, 0.02f, 1f);
+        this.temperatureNoise = new Noise2D(new FBM(new SimplexNoise(seed + 5), 3, 2f, 0.5f, 0.0005f, 1.1f));
+        this.humidityNoise = new Noise2D(new FBM(new SimplexNoise(seed + 6), 2, 2f, 0.5f, 0.001f, 1.1f));
 
         //Coast
         ridgeCoast = new LinearSpline(
@@ -118,8 +129,10 @@ public class NaturalWorldGenerator implements MultiPassGenerator<NaturalWorldGen
         float continentalness = continentalnessNoise.sample(position);
         float erosion = erosionNoise.sample(position);
         float ridge = ridgeNoise.sample(position);
+        float temperature = temperatureNoise.sample(position);
+        float humidity = humidityNoise.sample(position);
 
-        return new NoisePoint(continentalness, erosion, ridge).clamp(-1, 1);
+        return new NoisePoint(continentalness, erosion, ridge, temperature, humidity).clamp(-1, 1);
     }
 
     @Override
@@ -162,6 +175,14 @@ public class NaturalWorldGenerator implements MultiPassGenerator<NaturalWorldGen
 
     public Noise getRidge() {
         return ridgeNoise;
+    }
+
+    public Noise getTemperature() {
+        return temperatureNoise;
+    }
+
+    public Noise getHumidity() {
+        return humidityNoise;
     }
 
     public Noise getSurfaceNoise() {

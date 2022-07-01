@@ -70,7 +70,7 @@ public class WorldChunk implements Chunk {
 
     @Override
     public void setBlock(final Vec3i position, final Block block) {
-        final Voxel voxel = getVoxel(position);
+        final Voxel voxel = getVoxel(Chunk.toChunkSpace(position));
         final int linear = toLinearSpace(position);
         final Block previous = blockStorage.get(linear);
 

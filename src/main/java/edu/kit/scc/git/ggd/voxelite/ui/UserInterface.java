@@ -9,6 +9,7 @@ import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import edu.kit.scc.git.ggd.voxelite.world.CompressedLightStorage;
 import edu.kit.scc.git.ggd.voxelite.world.WorldChunk;
 import edu.kit.scc.git.ggd.voxelite.world.generator.natural.NaturalWorldGenerator;
+import edu.kit.scc.git.ggd.voxelite.world.generator.natural.biome.Biome;
 import edu.kit.scc.git.ggd.voxelite.world.generator.noise.LinearSpline;
 import edu.kit.scc.git.ggd.voxelite.world.generator.noise.Noise;
 import imgui.ImGui;
@@ -182,13 +183,17 @@ public class UserInterface {
             var output = new TextElement(() -> {
                 final NaturalWorldGenerator g = Main.INSTANCE.getWorld().getGenerator();
                 final Vec3f position = Main.INSTANCE.getRenderer().getCamera().getPosition();
+                final NaturalWorldGenerator.NoisePoint noisePoint = g.sampleNoises(position);
 
-                return "C: %.2f | E: %.2f".formatted(g.getContinentalness().sample(position.xz()), g.getErosion().sample(position.xz()));
+                return "Biome: %s (C: %.2f | E: %.2f | R: %.2f | T: %.2f | H: %.2f)".formatted(Biome.select(noisePoint).name(), noisePoint.continentalness(), noisePoint.erosion(), noisePoint.ridge(), noisePoint.temperature(), noisePoint.humidity());
             });
-            var frequency = new FloatSliderElement("Frequency", 0.005f, 0.001f, 0.01f, value -> Main.INSTANCE.getWorld().getGenerator().frequency = value);
-            //var octaves = new IntSliderElement("Octaves", 4, 1, 20, value -> Main.INSTANCE.getWorld().getGenerator().setOctaves(value));
 
-            var noiseSelector = new DropdownElement<Supplier<Noise>>("Noise", Map.of("continentalness", () -> Main.INSTANCE.getWorld().getGenerator().getContinentalness(), "erosion", () -> Main.INSTANCE.getWorld().getGenerator().getErosion(), "ridge", () -> Main.INSTANCE.getWorld().getGenerator().getRidge()));
+            var noiseSelector = new DropdownElement<Supplier<Noise>>("Noise", Map.of(
+                    "continentalness", () -> Main.INSTANCE.getWorld().getGenerator().getContinentalness(),
+                    "erosion", () -> Main.INSTANCE.getWorld().getGenerator().getErosion(),
+                    "ridge", () -> Main.INSTANCE.getWorld().getGenerator().getRidge(),
+                    "temperature", () -> Main.INSTANCE.getWorld().getGenerator().getTemperature())
+            );
 
             var noiseImageRenderer = new Function<Vec2i, BufferedImage>() {
                 private float zoom = 1;
@@ -203,8 +208,8 @@ public class UserInterface {
                     if (spline) {
                         var s = g.getBaseHeightSpline();
                         //TODO Bad assumption
-                        var min = s.sample(new NaturalWorldGenerator.NoisePoint(-1, 1, -1));
-                        var max = s.sample(new NaturalWorldGenerator.NoisePoint(1, -1, 1));
+                        var min = s.sample(new NaturalWorldGenerator.NoisePoint(-1, 1, -1, 0, 0));
+                        var max = s.sample(new NaturalWorldGenerator.NoisePoint(1, -1, 1, 0, 0));
 
                         return NoiseImageGenerator.generate(position -> {
                             var height = g.getBaseHeight(position);
@@ -276,7 +281,7 @@ public class UserInterface {
                 }
             };
 
-            this.generator = new Accordion("Noise", true, output, frequency, noiseImage, zoom, applySpline, noiseSelector, spline, noiseSlice);
+            this.generator = new Accordion("Noise", true, output, noiseImage, zoom, applySpline, noiseSelector, spline, noiseSlice);
         }
 
         {
@@ -372,13 +377,13 @@ public class UserInterface {
 
         drawProfiler();
         camera.draw();
-        generator.draw();
         render.draw();
         shadow.draw();
         cull.draw();
         world.draw();
         light.draw();
         perf.draw();
+        generator.draw();
 
         ImGui.end();
         ImGui.render();
