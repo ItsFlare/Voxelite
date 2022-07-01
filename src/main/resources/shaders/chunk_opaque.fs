@@ -1,22 +1,31 @@
 #version 410
+layout(location = 0) out vec3 color;
+layout(location = 1) out vec3 normal;
+layout(location = 2) out vec3 mer;
+
 in vec2 Tex;
 in vec3 Pos;
 flat in ivec3 Normal;
-in vec4 BlockLight;
+in vec3 BlockLight;
 in vec3 LightSpacePos;
+in vec3 ViewSpacePos;
+flat in mat3 TBN;
+in float aoFactor;
 
-out vec4 FragColor;
-
-uniform sampler2D atlas;
 uniform sampler2DArrayShadow shadowMap;
+uniform sampler2DArray atlas;
 uniform vec3 camera;
+uniform mat4 view;
 
 uniform float ambientStrength;
 uniform float diffuseStrength;
 uniform float specularStrength;
 uniform float constantBias;
 uniform int phongExponent;
-uniform int shadows;
+uniform bool shadows;
+uniform bool normalMapSet;
+uniform bool fogSet;
+uniform int fogRange;
 
 uniform struct Light {
     vec3 direction;
@@ -32,10 +41,10 @@ uniform struct Cascade {
 
 
 uniform int kernel;
-uniform int cascadeDebug;
+uniform bool cascadeDebug;
 float kernelFactor = 1 / pow(kernel * 2 + 1, 2);
 
-vec3 debugColor;
+vec3 debugColor = vec3(0);
 
 float ShadowCalculation(vec3 fragPosLightSpace) {
     int c;
@@ -70,6 +79,7 @@ float ShadowCalculation(vec3 fragPosLightSpace) {
 
     return shadow;
 }
+
 vec3 DirectionalLight(vec3 normal, vec3 viewDirection) {
     vec3 color = light.color.rgb;
     vec3 lightDirection = normalize(-light.direction);
@@ -81,16 +91,49 @@ vec3 DirectionalLight(vec3 normal, vec3 viewDirection) {
     vec3 halfwayDirection = normalize(lightDirection + viewDirection);
     float spec = pow(max(dot(normal, halfwayDirection), 0.0), phongExponent);
 
-    float shadow = shadows == 1 ? ShadowCalculation(LightSpacePos) : 1;
+    float shadow = shadows ? ShadowCalculation(LightSpacePos) : 1;
     vec3 ambient  = color * ambientStrength;
     vec3 diffuse  = color * diffuseStrength * diff * shadow;
     vec3 specular = color * specularStrength * spec * shadow;
     return (ambient + diffuse + specular);
 }
 
-void main() {
-    vec4 t = texture(atlas, Tex);
-    FragColor = (vec4(DirectionalLight(Normal, normalize(camera - Pos)), 1) + BlockLight) * t;
+float getFogFactor(float fogCoordinate) {
+    float density = 0.015;
+    float start = fogRange - 10;
+    float end = fogRange + 30;
 
-    if(cascadeDebug == 1) FragColor += vec4(debugColor, 1);
+    if (fogCoordinate < start) {
+        return 0;
+    } else {
+
+        return clamp((fogCoordinate - start) / (end - start), 0, 1);
+    }
+}
+
+void main() {
+
+    vec3 n;
+    if(normalMapSet) {
+        n = texture(atlas, vec3(Tex, 1)).rgb;
+        n = n * 2 - 1;
+        n = normalize(TBN * n);
+    } else {
+        n = Normal;
+    }
+
+    vec3 t = texture(atlas, vec3(Tex, 0)).rgb;
+    vec3 l = DirectionalLight(n, normalize(camera - Pos)) + BlockLight;
+    color = l * t * aoFactor;
+
+    if(cascadeDebug) color += debugColor;
+
+    if(fogSet) {
+        float fogCoordinate = length(ViewSpacePos.xyz);
+        vec3  fogColor = vec3(0.4, 0.4, 0.4);
+        color = mix(color, fogColor, getFogFactor(fogCoordinate));
+    }
+
+    normal = (view * vec4(Normal, 0)).xyz;
+    mer = texture(atlas, vec3(Tex, 2)).rgb;
 }

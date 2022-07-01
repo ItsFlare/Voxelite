@@ -11,10 +11,12 @@ import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
 import net.durchholz.beacon.util.Image;
 import net.durchholz.beacon.window.Viewport;
 import net.durchholz.beacon.window.Window;
+import org.lwjgl.opengl.GL30;
 
 import java.io.IOException;
 
 import static java.lang.Math.sin;
+import static org.lwjgl.opengl.GL30.*;
 
 public class Renderer {
 
@@ -23,6 +25,7 @@ public class Renderer {
     private final WorldRenderer  worldRenderer;
     private final SkyRenderer skyRenderer = new SkyRenderer();
     private final SpriteRenderer crosshairRenderer = new SpriteRenderer(new Image(Util.readResource("textures/crosshair.png")));
+    private final GeometryBuffer             gBuffer           = new GeometryBuffer(1, 1);
 
     private Viewport viewport;
 
@@ -38,6 +41,7 @@ public class Renderer {
         this.userInterface = new UserInterface();
         this.worldRenderer = new WorldRenderer();
         this.viewport = window.getViewport();
+        gBuffer.allocate(viewport.width(), viewport.height());
     }
 
     public void init() {
@@ -58,8 +62,16 @@ public class Renderer {
 
 
     public void render() {
+        System.out.println("Rendering frame " + getFrame());
+
         updateViewport();
         OpenGL.polygonMode(OpenGL.Face.BOTH, wireframe ? OpenGL.PolygonMode.LINE : OpenGL.PolygonMode.FILL);
+
+        gBuffer.use(() -> {
+            OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3);
+            glClearDepth(1); //Background is at infinity (required for sky reflection)
+            OpenGL.clearAll();
+        });
 
         if (renderSkybox) renderSky();
         if (renderWorld) renderWorld();
@@ -83,6 +95,7 @@ public class Renderer {
         if (!viewport.equals(v)) {
             OpenGL.setViewport(v);
             viewport = v;
+            if(viewport.width() + viewport.height() > 0) gBuffer.allocate(viewport.width(), viewport.height());
         }
     }
 
@@ -93,9 +106,12 @@ public class Renderer {
         var projection = camera.projection();
         projection.multiply(camera.view(false, true));
 
-        skyRenderer.render(viewportRes, dayPercentage, camera.getFOV(), Matrix3f.rotation(camera.getRotation()));
-        skyRenderer.renderNightSkyBox(projection, -1 * dayPercentage + 1);
-        skyRenderer.renderPlanets(projection);
+        gBuffer.use(() -> {
+            OpenGL.setDrawBuffers(GL30.GL_COLOR_ATTACHMENT0);
+            skyRenderer.render(viewportRes, dayPercentage, camera.getFOV(), Matrix3f.rotation(camera.getRotation()));
+            skyRenderer.renderNightSkyBox(projection, -1 * dayPercentage + 1);
+            skyRenderer.renderPlanets(projection);
+        });
     }
 
     private void renderWorld() {
@@ -115,6 +131,10 @@ public class Renderer {
 
     public int getFrame() {
         return frame;
+    }
+
+    public GeometryBuffer getGeometryBuffer() {
+        return gBuffer;
     }
 
     private static CubemapTexture loadSkybox() throws IOException {

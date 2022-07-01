@@ -10,21 +10,27 @@ public class OakTreeFeature implements TerrainFeature {
         int height = 6;
 
         for (int i = 0; i < height; i++) {
-            voxel.getRelative(new Vec3i(0, i, 0)).setBlock(Block.OAK_LOG);
+            final Voxel relative = voxel.getRelative(new Vec3i(0, i, 0));
+            if(relative != null) relative.setBlock(Block.OAK_LOG);
         }
 
         for (int x = -2; x <= 2; x++) {
             for (int z = -2; z <= 2; z++) {
-                if(!(x == 0 && z == 0) && Math.abs(z) + Math.abs(x) != 4 && Math.abs(z) + Math.abs(x) != 0) {
-                    voxel.getRelative(new Vec3i(x, height - 2, z)).setBlock(Block.WHITE_GLASS);
-                    voxel.getRelative(new Vec3i(x, height - 3, z)).setBlock(Block.WHITE_GLASS);
+                if(!(x == 0 && z == 0) && Math.abs(z) + Math.abs(x) != 4) {
+                    for (int y = 0; y < 2; y++) {
+                        final Voxel relative = voxel.getRelative(new Vec3i(x, height - 2 - y, z));
+                        if(relative != null) relative.setBlock(Block.WHITE_GLASS);
+                    }
                 }
             }
         }
 
         for (int x = -1; x <= 1; x++) {
             for (int z = -1; z <= 1; z++) {
-                if(Math.abs(z) + Math.abs(x) != 2) voxel.getRelative(new Vec3i(x, height - 1, z)).setBlock(Block.WHITE_GLASS);
+                if(Math.abs(z) + Math.abs(x) != 2) {
+                    final Voxel relative = voxel.getRelative(new Vec3i(x, height - 1, z));
+                    if(relative != null) relative.setBlock(Block.WHITE_GLASS);
+                }
             }
         }
 

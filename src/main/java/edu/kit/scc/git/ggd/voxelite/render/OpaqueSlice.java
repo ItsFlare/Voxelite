@@ -32,10 +32,16 @@ public class OpaqueSlice extends Slice {
                 vertexArray.set(PROGRAM.position, ChunkProgram.QuadVertex.POSITION, ChunkProgram.QUAD_VB, 0);
                 vertexArray.set(PROGRAM.texture, ChunkProgram.QuadVertex.TEXTURE, ChunkProgram.QUAD_VB, 0);
                 vertexArray.set(PROGRAM.normal, ChunkProgram.QuadVertex.NORMAL, ChunkProgram.QUAD_VB, 0);
+                vertexArray.set(PROGRAM.tangent, ChunkProgram.QuadVertex.TANGENT, ChunkProgram.QUAD_VB, 0);
+                vertexArray.set(PROGRAM.bitangent, ChunkProgram.QuadVertex.BITANGENT, ChunkProgram.QUAD_VB, 0);
             });
 
             instanceBuffer.use(() -> {
                 vertexArray.set(PROGRAM.data, ChunkProgram.InstanceVertex.DATA, instanceBuffer, 1);
+            });
+
+            aoBuffer.use(() -> {
+                vertexArray.set(PROGRAM.ao, ChunkProgram.AOVertex.AO, aoBuffer, 1);
             });
 
             lightBuffer.use(() -> {
@@ -65,6 +71,7 @@ public class OpaqueSlice extends Slice {
         var queuedQuads = queue.stream().sorted(Comparator.comparingInt(value -> value.direction().ordinal())).toList();
 
         this.nextVertices = toInstanceVertices(queuedQuads);
+        this.nextAOVertices = toAOVertices(queuedQuads);
         this.nextLightVertices = toLightVertices(queuedQuads);
         this.nextCommands = generateCommands();
 

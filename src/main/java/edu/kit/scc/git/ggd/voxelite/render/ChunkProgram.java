@@ -13,18 +13,20 @@ import net.durchholz.beacon.render.opengl.shader.Uniform;
 
 public class ChunkProgram extends Program {
 
-    public static final QuadVertex[] QUAD_VERTICES = new QuadVertex[Direction.values().length * 4];
-    public static final VertexBuffer<QuadVertex> QUAD_VB = new VertexBuffer<>(QuadVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
+    public static final QuadVertex[]             QUAD_VERTICES = new QuadVertex[Direction.values().length * 4];
+    public static final VertexBuffer<QuadVertex> QUAD_VB       = new VertexBuffer<>(QuadVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.DYNAMIC_DRAW);
 
     static {
         for (int i = 0; i < Direction.values().length; i++) {
             final Direction direction = Direction.values()[i];
             final Vec3i normal = direction.getAxis();
+            final Vec3i tangent = direction.getUnitQuad().tangent();
+            final Vec3i bitangent = direction.getUnitQuad().bitangent();
 
-            QUAD_VERTICES[i * 4 + 0] = new QuadVertex(direction.getUnitQuad().v0(), new Vec2i(0, 0), normal);
-            QUAD_VERTICES[i * 4 + 1] = new QuadVertex(direction.getUnitQuad().v1(), new Vec2i(1, 0), normal);
-            QUAD_VERTICES[i * 4 + 2] = new QuadVertex(direction.getUnitQuad().v2(), new Vec2i(0, 1), normal);
-            QUAD_VERTICES[i * 4 + 3] = new QuadVertex(direction.getUnitQuad().v3(), new Vec2i(1, 1), normal);
+            QUAD_VERTICES[i * 4 + 0] = new QuadVertex(direction.getUnitQuad().v0(), new Vec2i(0, 0), normal, tangent, bitangent);
+            QUAD_VERTICES[i * 4 + 1] = new QuadVertex(direction.getUnitQuad().v1(), new Vec2i(1, 0), normal, tangent, bitangent);
+            QUAD_VERTICES[i * 4 + 2] = new QuadVertex(direction.getUnitQuad().v2(), new Vec2i(0, 1), normal, tangent, bitangent);
+            QUAD_VERTICES[i * 4 + 3] = new QuadVertex(direction.getUnitQuad().v3(), new Vec2i(1, 1), normal, tangent, bitangent);
         }
 
         QUAD_VB.use(() -> QUAD_VB.data(QUAD_VERTICES));
@@ -35,11 +37,14 @@ public class ChunkProgram extends Program {
     }
 
 
-    public final Attribute<Integer> data  = attribute("data", OpenGL.Type.INT, 1);
-    public final Attribute<Integer> light = attribute("light", OpenGL.Type.INT, 1);
+    public final Attribute<Integer> data  = attribute("data", OpenGL.Type.UNSIGNED_INT, 1);
+    public final Attribute<Integer> light = attribute("light", OpenGL.Type.UNSIGNED_INT, 1);
+    public final Attribute<Byte>    ao    = attribute("ao", OpenGL.Type.UNSIGNED_INT, 1);
 
-    public final Uniform<Matrix4f> mvp                  = uniMatrix4f("mvp", true);
-    public final Uniform<Vec3i>    chunk                = uniVec3i("chunk");
+
+    public final Uniform<Matrix4f> mvp   = uniMatrix4f("mvp", true);
+    public final Uniform<Matrix4f> view  = uniMatrix4f("view", true);
+    public final Uniform<Vec3i>    chunk = uniVec3i("chunk");
     public final Sampler           atlas                = sampler("atlas");
     public final Sampler           shadowMap            = sampler("shadowMap");
     public final Uniform<Vec3f>    camera               = uniVec3f("camera");
@@ -60,11 +65,20 @@ public class ChunkProgram extends Program {
     public final Uniform<Integer>  cascadeDebug         = uniInteger("cascadeDebug");
     public final Uniform<Integer>  kernel               = uniInteger("kernel");
 
-    public record QuadVertex(Vec3i position, Vec2i texture, Vec3i normal) implements Vertex {
+    public final Uniform<Integer> normalMap = uniInteger("normalMapSet");
+    public final Uniform<Integer> fogSet = uniInteger("fogSet");
+    public final Uniform<Integer> aoSet = uniInteger("aoSet");
+    public final Uniform<Integer> fogRange = uniInteger("fogRange");
+
+    public record QuadVertex(Vec3i position, Vec2i texture, Vec3i normal, Vec3i tangent, Vec3i bitangent) implements Vertex {
         public static final VertexLayout<QuadVertex> LAYOUT   = new VertexLayout<>(QuadVertex.class);
         public static final VertexAttribute<Vec3i>   POSITION = LAYOUT.vec3i(false);
         public static final VertexAttribute<Vec2i>   TEXTURE  = LAYOUT.vec2i(false);
         public static final VertexAttribute<Vec3i>   NORMAL   = LAYOUT.vec3i(false);
+
+        public static final VertexAttribute<Vec3i> TANGENT = LAYOUT.vec3i(false);
+
+        public static final VertexAttribute<Vec3i> BITANGENT = LAYOUT.vec3i(false);
 
         @Override
         public VertexLayout<QuadVertex> getLayout() {
@@ -88,6 +102,16 @@ public class ChunkProgram extends Program {
 
         @Override
         public VertexLayout<InstanceLightVertex> getLayout() {
+            return LAYOUT;
+        }
+    }
+
+    public record AOVertex(byte ao) implements Vertex {
+        public static final VertexLayout<AOVertex> LAYOUT = new VertexLayout<>(AOVertex.class);
+        public static final VertexAttribute<Byte>  AO     = LAYOUT.primitive(false);
+
+        @Override
+        public VertexLayout<AOVertex> getLayout() {
             return LAYOUT;
         }
     }

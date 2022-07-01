@@ -32,13 +32,13 @@ public enum Block {
     STONE(Builder::texture),
     SAND(Builder::texture),
     COBBLESTONE(Builder::texture),
-    OAK_LOG(builder -> builder.texture("oak_log").texture("oak_log_top", Direction.POS_Y, Direction.NEG_Y)),
-    GRASS(builder -> builder.texture("grass_block_side").texture("dirt", Direction.NEG_Y).texture("grass_block_top", Direction.POS_Y)),
-    WATER(builder -> builder.texture("blue_concrete")),
+    OAK_LOG(builder -> builder.texture("log_oak").texture("log_oak_top", Direction.POS_Y, Direction.NEG_Y)),
+    GRASS(builder -> builder.texture("grass_side").texture("dirt", Direction.NEG_Y).texture("grass_top", Direction.POS_Y)),
+    WATER(builder -> builder.texture("water").transparent()),
     TNT(builder -> builder.texture("tnt_side").texture("tnt_bottom", Direction.NEG_Y).texture("tnt_top", Direction.POS_Y)),
-    RED_GLASS(builder -> builder.texture("red_stained_glass").transparent().filter(new Vec3f(1, 0, 0))),
-    CYAN_GLASS(builder -> builder.texture("cyan_stained_glass").transparent().filter(new Vec3f(0, 1, 1))),
-    WHITE_GLASS(builder -> builder.texture("white_stained_glass").transparent()),
+    RED_GLASS(builder -> builder.texture("glass_red").transparent().filter(new Vec3f(1, 0, 0))),
+    CYAN_GLASS(builder -> builder.texture("glass_cyan").transparent().filter(new Vec3f(0, 1, 1))),
+    WHITE_GLASS(builder -> builder.texture("glass_white").transparent()),
     GLOWSTONE(builder -> builder.texture().light(new Vec3f(1, 0, 0), 31));
 
     public Vec3f light, filter;
@@ -141,8 +141,8 @@ public enum Block {
         }
 
         public Builder texture(String name, int rotation, Direction... directions) {
-            Vec2i uv = Main.INSTANCE.getRenderer().getWorldRenderer().getAtlas().getSprite(name + ".png");
-            if(uv == null) throw new IllegalArgumentException("Texture %s.png not found".formatted(name));
+            Vec2i uv = Main.INSTANCE.getRenderer().getWorldRenderer().getAtlas().getSprite(name);
+            if(uv == null) throw new IllegalArgumentException("Texture %s not found".formatted(name));
 
             for (Direction direction : directions) {
                 quads[direction.ordinal()] = uv; //TODO Rotate

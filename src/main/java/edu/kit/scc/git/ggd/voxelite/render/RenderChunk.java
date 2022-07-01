@@ -6,12 +6,15 @@ import edu.kit.scc.git.ggd.voxelite.world.*;
 import net.durchholz.beacon.math.Vec2i;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Objects;
 
 public class RenderChunk {
-    public static final int FULL_VISIBILITY = (1 << Direction.values().length) - 1;
+    public static final int    FULL_VISIBILITY = (1 << Direction.values().length) - 1;
+    public static final Logger LOGGER          = LoggerFactory.getLogger(RenderChunk.class);
 
     private final WorldChunk chunk;
     private final Slice[]    slices = new Slice[RenderType.values().length];
@@ -41,6 +44,14 @@ public class RenderChunk {
                 () -> setOccluded(Main.INSTANCE.getRenderer().getFrame())
         );
         occlusionQueryId = worldRenderer.getOcclusionRenderer().getQueries().add(query);
+    }
+
+    public OpaqueSlice opaqueSlice() {
+        return (OpaqueSlice) slices[RenderType.OPAQUE.ordinal()];
+    }
+
+    public TransparentSlice transparentSlice() {
+        return (TransparentSlice) slices[RenderType.TRANSPARENT.ordinal()];
     }
 
     public static int directionCull(Vec3f cameraPosition, Vec3i chunkWorldPosition) {
@@ -92,7 +103,7 @@ public class RenderChunk {
                     Vec3i light = neighbor == null ? new Vec3i() : neighbor.chunk().getLightStorage().getLight(neighbor.position());
 
                     synchronized (slice) {
-                        slice.queue(new OpaqueSlice.QueuedQuad(direction, Chunk.toChunkSpace(voxel.position()), texture, light));
+                        slice.queue(new OpaqueSlice.QueuedQuad(direction, Chunk.toChunkSpace(voxel.position()), texture, light, aoByte(voxel, direction)));
                     }
                 }
             }
@@ -137,8 +148,7 @@ public class RenderChunk {
 
     public void sortTransparent() {
         assert valid;
-
-        ((TransparentSlice) slices[RenderType.TRANSPARENT.ordinal()]).sort();
+        transparentSlice().sort();
     }
 
     public int getQuadCount() {
@@ -173,4 +183,97 @@ public class RenderChunk {
         return getQuadCount() >= Main.INSTANCE.getRenderer().getWorldRenderer().occlusionCullThreshold
                 && occlusionFrame == Main.INSTANCE.getRenderer().getFrame();
     }
+
+
+    public static byte aoByte(Voxel voxel, Direction direction) {
+        Direction sideDirection;
+        Direction upDirection;
+
+        if(direction == Direction.POS_X || direction == Direction.NEG_X) {
+            sideDirection = direction == Direction.POS_X ? Direction.NEG_Z : Direction.POS_Z;
+        } else if(direction == Direction.POS_Z || direction == Direction.NEG_Z) {
+            sideDirection = direction == Direction.POS_Z ? Direction.POS_X : Direction.NEG_X;
+        } else {
+            sideDirection = Direction.POS_X;
+        }
+
+        if(direction == Direction.POS_Y || direction == Direction.NEG_Y) {
+            upDirection = direction == Direction.POS_Y ? Direction.NEG_Z : Direction.POS_Z;
+        } else {
+            upDirection = Direction.POS_Y;
+        }
+
+        Voxel bottomSide;
+        Voxel topSide;
+        Voxel rightSide;
+        Voxel leftSide;
+        Voxel bottomRightCorner;
+        Voxel bottomLeftCorner;
+        Voxel topRightCorner;
+        Voxel topLeftCorner;
+        Voxel neighbor1;
+        Voxel neighbor2;
+
+        neighbor1 = voxel.getNeighbor(upDirection.getOpposite());
+        bottomSide = neighbor1 == null ? null : neighbor1.getNeighbor(direction);
+
+        neighbor1 = voxel.getNeighbor(upDirection);
+        topSide = neighbor1 == null ? null : neighbor1.getNeighbor(direction);
+
+        neighbor1 = voxel.getNeighbor(sideDirection);
+        rightSide = neighbor1 == null ? null : neighbor1.getNeighbor(direction);
+
+        neighbor1 = voxel.getNeighbor(sideDirection.getOpposite());
+        leftSide = neighbor1 == null ? null : neighbor1.getNeighbor(direction);
+
+        neighbor1 = voxel.getNeighbor(sideDirection);
+        neighbor2 = neighbor1 == null ? null : neighbor1.getNeighbor(direction);
+        bottomRightCorner = neighbor2 == null ? null : neighbor2.getNeighbor(upDirection.getOpposite());
+
+        neighbor1 = voxel.getNeighbor(sideDirection.getOpposite());
+        neighbor2 = neighbor1 == null ? null : neighbor1.getNeighbor(direction);
+        bottomLeftCorner = neighbor2 == null ? null : neighbor2.getNeighbor(upDirection.getOpposite());
+
+        neighbor1 = voxel.getNeighbor(sideDirection);
+        neighbor2 = neighbor1 == null ? null : neighbor1.getNeighbor(direction);
+        topRightCorner = neighbor2 == null ? null : neighbor2.getNeighbor(upDirection);
+
+        neighbor1 = voxel.getNeighbor(sideDirection.getOpposite());
+        neighbor2 = neighbor1 == null ? null : neighbor1.getNeighbor(direction);
+        topLeftCorner = neighbor2 == null ? null : neighbor2.getNeighbor(upDirection);
+
+        int v0 = vertexAO(
+                (rightSide == null || rightSide.getBlock().equals(Block.AIR)) ? 0 : 1,
+                (bottomSide == null || bottomSide.getBlock().equals(Block.AIR)) ? 0 : 1,
+                (bottomRightCorner == null || bottomRightCorner.getBlock().equals(Block.AIR)) ? 0 : 1);
+        int v1 = vertexAO(
+                leftSide == null || leftSide.getBlock().equals(Block.AIR) ? 0 : 1,
+                bottomSide == null || bottomSide.getBlock().equals(Block.AIR) ? 0 : 1,
+                bottomLeftCorner == null || bottomLeftCorner.getBlock().equals(Block.AIR) ? 0 : 1);
+        int v2 = vertexAO(
+                rightSide == null || rightSide.getBlock().equals(Block.AIR) ? 0 : 1,
+                topSide == null || topSide.getBlock().equals(Block.AIR) ? 0 : 1,
+                topRightCorner == null || topRightCorner.getBlock().equals(Block.AIR) ? 0 : 1);
+        int v3 = vertexAO(
+                leftSide == null || leftSide.getBlock().equals(Block.AIR) ? 0 : 1,
+                topSide == null || topSide.getBlock().equals(Block.AIR) ? 0 : 1,
+                topLeftCorner == null || topLeftCorner.getBlock().equals(Block.AIR) ? 0 : 1);
+
+        byte result = 0;
+
+        result |= v1;
+        result |= v0 << 2;
+        result |= v3 << 4;
+        result |= v2 << 6;
+
+        return result;
+    }
+
+    private static int vertexAO(int side1, int side2, int corner) {
+        if(side1 == 1 && side2 == 1) {
+            return 0;
+        }
+        return 3 - (side1 + side2 + corner);
+    }
+
 }

@@ -4,12 +4,12 @@ import net.durchholz.beacon.math.*;
 
 import java.util.Arrays;
 
-public record Frustum(Vec3f position, Vec4f[] normals, Vec3f[] corners) {
+public record Frustum(Vec4f[] normals, Vec3f[] corners) {
 
     private static final AABB UNIT = new AABB(new Vec3i(-1), new Vec3i(1));
 
-    public Frustum(Vec3f position, Matrix4f viewProjection) {
-        this(position, extractNormals(viewProjection), extractCorners(viewProjection));
+    public Frustum(Matrix4f viewProjection) {
+        this(extractNormals(viewProjection), extractCorners(viewProjection));
     }
 
     public boolean intersects(AABB aabb) {

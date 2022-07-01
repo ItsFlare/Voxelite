@@ -44,8 +44,8 @@ public class UserInterface {
 
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private final ImGuiImplGl3  imGuiGl3  = new ImGuiImplGl3();
-    private       ImGuiContext  imGuiContext;
-    private       ImPlotContext imPlotContext;
+    private ImGuiContext  imGuiContext;
+    private ImPlotContext imPlotContext;
 
     private final Accordion camera, world, generator, render, shadow, cull, light, perf;
 
@@ -78,11 +78,22 @@ public class UserInterface {
             var world = new CheckboxElement("World", true, value -> Main.INSTANCE.getRenderer().renderWorld = value);
             var vsync = new CheckboxElement("VSync", true, value -> Window.swapInterval(value ? 1 : 0));
             var wireframe = new CheckboxElement("Wireframe", false, value -> Main.INSTANCE.getRenderer().wireframe = value);
+            var normalMap = new CheckboxElement("Normal Map", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().normalMap = value);
+            var fog = new CheckboxElement("Fog", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().fog = value);
+            var ao = new CheckboxElement("AO", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().ao = value);
             var transparentSort = new CheckboxElement("Transparent sort", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().transparentSort = value);
+            var frustumDebug = new CheckboxElement("Debug Frustum", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().debugFrustum = value);
+            var frustumCapture = new CheckboxElement("Capture Frustum", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().captureFrustum = value);
             var ticksPerDay = new IntSliderElement("Day Length", 2000, 200, 20000, value -> Main.ticksPerDay = value);
+            var roughness = new FloatSliderElement("Roughness Delta", 0, -2f, 2f, value -> Main.INSTANCE.getRenderer().getWorldRenderer().debugRoughness = value);
+            var reflections = new CheckboxElement("SSR", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().reflections = value);
+            var coneTracing = new CheckboxElement("CT", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().coneTracing = value);
 
 
             this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe, ImGui::sameLine, transparentSort,
+                    frustumDebug, ImGui::sameLine, frustumCapture,  ImGui::sameLine, ao, ImGui::sameLine, fog, ImGui::sameLine, normalMap,
+                    reflections, ImGui::sameLine, coneTracing,
+                    roughness,
                     ticksPerDay
             );
         }
@@ -164,19 +175,20 @@ public class UserInterface {
                 );
             });
 
-            this.cull = new Accordion("Culling", true, caveCull, ImGui::sameLine, dotCull, ImGui::sameLine, frustumCull, ImGui::sameLine, occlusionCull, ImGui::sameLine, directionCull, ImGui::sameLine, backfaceCull,
+            this.cull = new Accordion("Culling", false, caveCull, ImGui::sameLine, dotCull, ImGui::sameLine, frustumCull, ImGui::sameLine, occlusionCull, ImGui::sameLine, directionCull, ImGui::sameLine, backfaceCull,
                     occlusionCullThreshold,
                     cullStats);
         }
 
         {
             var load = new CheckboxElement("Update Area", true, value -> Main.INSTANCE.getWorld().setLoadChunks(value));
-            var radius = new IntSliderElement("Chunk radius", 3, 0, 50, value -> Main.INSTANCE.getWorld().setChunkRadius(value));
+            var radius = new IntSliderElement("Chunk radius", 4, 0, 50, value -> Main.INSTANCE.getWorld().setChunkRadius(value));
+            var sortRate = new IntSliderElement("Sort rate", 8, 0, 64, value -> Main.INSTANCE.getRenderer().getWorldRenderer().sortRate = value);
             var buildRate = new IntSliderElement("Upload rate", 8, 0, 64, value -> Main.INSTANCE.getRenderer().getWorldRenderer().uploadRate = value);
             var uploadRate = new IntSliderElement("Build rate", 8, 0, 64, value -> Main.INSTANCE.getWorld().buildRate = value);
             var rebuild = new ButtonElement("Force rebuild", () -> Main.INSTANCE.getRenderer().getWorldRenderer().queueAll());
             var regenerate = new ButtonElement("Force regenerate", () -> Main.INSTANCE.getWorld().regenerate());
-            this.world = new Accordion("World", true, load, radius, buildRate, uploadRate, rebuild, ImGui::sameLine, regenerate);
+            this.world = new Accordion("World", true, load, radius, buildRate, uploadRate, sortRate, rebuild, ImGui::sameLine, regenerate);
         }
 
         {
