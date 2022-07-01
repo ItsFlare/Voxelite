@@ -76,7 +76,6 @@ public class SkyRenderer {
         final Vec3f quadNormal = new Vec3f(Direction.POS_Z.getAxis());
         final Vec3f position = quadNormal.rotate(quaternion);
         model.translate(position);
-        System.out.println(position);
 
         OpenGL.use(program, va, () -> {
             program.sunPos.set(position);
