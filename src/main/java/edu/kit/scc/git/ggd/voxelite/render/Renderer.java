@@ -105,6 +105,7 @@ public class Renderer {
 
         var projection = camera.projection();
         projection.multiply(camera.view(false, true));
+        //System.out.println(camera.getDirection());
 
         gBuffer.use(() -> {
             OpenGL.setDrawBuffers(GL30.GL_COLOR_ATTACHMENT0);

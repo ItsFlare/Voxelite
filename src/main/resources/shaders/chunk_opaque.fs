@@ -26,6 +26,7 @@ uniform bool shadows;
 uniform bool normalMapSet;
 uniform bool fogSet;
 uniform int fogRange;
+uniform vec3 fogColor;
 
 uniform struct Light {
     vec3 direction;
@@ -101,13 +102,14 @@ vec3 DirectionalLight(vec3 normal, vec3 viewDirection) {
 float getFogFactor(float fogCoordinate) {
     float density = 0.015;
     float start = fogRange - 10;
-    float end = fogRange + 30;
+    float end = fogRange + 25;
 
     if (fogCoordinate < start) {
         return 0;
-    } else {
-
+    } else if (fogCoordinate <= end){
         return clamp((fogCoordinate - start) / (end - start), 0, 1);
+    } else {
+        return 1;
     }
 }
 
@@ -130,7 +132,7 @@ void main() {
 
     if(fogSet) {
         float fogCoordinate = length(ViewSpacePos.xyz);
-        vec3  fogColor = vec3(0.4, 0.4, 0.4);
+        //vec3  fogColor = vec3(0.4, 0.4, 0.4);
         color = mix(color, fogColor, getFogFactor(fogCoordinate));
     }
 

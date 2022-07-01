@@ -4,15 +4,13 @@ import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.texture.TextureAtlas;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.util.Frustum;
+import edu.kit.scc.git.ggd.voxelite.util.Util;
 import edu.kit.scc.git.ggd.voxelite.world.*;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkLoadEvent;
 import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.event.Listener;
-import net.durchholz.beacon.math.Matrix4f;
-import net.durchholz.beacon.math.Vec3f;
-import net.durchholz.beacon.math.Vec3i;
-import net.durchholz.beacon.math.Vec4f;
+import net.durchholz.beacon.math.*;
 import net.durchholz.beacon.render.opengl.OpenGL;
 
 import java.io.IOException;
@@ -23,6 +21,7 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.stream.Collectors;
 
+import static java.lang.Math.sin;
 import static org.lwjgl.opengl.GL30.*;
 
 public class WorldRenderer {
@@ -288,10 +287,44 @@ public class WorldRenderer {
         program.fogSet.set(fog ? 1 : 0);
         program.aoSet.set(ao ? 1 : 0);
         program.fogRange.set(Main.INSTANCE.getWorld().getChunkRadius() * Chunk.WIDTH);
-
+        program.fogColor.set(new Vec3f(0).interpolate(new Vec3f(0.55f, 0.73f, 0.91f), Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.3f , 0, 1)));
+        //program.fogColor.set(getHorizonColor());
         program.cascadeScales.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::scale).toArray(Vec3f[]::new));
         program.cascadeTranslations.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::translation).toArray(Vec3f[]::new));
         program.cascadeFar.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::far).toArray(Float[]::new));
+    }
+
+    private Vec3f getHorizonColor() {
+        Camera camera = Main.INSTANCE.getRenderer().getCamera();
+        Quaternion quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), Main.getDayPercentage() * 360).normalized();
+        Vec3f quadNormal = new Vec3f(Direction.POS_Z.getAxis());
+        Vec3f sunPosition = quadNormal.rotate(quaternion);
+        Vec3f skyColor = new Vec3f(0).interpolate(new Vec3f(0.55f, 0.73f, 0.91f), Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.2f , 0, 1));
+        Vec3f sunsetColor = skyColor;
+        double directionToSunDeg = Util.clamp(camera.getDirection().dot(sunPosition), 0, 1);
+        if ((sunPosition.z() < -0.9 || sunPosition.z() > 0.9)) {
+            float num = Math.abs(sunPosition.z());
+            Vec3f a = new Vec3f(0.82f, 0.57f, 0.02f); //yellow-orange
+            Vec3f b = new Vec3f(0.82f, 0.37f, 0.02f); //orange-red
+            Vec3f c = new Vec3f(1.00f, 0.00f, 0.00f); //red
+            Vec3f d = new Vec3f(0.70f, 0.00f, 0.30f); //purple
+            if (sunPosition.y() >= 0) {
+                if(num < 0.95f) {
+                    sunsetColor = a.interpolate(skyColor, (0.95f - num) / 0.05f);
+                } else if (num < 0.98){
+                    sunsetColor = b.interpolate(a, (0.98f - num) / 0.03f);
+                } else {
+                    sunsetColor = c.interpolate(b, (1 - num) / 0.02f);
+                }
+            } else {
+                if (num > 0.95f) {
+                    sunsetColor = c.interpolate(d, (1 - num) / 0.05f);
+                } else {
+                    sunsetColor = d.interpolate(new Vec3f(0), (0.95f - num) / 0.05f);
+                }
+            }
+        }
+        return skyColor.interpolate(sunsetColor, (float) directionToSunDeg - 0.3f);
     }
 
     public record VisibilityNode(RenderChunk renderChunk, Direction source, int directions) {
@@ -472,4 +505,5 @@ public class WorldRenderer {
     public CompositeRenderer getCompositeRenderer() {
         return compositeRenderer;
     }
+
 }

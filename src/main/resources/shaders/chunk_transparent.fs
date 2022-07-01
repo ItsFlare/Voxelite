@@ -24,6 +24,7 @@ uniform bool shadows;
 uniform bool normalMapSet;
 uniform bool fogSet;
 uniform int fogRange;
+uniform vec3 fogColor;
 
 uniform struct Light {
     vec3 direction;
@@ -124,8 +125,8 @@ void main() {
 
     if(fogSet) {
         float fogCoordinate = length(ViewSpacePos.xyz);
-        vec4  fogColor = vec4(0.4, 0.4, 0.4, 1.0);
-        FragColor = mix(FragColor, fogColor, getFogFactor(fogCoordinate));
+        vec4  FogColor = vec4(fogColor, 1.0);
+        FragColor = mix(FragColor, FogColor, getFogFactor(fogCoordinate));
     }
 
     if(cascadeDebug) FragColor += vec4(debugColor, 1);
