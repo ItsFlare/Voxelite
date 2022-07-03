@@ -33,7 +33,7 @@ public class SurfacePass implements GeneratorPassInstance<NaturalWorldGenerator>
         for (int x = 0; x < Chunk.WIDTH; x++) {
             for (int z = 0; z < Chunk.WIDTH; z++) {
                 final NaturalWorldGenerator.NoisePoint noisePoint = generator.sampleNoises(chunk.getWorldPosition().add(new Vec3f(x, 0, z))); //TODO Bad assumption
-                final Biome biome = Biome.select(noisePoint);
+                final Biome biome = generator.selectBiome(noisePoint);
 
                 Voxel aboveNeighbor = chunk.getVoxel(new Vec3i(x, Chunk.WIDTH, z));
                 if (aboveNeighbor == null) aboveNeighbor = Main.INSTANCE.getWorld().getVoxel(chunk.getWorldPosition().add(new Vec3i(x, Chunk.WIDTH, z))); //TODO Hacky

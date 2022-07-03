@@ -9,7 +9,6 @@ import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import edu.kit.scc.git.ggd.voxelite.world.CompressedLightStorage;
 import edu.kit.scc.git.ggd.voxelite.world.WorldChunk;
 import edu.kit.scc.git.ggd.voxelite.world.generator.natural.NaturalWorldGenerator;
-import edu.kit.scc.git.ggd.voxelite.world.generator.natural.biome.Biome;
 import edu.kit.scc.git.ggd.voxelite.world.generator.noise.LinearSpline;
 import edu.kit.scc.git.ggd.voxelite.world.generator.noise.Noise;
 import imgui.ImGui;
@@ -197,7 +196,7 @@ public class UserInterface {
                 final Vec3f position = Main.INSTANCE.getRenderer().getCamera().getPosition();
                 final NaturalWorldGenerator.NoisePoint noisePoint = g.sampleNoises(position);
 
-                return "Biome: %s (C: %.2f | E: %.2f | R: %.2f | T: %.2f | H: %.2f)".formatted(Biome.select(noisePoint).name(), noisePoint.continentalness(), noisePoint.erosion(), noisePoint.ridge(), noisePoint.temperature(), noisePoint.humidity());
+                return "Biome: %s (C: %.2f | E: %.2f | R: %.2f | T: %.2f | H: %.2f)".formatted(g.selectBiome(noisePoint).name(), noisePoint.continentalness(), noisePoint.erosion(), noisePoint.ridge(), noisePoint.temperature(), noisePoint.humidity());
             });
 
             var noiseSelector = new DropdownElement<Supplier<Noise>>("Noise", Map.of(

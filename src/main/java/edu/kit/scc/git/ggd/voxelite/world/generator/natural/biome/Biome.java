@@ -3,7 +3,6 @@ package edu.kit.scc.git.ggd.voxelite.world.generator.natural.biome;
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.world.Block;
 import edu.kit.scc.git.ggd.voxelite.world.Voxel;
-import edu.kit.scc.git.ggd.voxelite.world.generator.natural.NaturalWorldGenerator;
 import net.durchholz.beacon.math.Vec3i;
 
 public enum Biome {
@@ -66,28 +65,5 @@ public enum Biome {
 
     public float getFeatureDensity() {
         return featureDensity;
-    }
-
-    public static Biome select(NaturalWorldGenerator.NoisePoint noisePoint) {
-        //TODO Replace with automatic bracket selection
-        final float temperature = noisePoint.temperature();
-        final float humidity = noisePoint.humidity();
-        if(noisePoint.continentalness() <= 0) return OCEAN;
-        if(noisePoint.continentalness() < 0.1) return BEACH;
-
-        if(noisePoint.continentalness() > 0.75f) {
-            return MOUNTAINS;
-        } else {
-            if(temperature < -0.5f) {
-                return SNOW;
-            } else if (temperature < 0.5f) {
-                if(humidity < 0) return PLAINS;
-                else return FOREST;
-            } else if (temperature < 1f) {
-                return DESERT;
-            }
-        }
-
-        throw new IllegalStateException();
     }
 }

@@ -4,6 +4,7 @@ import edu.kit.scc.git.ggd.voxelite.util.Util;
 import edu.kit.scc.git.ggd.voxelite.world.World;
 import edu.kit.scc.git.ggd.voxelite.world.generator.GeneratorChunk;
 import edu.kit.scc.git.ggd.voxelite.world.generator.MultiPassGenerator;
+import edu.kit.scc.git.ggd.voxelite.world.generator.natural.biome.Biome;
 import edu.kit.scc.git.ggd.voxelite.world.generator.natural.pass.GeneratorPass;
 import edu.kit.scc.git.ggd.voxelite.world.generator.natural.pass.GeneratorPassInstance;
 import edu.kit.scc.git.ggd.voxelite.world.generator.natural.pass.SurfacePass;
@@ -187,6 +188,29 @@ public class NaturalWorldGenerator implements MultiPassGenerator<NaturalWorldGen
 
     public Noise getSurfaceNoise() {
         return surfaceNoise;
+    }
+
+    public Biome selectBiome(NoisePoint noisePoint) {
+        //TODO Replace with automatic bracket selection
+        final float temperature = noisePoint.temperature();
+        final float humidity = noisePoint.humidity();
+        if(noisePoint.continentalness() <= 0) return Biome.OCEAN;
+        if(noisePoint.continentalness() < 0.1) return Biome.BEACH;
+
+        if(noisePoint.continentalness() > 0.75f) {
+            return Biome.MOUNTAINS;
+        } else {
+            if(temperature < -0.5f) {
+                return Biome.SNOW;
+            } else if (temperature < 0.5f) {
+                if(humidity < 0) return Biome.PLAINS;
+                else return Biome.FOREST;
+            } else if (temperature < 1f) {
+                return Biome.DESERT;
+            }
+        }
+
+        throw new IllegalStateException();
     }
 
     public IndirectSpline<NoisePoint> getBaseHeightSpline() {
