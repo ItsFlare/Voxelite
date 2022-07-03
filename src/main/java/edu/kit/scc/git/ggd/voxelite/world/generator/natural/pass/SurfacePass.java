@@ -44,6 +44,7 @@ public class SurfacePass implements GeneratorPassInstance<NaturalWorldGenerator>
                     var voxel = chunk.getVoxel(new Vec3i(x, y, z));
                     if (voxel == null) {
                         voxel = Main.INSTANCE.getWorld().getVoxel(chunk.getWorldPosition().add(new Vec3i(x, y, z))); //TODO Hacky
+                        if(voxel == null) continue;
                     }
 
                     if (voxel.getBlock() == Block.AIR) lastAir = y;
@@ -59,7 +60,8 @@ public class SurfacePass implements GeneratorPassInstance<NaturalWorldGenerator>
                                 var features = biome.getFeatures();
                                 if (features.length != 0) {
                                     var feature = features[(int) (((featureNoiseSample - FEATURE_THRESHOLD) / (1f - FEATURE_THRESHOLD)) * (features.length - 1))];
-                                    feature.place(voxel.getNeighbor(Direction.POS_Y));
+                                    final Voxel neighbor = voxel.getNeighbor(Direction.POS_Y);
+                                    if(neighbor != null) feature.place(neighbor);
                                 }
                             }
                         }
