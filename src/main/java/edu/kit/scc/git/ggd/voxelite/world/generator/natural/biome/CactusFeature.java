@@ -10,7 +10,7 @@ public class CactusFeature implements TerrainFeature {
     public boolean place(Voxel voxel) {
 
         for (int z = 0; z < 4; z++) {
-            voxel.getRelative(new Vec3i(0, z, 0)).setBlock(Block.OAK_LOG);
+            voxel.getRelative(new Vec3i(0, z, 0)).setBlock(Block.CACTUS);
         }
 
         return true;

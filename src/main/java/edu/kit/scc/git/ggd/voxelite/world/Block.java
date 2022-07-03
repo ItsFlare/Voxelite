@@ -37,6 +37,7 @@ public enum Block {
     GRASS(builder -> builder.texture("grass_side").texture("dirt", Direction.NEG_Y).texture("grass_top", Direction.POS_Y)),
     WATER(builder -> builder.texture("water").transparent()),
     TNT(builder -> builder.texture("tnt_side").texture("tnt_bottom", Direction.NEG_Y).texture("tnt_top", Direction.POS_Y)),
+    CACTUS(builder -> builder.texture("cactus_side").texture("cactus_top", Direction.POS_Y).texture("cactus_bottom", Direction.NEG_Y).cutout()),
     RED_GLASS(builder -> builder.texture("glass_red").transparent().filter(new Vec3f(1, 0, 0))),
     CYAN_GLASS(builder -> builder.texture("glass_cyan").transparent().filter(new Vec3f(0, 1, 1))),
     WHITE_GLASS(builder -> builder.texture("glass_white").transparent()),
