@@ -23,19 +23,19 @@ import net.durchholz.beacon.math.Vec3f;
 
 public class SimplexNoise implements Noise {
 
-    private static final double STRETCH_CONSTANT_2D = -0.211324865405187;    // (1/Math.sqrt(2+1)-1)/2;
-    private static final double SQUISH_CONSTANT_2D  = 0.366025403784439;      // (Math.sqrt(2+1)-1)/2;
-    private static final double STRETCH_CONSTANT_3D = -1.0 / 6;              // (1/Math.sqrt(3+1)-1)/3;
-    private static final double SQUISH_CONSTANT_3D  = 1.0 / 3;                // (Math.sqrt(3+1)-1)/3;
+    private static final double STRETCH_CONSTANT_2D = -0.211324865405187;       // (1/Math.sqrt(2+1)-1)/2;
+    private static final double SQUISH_CONSTANT_2D  = 0.366025403784439;        // (Math.sqrt(2+1)-1)/2;
+    private static final double STRETCH_CONSTANT_3D = -1.0 / 6;                 // (1/Math.sqrt(3+1)-1)/3;
+    private static final double SQUISH_CONSTANT_3D  = 1.0 / 3;                  // (Math.sqrt(3+1)-1)/3;
 
     private static final long DEFAULT_SEED = 0;
 
     private static final int PSIZE = 2048;
     private static final int PMASK = 2047;
 
-    private short[] perm;
-    private Grad2[] permGrad2;
-    private Grad3[] permGrad3;
+    private final short[] perm;
+    private final Grad2[] permGrad2;
+    private final Grad3[] permGrad3;
 
     public SimplexNoise() {
         this(DEFAULT_SEED);
@@ -72,7 +72,7 @@ public class SimplexNoise implements Noise {
     }
 
     // 2D OpenSimplex Noise.
-    public double sample(Vec2f position) {
+    public float sample(Vec2f position) {
         double x = position.x();
         double y = position.y();
 
@@ -109,7 +109,7 @@ public class SimplexNoise implements Noise {
         double attn1 = 2 - dx1 * dx1 - dy1 * dy1;
         if (attn1 > 0) {
             attn1 *= attn1;
-            value += attn1 * attn1 * extrapolate(xsb + 1, ysb + 0, dx1, dy1);
+            value += attn1 * attn1 * extrapolate(xsb + 1, ysb, dx1, dy1);
         }
 
         // Contribution (0,1)
@@ -118,7 +118,7 @@ public class SimplexNoise implements Noise {
         double attn2 = 2 - dx2 * dx2 - dy2 * dy2;
         if (attn2 > 0) {
             attn2 *= attn2;
-            value += attn2 * attn2 * extrapolate(xsb + 0, ysb + 1, dx2, dy2);
+            value += attn2 * attn2 * extrapolate(xsb, ysb + 1, dx2, dy2);
         }
 
         if (inSum <= 1) { // We're inside the triangle (2-Simplex) at (0,0)
@@ -146,11 +146,11 @@ public class SimplexNoise implements Noise {
             if (zins < xins || zins < yins) { // (0,0) is one of the closest two triangular vertices
                 if (xins > yins) {
                     xsv_ext = xsb + 2;
-                    ysv_ext = ysb + 0;
+                    ysv_ext = ysb;
                     dx_ext = dx0 - 2 - 2 * SQUISH_CONSTANT_2D;
                     dy_ext = dy0 + 0 - 2 * SQUISH_CONSTANT_2D;
                 } else {
-                    xsv_ext = xsb + 0;
+                    xsv_ext = xsb;
                     ysv_ext = ysb + 2;
                     dx_ext = dx0 + 0 - 2 * SQUISH_CONSTANT_2D;
                     dy_ext = dy0 - 2 - 2 * SQUISH_CONSTANT_2D;
@@ -181,11 +181,11 @@ public class SimplexNoise implements Noise {
             value += attn_ext * attn_ext * extrapolate(xsv_ext, ysv_ext, dx_ext, dy_ext);
         }
 
-        return value;
+        return (float) value;
     }
 
     // 3D OpenSimplex Noise.
-    public double sample(Vec3f position) {
+    public float sample(Vec3f position) {
         double x = position.x();
         double y = position.y();
         double z = position.z();
@@ -196,7 +196,7 @@ public class SimplexNoise implements Noise {
         double ys = y + stretchOffset;
         double zs = z + stretchOffset;
 
-        return eval3_Base(xs, ys, zs);
+        return (float) eval3_Base(xs, ys, zs);
     }
 
     // 3D OpenSimplex Noise (base which takes skewed coordinates directly).
@@ -324,7 +324,7 @@ public class SimplexNoise implements Noise {
             double attn0 = 2 - dx0 * dx0 - dy0 * dy0 - dz0 * dz0;
             if (attn0 > 0) {
                 attn0 *= attn0;
-                value += attn0 * attn0 * extrapolate(xsb + 0, ysb + 0, zsb + 0, dx0, dy0, dz0);
+                value += attn0 * attn0 * extrapolate(xsb, ysb, zsb, dx0, dy0, dz0);
             }
 
             // Contribution (1,0,0)
@@ -334,27 +334,24 @@ public class SimplexNoise implements Noise {
             double attn1 = 2 - dx1 * dx1 - dy1 * dy1 - dz1 * dz1;
             if (attn1 > 0) {
                 attn1 *= attn1;
-                value += attn1 * attn1 * extrapolate(xsb + 1, ysb + 0, zsb + 0, dx1, dy1, dz1);
+                value += attn1 * attn1 * extrapolate(xsb + 1, ysb, zsb, dx1, dy1, dz1);
             }
 
             // Contribution (0,1,0)
             double dx2 = dx0 - 0 - SQUISH_CONSTANT_3D;
             double dy2 = dy0 - 1 - SQUISH_CONSTANT_3D;
-            double dz2 = dz1;
-            double attn2 = 2 - dx2 * dx2 - dy2 * dy2 - dz2 * dz2;
+            double attn2 = 2 - dx2 * dx2 - dy2 * dy2 - dz1 * dz1;
             if (attn2 > 0) {
                 attn2 *= attn2;
-                value += attn2 * attn2 * extrapolate(xsb + 0, ysb + 1, zsb + 0, dx2, dy2, dz2);
+                value += attn2 * attn2 * extrapolate(xsb, ysb + 1, zsb, dx2, dy2, dz1);
             }
 
             // Contribution (0,0,1)
-            double dx3 = dx2;
-            double dy3 = dy1;
             double dz3 = dz0 - 1 - SQUISH_CONSTANT_3D;
-            double attn3 = 2 - dx3 * dx3 - dy3 * dy3 - dz3 * dz3;
+            double attn3 = 2 - dx2 * dx2 - dy1 * dy1 - dz3 * dz3;
             if (attn3 > 0) {
                 attn3 *= attn3;
-                value += attn3 * attn3 * extrapolate(xsb + 0, ysb + 0, zsb + 1, dx3, dy3, dz3);
+                value += attn3 * attn3 * extrapolate(xsb, ysb, zsb + 1, dx2, dy1, dz3);
             }
         } else if (inSum >= 2) { // We're inside the tetrahedron (3-Simplex) at (1,1,1)
 
@@ -455,27 +452,24 @@ public class SimplexNoise implements Noise {
             double attn3 = 2 - dx3 * dx3 - dy3 * dy3 - dz3 * dz3;
             if (attn3 > 0) {
                 attn3 *= attn3;
-                value += attn3 * attn3 * extrapolate(xsb + 1, ysb + 1, zsb + 0, dx3, dy3, dz3);
+                value += attn3 * attn3 * extrapolate(xsb + 1, ysb + 1, zsb, dx3, dy3, dz3);
             }
 
             // Contribution (1,0,1)
-            double dx2 = dx3;
             double dy2 = dy0 - 0 - 2 * SQUISH_CONSTANT_3D;
             double dz2 = dz0 - 1 - 2 * SQUISH_CONSTANT_3D;
-            double attn2 = 2 - dx2 * dx2 - dy2 * dy2 - dz2 * dz2;
+            double attn2 = 2 - dx3 * dx3 - dy2 * dy2 - dz2 * dz2;
             if (attn2 > 0) {
                 attn2 *= attn2;
-                value += attn2 * attn2 * extrapolate(xsb + 1, ysb + 0, zsb + 1, dx2, dy2, dz2);
+                value += attn2 * attn2 * extrapolate(xsb + 1, ysb, zsb + 1, dx3, dy2, dz2);
             }
 
             // Contribution (0,1,1)
             double dx1 = dx0 - 0 - 2 * SQUISH_CONSTANT_3D;
-            double dy1 = dy3;
-            double dz1 = dz2;
-            double attn1 = 2 - dx1 * dx1 - dy1 * dy1 - dz1 * dz1;
+            double attn1 = 2 - dx1 * dx1 - dy3 * dy3 - dz2 * dz2;
             if (attn1 > 0) {
                 attn1 *= attn1;
-                value += attn1 * attn1 * extrapolate(xsb + 0, ysb + 1, zsb + 1, dx1, dy1, dz1);
+                value += attn1 * attn1 * extrapolate(xsb, ysb + 1, zsb + 1, dx1, dy3, dz2);
             }
 
             // Contribution (1,1,1)
@@ -524,22 +518,18 @@ public class SimplexNoise implements Noise {
             if (p3 > 1) {
                 double score = p3 - 1;
                 if (aScore <= bScore && aScore < score) {
-                    aScore = score;
                     aPoint = 0x06;
                     aIsFurtherSide = true;
                 } else if (aScore > bScore && bScore < score) {
-                    bScore = score;
                     bPoint = 0x06;
                     bIsFurtherSide = true;
                 }
             } else {
                 double score = 1 - p3;
                 if (aScore <= bScore && aScore < score) {
-                    aScore = score;
                     aPoint = 0x01;
                     aIsFurtherSide = false;
                 } else if (aScore > bScore && bScore < score) {
-                    bScore = score;
                     bPoint = 0x01;
                     bIsFurtherSide = false;
                 }
@@ -676,27 +666,24 @@ public class SimplexNoise implements Noise {
             double attn1 = 2 - dx1 * dx1 - dy1 * dy1 - dz1 * dz1;
             if (attn1 > 0) {
                 attn1 *= attn1;
-                value += attn1 * attn1 * extrapolate(xsb + 1, ysb + 0, zsb + 0, dx1, dy1, dz1);
+                value += attn1 * attn1 * extrapolate(xsb + 1, ysb, zsb, dx1, dy1, dz1);
             }
 
             // Contribution (0,1,0)
             double dx2 = dx0 - 0 - SQUISH_CONSTANT_3D;
             double dy2 = dy0 - 1 - SQUISH_CONSTANT_3D;
-            double dz2 = dz1;
-            double attn2 = 2 - dx2 * dx2 - dy2 * dy2 - dz2 * dz2;
+            double attn2 = 2 - dx2 * dx2 - dy2 * dy2 - dz1 * dz1;
             if (attn2 > 0) {
                 attn2 *= attn2;
-                value += attn2 * attn2 * extrapolate(xsb + 0, ysb + 1, zsb + 0, dx2, dy2, dz2);
+                value += attn2 * attn2 * extrapolate(xsb, ysb + 1, zsb, dx2, dy2, dz1);
             }
 
             // Contribution (0,0,1)
-            double dx3 = dx2;
-            double dy3 = dy1;
             double dz3 = dz0 - 1 - SQUISH_CONSTANT_3D;
-            double attn3 = 2 - dx3 * dx3 - dy3 * dy3 - dz3 * dz3;
+            double attn3 = 2 - dx2 * dx2 - dy1 * dy1 - dz3 * dz3;
             if (attn3 > 0) {
                 attn3 *= attn3;
-                value += attn3 * attn3 * extrapolate(xsb + 0, ysb + 0, zsb + 1, dx3, dy3, dz3);
+                value += attn3 * attn3 * extrapolate(xsb, ysb, zsb + 1, dx2, dy1, dz3);
             }
 
             // Contribution (1,1,0)
@@ -706,27 +693,24 @@ public class SimplexNoise implements Noise {
             double attn4 = 2 - dx4 * dx4 - dy4 * dy4 - dz4 * dz4;
             if (attn4 > 0) {
                 attn4 *= attn4;
-                value += attn4 * attn4 * extrapolate(xsb + 1, ysb + 1, zsb + 0, dx4, dy4, dz4);
+                value += attn4 * attn4 * extrapolate(xsb + 1, ysb + 1, zsb, dx4, dy4, dz4);
             }
 
             // Contribution (1,0,1)
-            double dx5 = dx4;
             double dy5 = dy0 - 0 - 2 * SQUISH_CONSTANT_3D;
             double dz5 = dz0 - 1 - 2 * SQUISH_CONSTANT_3D;
-            double attn5 = 2 - dx5 * dx5 - dy5 * dy5 - dz5 * dz5;
+            double attn5 = 2 - dx4 * dx4 - dy5 * dy5 - dz5 * dz5;
             if (attn5 > 0) {
                 attn5 *= attn5;
-                value += attn5 * attn5 * extrapolate(xsb + 1, ysb + 0, zsb + 1, dx5, dy5, dz5);
+                value += attn5 * attn5 * extrapolate(xsb + 1, ysb, zsb + 1, dx4, dy5, dz5);
             }
 
             // Contribution (0,1,1)
             double dx6 = dx0 - 0 - 2 * SQUISH_CONSTANT_3D;
-            double dy6 = dy4;
-            double dz6 = dz5;
-            double attn6 = 2 - dx6 * dx6 - dy6 * dy6 - dz6 * dz6;
+            double attn6 = 2 - dx6 * dx6 - dy4 * dy4 - dz5 * dz5;
             if (attn6 > 0) {
                 attn6 *= attn6;
-                value += attn6 * attn6 * extrapolate(xsb + 0, ysb + 1, zsb + 1, dx6, dy6, dz6);
+                value += attn6 * attn6 * extrapolate(xsb, ysb + 1, zsb + 1, dx6, dy4, dz5);
             }
         }
 
@@ -814,9 +798,9 @@ public class SimplexNoise implements Noise {
                 new Grad2(-0.38268343236509, 0.923879532511287),
                 new Grad2(-0.130526192220052, 0.99144486137381)
         };
-        for (int i = 0; i < grad2.length; i++) {
-            grad2[i].dx /= N2;
-            grad2[i].dy /= N2;
+        for (Grad2 item : grad2) {
+            item.dx /= N2;
+            item.dy /= N2;
         }
         for (int i = 0; i < PSIZE; i++) {
             GRADIENTS_2D[i] = grad2[i % grad2.length];

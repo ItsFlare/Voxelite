@@ -62,8 +62,6 @@ public class Renderer {
 
 
     public void render() {
-        System.out.println("Rendering frame " + getFrame());
-
         updateViewport();
         OpenGL.polygonMode(OpenGL.Face.BOTH, wireframe ? OpenGL.PolygonMode.LINE : OpenGL.PolygonMode.FILL);
 

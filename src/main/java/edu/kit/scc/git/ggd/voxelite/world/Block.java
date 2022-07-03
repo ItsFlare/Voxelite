@@ -33,9 +33,11 @@ public enum Block {
     SAND(Builder::texture),
     COBBLESTONE(Builder::texture),
     OAK_LOG(builder -> builder.texture("log_oak").texture("log_oak_top", Direction.POS_Y, Direction.NEG_Y)),
+    OAK_LEAVES(builder -> builder.texture("leaves_big_oak").cutout()),
     GRASS(builder -> builder.texture("grass_side").texture("dirt", Direction.NEG_Y).texture("grass_top", Direction.POS_Y)),
     WATER(builder -> builder.texture("water").transparent()),
     TNT(builder -> builder.texture("tnt_side").texture("tnt_bottom", Direction.NEG_Y).texture("tnt_top", Direction.POS_Y)),
+    CACTUS(builder -> builder.texture("cactus_side").texture("cactus_top", Direction.POS_Y).texture("cactus_bottom", Direction.NEG_Y)),
     RED_GLASS(builder -> builder.texture("glass_red").transparent().filter(new Vec3f(1, 0, 0))),
     CYAN_GLASS(builder -> builder.texture("glass_cyan").transparent().filter(new Vec3f(0, 1, 1))),
     WHITE_GLASS(builder -> builder.texture("glass_white").transparent()),
@@ -46,7 +48,7 @@ public enum Block {
 
     private final Vec2i[] quads;
     private final int lightRange;
-    private final boolean opaque, lightSource;
+    private final boolean opaque, lightSource, cutout;
 
     Block() {
         this(builder -> {});
@@ -65,12 +67,13 @@ public enum Block {
         this.compressedLight = CompressedLightStorage.encode(light, lightRange);
         this.compressedFilter = CompressedLightStorage.encode(filter, LightStorage.MAX_COMPONENT_VALUE);
 
-        this.opaque = b.opaque;
+        this.opaque = b.opaque && !b.cutout;
+        this.cutout = b.cutout;
     }
 
     @NotNull
     public RenderType getRenderType() {
-        return isOpaque() ? RenderType.OPAQUE : RenderType.TRANSPARENT;
+        return isOpaque() || isCutout() ? RenderType.OPAQUE : RenderType.TRANSPARENT;
     }
 
     @NotNull
@@ -112,12 +115,16 @@ public enum Block {
         return !opaque;
     }
 
+    public boolean isCutout() {
+        return cutout;
+    }
+
     private static class Builder {
         private final String name;
         private final Vec2i[] quads = new Vec2i[Direction.values().length]; //TODO Default values
         private Vec3f light = new Vec3f();
         private Vec3f filter = new Vec3f(1);
-        private boolean opaque = true;
+        private boolean opaque = true, cutout = false;
         private int lightRange = 0;
 
         private Builder(String name) {
@@ -153,6 +160,11 @@ public enum Block {
 
         public Builder transparent() {
             this.opaque = false;
+            return this;
+        }
+
+        public Builder cutout() {
+            this.cutout = true;
             return this;
         }
 

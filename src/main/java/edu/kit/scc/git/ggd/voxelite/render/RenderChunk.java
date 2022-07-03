@@ -2,10 +2,7 @@ package edu.kit.scc.git.ggd.voxelite.render;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.util.Direction;
-import edu.kit.scc.git.ggd.voxelite.world.Block;
-import edu.kit.scc.git.ggd.voxelite.world.Chunk;
-import edu.kit.scc.git.ggd.voxelite.world.HullSet;
-import edu.kit.scc.git.ggd.voxelite.world.Voxel;
+import edu.kit.scc.git.ggd.voxelite.world.*;
 import net.durchholz.beacon.math.Vec2i;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
@@ -19,8 +16,8 @@ public class RenderChunk {
     public static final int    FULL_VISIBILITY = (1 << Direction.values().length) - 1;
     public static final Logger LOGGER          = LoggerFactory.getLogger(RenderChunk.class);
 
-    private final Chunk   chunk;
-    private final Slice[] slices = new Slice[RenderType.values().length];
+    private final WorldChunk chunk;
+    private final Slice[]    slices = new Slice[RenderType.values().length];
     private final int     occlusionQueryId;
 
     private volatile boolean valid = true, dirty;
@@ -28,7 +25,7 @@ public class RenderChunk {
 
     private int occlusionFrame;
 
-    public RenderChunk(Chunk chunk) {
+    public RenderChunk(WorldChunk chunk) {
         this.chunk = chunk;
 
         RenderType[] renderTypes = RenderType.values();
@@ -158,7 +155,7 @@ public class RenderChunk {
         return Arrays.stream(slices).filter(Objects::nonNull).mapToInt(Slice::getQuadCount).sum(); //TODO Remove filter with transparency
     }
 
-    public Chunk getChunk() {
+    public WorldChunk getChunk() {
         return chunk;
     }
 

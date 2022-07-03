@@ -399,7 +399,7 @@ public class WorldRenderer {
     }
 
     private Set<Direction> floodFill(Vec3i position) {
-        final Chunk chunk = Main.INSTANCE
+        final WorldChunk chunk = Main.INSTANCE
                 .getWorld()
                 .getChunk(Chunk.toChunkPosition(position));
         final VisibilityStorage visibilityStorage = new VisibilityStorage();

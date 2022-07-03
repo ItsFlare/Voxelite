@@ -1,13 +1,11 @@
 package edu.kit.scc.git.ggd.voxelite.world.generator;
 
 import edu.kit.scc.git.ggd.voxelite.world.Block;
-import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import edu.kit.scc.git.ggd.voxelite.world.Voxel;
 import edu.kit.scc.git.ggd.voxelite.world.World;
-import edu.kit.scc.git.ggd.voxelite.world.generator.pass.GeneratorPass;
+import edu.kit.scc.git.ggd.voxelite.world.WorldChunk;
 import net.durchholz.beacon.math.Vec3i;
 
-import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class ModuloChunkGenerator implements WorldGenerator {
@@ -17,18 +15,17 @@ public class ModuloChunkGenerator implements WorldGenerator {
     public  int   modulo = DEFAULT_MOD;
 
     @Override
+    public World getWorld() {
+        return world;
+    }
+
+    @Override
     public void setWorld(World world) {
         this.world = world;
     }
 
-    @Override
-    public List<GeneratorPass> getPasses() {
-        return null;
-    }
-
-    @Override
-    public Chunk generate(Vec3i position) {
-        final Chunk chunk = new Chunk(world, position);
+    public WorldChunk generate(Vec3i position) {
+        final WorldChunk chunk = new WorldChunk(world, position);
         for (Voxel voxel : chunk) {
             if ((voxel.position().x() + voxel.position().y() + voxel.position().z()) % modulo == 0) {
                 final ThreadLocalRandom random = ThreadLocalRandom.current();
