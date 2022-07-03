@@ -5,6 +5,7 @@ import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.util.ParallelRunner;
 import edu.kit.scc.git.ggd.voxelite.world.generator.GeneratorChunk;
 import edu.kit.scc.git.ggd.voxelite.world.generator.MultiPassGenerator;
+import edu.kit.scc.git.ggd.voxelite.world.generator.natural.pass.GeneratorPass;
 import net.durchholz.beacon.math.Vec3i;
 
 import java.util.Map;
@@ -77,7 +78,9 @@ public class AsyncChunkLoader<G extends MultiPassGenerator<G>> extends ParallelR
             if(Main.INSTANCE.getWorld().getChunk(position) != null) continue;
 
             var neighbor = getChunk(position);
-            if(neighbor == null || neighbor.getPass().ordinal() < pass.ordinal()) return false;
+            if(neighbor == null) return false;
+            final GeneratorPass<G> neighborPass = neighbor.getPass();
+            if(neighborPass != null && neighborPass.ordinal() < pass.ordinal()) return false;
         }
 
         return true;
