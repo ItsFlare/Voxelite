@@ -40,7 +40,7 @@ public class TerrainPass implements GeneratorPassInstance<NaturalWorldGenerator>
                     final Vec3i position = voxel.position();
                     final int y = position.y();
 
-                    if(y == SEA_LEVEL) voxel.setBlock(Block.CYAN_GLASS);
+                    if(y == SEA_LEVEL) voxel.setBlock(Block.WATER);
 
                     //3D noise
                     int baseHeight = generator.getBaseHeight(noise);

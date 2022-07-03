@@ -122,9 +122,11 @@ void main() {
         n = Normal;
     }
 
-    vec3 t = texture(atlas, vec3(Tex, 0)).rgb;
+    vec4 t = texture(atlas, vec3(Tex, 0));
+    if(t.a < 0.0001) discard;
+
     vec3 l = DirectionalLight(n, normalize(camera - Pos)) + BlockLight;
-    color = l * t * aoFactor;
+    color = l * t.rgb * aoFactor;
 
     if(cascadeDebug) color += debugColor;
 

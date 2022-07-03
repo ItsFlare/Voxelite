@@ -3,11 +3,15 @@ package edu.kit.scc.git.ggd.voxelite.world.generator;
 import edu.kit.scc.git.ggd.voxelite.world.*;
 import edu.kit.scc.git.ggd.voxelite.world.generator.natural.pass.GeneratorPass;
 import net.durchholz.beacon.math.Vec3i;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class GeneratorChunk<G extends MultiPassGenerator<G>> implements Chunk {
+    public static final Logger LOGGER = LoggerFactory.getLogger(GeneratorChunk.class);
+
     private final G generator;
     private final ChunkDomain domain;
     private final Vec3i               position;
@@ -56,7 +60,7 @@ public class GeneratorChunk<G extends MultiPassGenerator<G>> implements Chunk {
     }
 
     public void generate() {
-        System.out.printf("Generating %s at %s%n", position, pass);
+        LOGGER.debug("Generating %s at %s%n".formatted(position, pass));
         pass.apply(generator, this);
         pass = pass.getChild();
     }

@@ -19,7 +19,7 @@ public class OakTreeFeature implements TerrainFeature {
                 if(!(x == 0 && z == 0) && Math.abs(z) + Math.abs(x) != 4) {
                     for (int y = 0; y < 2; y++) {
                         final Voxel relative = voxel.getRelative(new Vec3i(x, height - 2 - y, z));
-                        if(relative != null) relative.setBlock(Block.WHITE_GLASS);
+                        if(relative != null) relative.setBlock(Block.OAK_LEAVES);
                     }
                 }
             }
@@ -29,7 +29,7 @@ public class OakTreeFeature implements TerrainFeature {
             for (int z = -1; z <= 1; z++) {
                 if(Math.abs(z) + Math.abs(x) != 2) {
                     final Voxel relative = voxel.getRelative(new Vec3i(x, height - 1, z));
-                    if(relative != null) relative.setBlock(Block.WHITE_GLASS);
+                    if(relative != null) relative.setBlock(Block.OAK_LEAVES);
                 }
             }
         }
