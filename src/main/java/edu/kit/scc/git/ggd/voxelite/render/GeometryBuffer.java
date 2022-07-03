@@ -7,10 +7,10 @@ import net.durchholz.beacon.render.opengl.buffers.FBO;
 import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.render.opengl.textures.Texture2D;
 
-public record GeometryBuffer(FBO fbo, Texture2D opaque, Texture2D normal, Texture2D mer, Texture2D position, Texture2D depth) implements Bindable {
+public record GeometryBuffer(FBO fbo, Texture2D opaque, Texture2D normal, Texture2D mer, Texture2D depth) implements Bindable {
 
     public GeometryBuffer(int width, int height) {
-        this(new FBO(), new Texture2D(), new Texture2D(), new Texture2D(), new Texture2D(), new Texture2D());
+        this(new FBO(), new Texture2D(), new Texture2D(), new Texture2D(), new Texture2D());
         assert width > 0 && height > 0;
 
         opaque.use(() -> {
@@ -20,7 +20,6 @@ public record GeometryBuffer(FBO fbo, Texture2D opaque, Texture2D normal, Textur
 
         setFilters(normal);
         setFilters(mer);
-        setFilters(position);
         setFilters(depth);
 
         use(() -> {
@@ -28,7 +27,6 @@ public record GeometryBuffer(FBO fbo, Texture2D opaque, Texture2D normal, Textur
             fbo.color(0, opaque);
             fbo.color(1, normal);
             fbo.color(2, mer);
-            fbo.color(3, position);
 
             //Remove use
             depth.use(() -> {
@@ -51,7 +49,6 @@ public record GeometryBuffer(FBO fbo, Texture2D opaque, Texture2D normal, Textur
         opaque.use(() -> opaque.allocate(width, height, GLTexture.SizedFormat.RGB_8, OpenGL.Type.UNSIGNED_BYTE));
         normal.use(() -> normal.allocate(width, height, GLTexture.SizedFormat.RGBA_16F, OpenGL.Type.FLOAT));
         mer.use(() -> mer.allocate(width, height, GLTexture.SizedFormat.RGB_8, OpenGL.Type.FLOAT));
-        position.use(() -> position.allocate(width, height, GLTexture.SizedFormat.RGBA_16F, OpenGL.Type.FLOAT));
         depth.use(() -> depth.allocate(width, height, GLTexture.BaseFormat.DEPTH_COMPONENT));
     }
 
@@ -68,7 +65,6 @@ public record GeometryBuffer(FBO fbo, Texture2D opaque, Texture2D normal, Textur
         opaque.delete();
         normal.delete();
         mer.delete();
-        position.delete();
         depth.delete();
     }
 }
