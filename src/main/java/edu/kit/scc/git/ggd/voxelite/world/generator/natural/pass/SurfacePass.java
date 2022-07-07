@@ -64,10 +64,59 @@ public class SurfacePass implements GeneratorPassInstance<NaturalWorldGenerator>
                                     if(neighbor != null) feature.place(neighbor);
                                 }
                             }
+                            Voxel neighbor = voxel.getNeighbor(Direction.POS_Y);
+                            if(neighbor != null) {
+                                float nois = new SimplexNoise().sample( voxel.getNeighbor(Direction.POS_Y).position());
+                                if (nois > 0.90) {
+                                    place(voxel.getNeighbor(Direction.POS_Y));
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+    }
+    public static boolean place(Voxel voxel) {
+        int size = 5;
+
+        Voxel relative;
+
+        for (int x = -2; x <= 2; x++) {
+            for (int z = -2; z <= 2; z++) {
+                for (int y = 0; y < 7; y++) {
+                    relative = voxel.getRelative(new Vec3i(x, y, z));
+                    if (relative == null) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        for (int x = -2; x <= 2; x++) {
+            for(int z = -2; z <= 2; z++) {
+
+                relative = voxel.getRelative(new Vec3i(x, 0, z));
+                if(relative != null) relative.setBlock(Block.STONE);
+
+                if(Math.abs(x) == 2 || Math.abs(z) == 2) {
+                    int counter = 0;
+                    while (counter < size) {
+                        relative = voxel.getRelative(new Vec3i(x, counter, z));
+                        if(relative != null) relative.setBlock(Block.OAK_LOG);
+                        counter++;
+                    }
+                }
+            }
+        }
+        for (int y = 0; y < 2; y++) {
+            for (int x = -2 - y; x <= 2 - y; x++) {
+                for (int z = -2; z <= 2; z++) {
+                    relative = voxel.getRelative(new Vec3i(x - y, size - 1, z - y));
+                    if(relative != null) relative.setBlock(Block.STONE);
+                }
+            }
+        }
+        return true;
     }
 }
