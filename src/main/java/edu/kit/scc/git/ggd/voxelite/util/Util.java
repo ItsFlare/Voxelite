@@ -1,12 +1,11 @@
 package edu.kit.scc.git.ggd.voxelite.util;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
-import net.durchholz.beacon.math.Matrix3f;
-import net.durchholz.beacon.math.Quaternion;
-import net.durchholz.beacon.math.Vec3i;
 import net.durchholz.beacon.math.*;
 import net.durchholz.beacon.render.opengl.shader.Shader;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,6 +26,8 @@ import java.util.stream.Stream;
 
 public class Util {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Util.class);
+
     public static final ThreadFactory DAEMON_THREAD_FACTORY = r -> {
         Thread t = Executors.defaultThreadFactory().newThread(r);
         t.setDaemon(true);
@@ -38,6 +39,8 @@ public class Util {
     }
 
     public static String readStringResource(String resource) {
+        Util.debug(() -> LOGGER.debug("Reading string resource %s".formatted(resource)));
+
         try {
             return new String(readResource(resource).readAllBytes());
         } catch (IOException e) {
@@ -53,8 +56,8 @@ public class Util {
         final List<Shader> shaders = new ArrayList<>();
         try {
             for (Path path : listResourceFolder("/shaders")) {
+                if(Files.isDirectory(path)) continue; //Exclude directories
                 final String fileName = path.getFileName().toString();
-                if(fileName.equals("shaders")) continue; //Exclude directory
                 final String[] split = fileName.split("\\.");
 
                 if(split.length != 2) {
@@ -86,20 +89,28 @@ public class Util {
         return listResourceFolder(folder, 1);
     }
 
-    public static Collection<Path> listResourceFolder(String folder, int depth) throws URISyntaxException, IOException {
-        final URL url = Util.class.getResource(folder);
-        if (url == null) throw new FileNotFoundException(folder + " not found");
+    public static Path getResourcePath(String path) throws URISyntaxException, IOException {
+        final URL url = Util.class.getResource(path);
+        if (url == null) throw new FileNotFoundException(path + " not found");
 
         final URI uri = url.toURI();
-        Path path;
+        Path p;
 
         try {
-            path = Paths.get(uri);
+            p = Paths.get(uri);
         } catch (FileSystemNotFoundException e) {
             var fs = FileSystems.newFileSystem(uri, Collections.emptyMap());
-            path = fs.getPath(folder);
+            p = fs.getPath(path);
         }
 
+        return p;
+    }
+
+    public static Collection<Path> listResourceFolder(String path, int depth) throws URISyntaxException, IOException {
+        return listResourceFolder(getResourcePath(path), depth);
+    }
+
+    public static Collection<Path> listResourceFolder(Path path, int depth) throws IOException {
         try (Stream<Path> walk = Files.walk(path, depth)) {
             return walk.collect(Collectors.toList());
         }

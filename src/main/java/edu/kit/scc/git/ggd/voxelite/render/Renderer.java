@@ -7,25 +7,41 @@ import net.durchholz.beacon.math.Matrix3f;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
+import net.durchholz.beacon.render.opengl.shader.Shader;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
 import net.durchholz.beacon.util.Image;
 import net.durchholz.beacon.window.Viewport;
 import net.durchholz.beacon.window.Window;
 import org.lwjgl.opengl.GL30;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static java.lang.Math.sin;
 import static org.lwjgl.opengl.GL30.*;
 
 public class Renderer {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Renderer.class);
+
+    static {
+        try {
+            loadIncludes();
+        } catch (URISyntaxException | IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private final Camera         camera;
     private final UserInterface  userInterface;
     private final WorldRenderer  worldRenderer;
-    private final SkyRenderer skyRenderer = new SkyRenderer();
+    private final SkyRenderer    skyRenderer       = new SkyRenderer();
     private final SpriteRenderer crosshairRenderer = new SpriteRenderer(new Image(Util.readResource("textures/crosshair.png")));
-    private final GeometryBuffer             gBuffer           = new GeometryBuffer(1, 1);
+    private final GeometryBuffer gBuffer           = new GeometryBuffer(1, 1);
 
     private Viewport viewport;
 
@@ -93,13 +109,13 @@ public class Renderer {
         if (!viewport.equals(v)) {
             OpenGL.setViewport(v);
             viewport = v;
-            if(viewport.width() + viewport.height() > 0) gBuffer.allocate(viewport.width(), viewport.height());
+            if (viewport.width() + viewport.height() > 0) gBuffer.allocate(viewport.width(), viewport.height());
         }
     }
 
     private void renderSky() {
         float dayPercentage = Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.75f, 0, 1);
-        Vec2f viewportRes = new Vec2f(viewport.width(),viewport.height());
+        Vec2f viewportRes = new Vec2f(viewport.width(), viewport.height());
 
         var projection = camera.projection();
         projection.multiply(camera.view(false, true));
@@ -143,5 +159,26 @@ public class Renderer {
         }
 
         return SkyboxRenderer.createCubemap(images);
+    }
+
+    private static void loadIncludes() throws URISyntaxException, IOException {
+        final String folder = "shaders/include";
+        final var path = Util.getResourcePath("/" + folder);
+        assert Files.isDirectory(path);
+        final var paths = Util.listResourceFolder(path, Integer.MAX_VALUE);
+
+        for (Path p : paths) {
+            if(Files.isRegularFile(p)) {
+                final Path relative = path.relativize(p);
+                final String name = "/" + relative.getFileName().toString();
+                final String source = Util.readStringResource(folder + name);
+
+                Util.debug(() -> {
+                    LOGGER.debug("Loading include %s as %s".formatted(p, name));
+                });
+
+                Shader.registerInclude(name, source);
+            }
+        }
     }
 }

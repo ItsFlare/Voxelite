@@ -118,7 +118,7 @@ public class TextureAtlas implements GLTexture {
 
     private static Image resizeImage(Image originalImage, int targetWidth, int targetHeight, boolean normalize) throws IOException {
         //TODO Normalize
-        java.awt.Image resultingImage = originalImage.image().getScaledInstance(targetWidth, targetHeight, java.awt.Image.SCALE_DEFAULT);
+        java.awt.Image resultingImage = originalImage.image().getScaledInstance(targetWidth, targetHeight, java.awt.Image.SCALE_AREA_AVERAGING);
         BufferedImage bi = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
         bi.getGraphics().drawImage(resultingImage, 0, 0, null);
         return new Image(bi);
