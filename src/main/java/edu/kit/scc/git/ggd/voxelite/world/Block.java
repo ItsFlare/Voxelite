@@ -41,6 +41,7 @@ public enum Block {
     RED_GLASS(builder -> builder.texture("glass_red").transparent().filter(new Vec3f(1, 0, 0))),
     CYAN_GLASS(builder -> builder.texture("glass_cyan").transparent().filter(new Vec3f(0, 1, 1))),
     WHITE_GLASS(builder -> builder.texture("glass_white").transparent()),
+
     GLOWSTONE(builder -> builder.texture().light(new Vec3f(1, 0, 0), 31));
 
     public Vec3f light, filter;
