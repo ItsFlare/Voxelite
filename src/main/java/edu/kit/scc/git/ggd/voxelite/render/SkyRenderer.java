@@ -23,7 +23,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class SkyRenderer {
 
-    private final QuadRenderer   quadRenderer   = new QuadRenderer();
+    private final QuadRenderer quadRenderer = new QuadRenderer();
     private final SkyboxRenderer skyboxRenderer = new SkyboxRenderer(loadNightSkyBox());
 
     private final Texture2D sunTexture  = new Texture2D();
@@ -92,9 +92,9 @@ public class SkyRenderer {
         Quaternion quaternion;
 
         quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotation()).normalized();
-        renderPlanetQuad(vp, quaternion, 0.1f, sunTexture);
+        renderPlanetQuad(vp, quaternion, 0.05f, sunTexture);
         quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotation() + 180).normalized();
-        renderPlanetQuad(vp, quaternion, 0.1f, moonTexture);
+        renderPlanetQuad(vp, quaternion, 0.03f, moonTexture);
     }
 
     public void renderPlanetQuad(Matrix4f vp, Quaternion rotation, float scale, Texture2D texture) {

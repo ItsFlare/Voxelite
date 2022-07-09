@@ -85,7 +85,7 @@ void main()
 
     //moon glow
     vec3 moonColor = white;
-    vec3 moonGlow = mix(moonColor, horizonColor, 0.2);
+    vec3 moonGlow = mix(moonColor, horizonColor, 0.1);
     float moonAlpha = 0.1 * pow(moondot, 16);
     skyColor = mix(skyColor, moonGlow, moonAlpha);
 
