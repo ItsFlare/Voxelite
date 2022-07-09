@@ -1,6 +1,7 @@
 #version 410
 #extension GL_ARB_shading_language_include : require
 #include "csm.glsl"
+#include "fog.glsl"
 
 layout(location = 0) out vec3 color;
 layout(location = 1) out vec3 normal;
@@ -25,9 +26,6 @@ uniform float specularStrength;
 uniform int phongExponent;
 uniform bool shadows;
 uniform bool normalMapSet;
-uniform bool fogSet;
-uniform int fogRange;
-uniform vec3 fogColor;
 
 vec3 DirectionalLight(vec3 normal, vec3 viewDirection, float shadow) {
     vec3 color = light.color.rgb;
@@ -79,13 +77,11 @@ void main() {
     vec3 l = DirectionalLight(n, normalize(camera - Pos), shadow) + BlockLight;
     color = l * t.rgb * aoFactor;
 
-    if(cascadeDebug) color += debugColor;
-
     if(fogSet) {
-        float fogCoordinate = length(ViewSpacePos.xyz);
-        //vec3  fogColor = vec3(0.4, 0.4, 0.4);
-        color = mix(color, fogColor, getFogFactor(fogCoordinate));
+        color = mix(color, fogColor, getFogFactor(ViewSpacePos));
     }
+
+    if(cascadeDebug) color += debugColor;
 
     normal = (view * vec4(Normal, 0)).xyz;
     mer = texture(atlas, vec3(Tex, 2)).rgb;

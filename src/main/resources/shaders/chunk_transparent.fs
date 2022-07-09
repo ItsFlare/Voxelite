@@ -2,6 +2,7 @@
 #extension GL_ARB_shading_language_include : require
 #include "csm.glsl"
 #include "ssr.glsl"
+#include "fog.glsl"
 
 #ifndef DEFERRED
     #include "deferred.glsl"
@@ -28,9 +29,7 @@ uniform float specularStrength;
 uniform int phongExponent;
 uniform bool shadows;
 uniform bool normalMapSet;
-uniform bool fogSet;
-uniform int fogRange;
-uniform vec3 fogColor;
+
 
 vec3 DirectionalLight(vec3 normal, vec3 viewDirection, float shadow) {
     vec3 color = light.color.rgb;
@@ -47,19 +46,6 @@ vec3 DirectionalLight(vec3 normal, vec3 viewDirection, float shadow) {
     vec3 diffuse  = color * diffuseStrength * diff * shadow;
     vec3 specular = color * specularStrength * spec * shadow;
     return (ambient + diffuse + specular);
-}
-
-float getFogFactor(float fogCoordinate) {
-    float density = 0.015;
-    float start = fogRange - 10;
-    float end = fogRange + 30;
-
-    if (fogCoordinate < start) {
-        return 0;
-    } else {
-
-        return clamp((fogCoordinate - start) / (end - start), 0, 1);
-    }
 }
 
 void main() {
@@ -79,9 +65,7 @@ void main() {
     FragColor.rgb *= aoFactor;
 
     if(fogSet) {
-        float fogCoordinate = length(ViewSpacePos.xyz);
-        vec4  FogColor = vec4(fogColor, 1.0);
-        FragColor = mix(FragColor, FogColor, getFogFactor(fogCoordinate));
+        FragColor.rgb = mix(FragColor.rgb, fogColor, getFogFactor(ViewSpacePos));
     }
 
     if(reflections) {
