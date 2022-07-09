@@ -64,13 +64,13 @@ public class SurfacePass implements GeneratorPassInstance<NaturalWorldGenerator>
                                     if(neighbor != null) feature.place(neighbor);
                                 }
                             }
-                            Voxel neighbor = voxel.getNeighbor(Direction.POS_Y);
+                            /*Voxel neighbor = voxel.getNeighbor(Direction.POS_Y);
                             if(neighbor != null) {
                                 float nois = new SimplexNoise().sample( voxel.getNeighbor(Direction.POS_Y).position());
                                 if (nois > 0.80) {
                                     placeIgloo(voxel.getNeighbor(Direction.POS_Y));
                                 }
-                            }
+                            }*/
                         }
                     }
                 }
