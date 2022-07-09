@@ -25,7 +25,7 @@ float ShadowCalculation(vec3 fragPosLightSpace, vec3 normal, out vec3 debugColor
         }
     }
 
-    debugColor = vec3(0, 0, c / float(MAX_CASCADES));
+    debugColor = cascadeDebug ? vec3(0, 0, c / float(MAX_CASCADES)) : vec3(0);
 
     //Effectively projection to shadow screen space
     fragPosLightSpace *= cascades[c].scale;

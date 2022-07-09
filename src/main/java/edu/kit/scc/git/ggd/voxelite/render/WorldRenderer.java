@@ -260,7 +260,6 @@ public class WorldRenderer {
                     final RenderChunk renderChunk = info.chunk();
                     program.chunk.set(renderChunk.getChunk().getWorldPosition());
 
-
                     renderChunk.render(RenderType.TRANSPARENT, info.visibility());
                 }
             });
@@ -270,32 +269,40 @@ public class WorldRenderer {
     }
 
     private void setCommonUniforms(ChunkProgram program, Matrix4f mvp, Vec3f cameraPosition, Vec3f lightDirection) {
+        //General
         program.mvp.set(shadowTransform ? shadowMapRenderer.lightTransform(frustumNumber, lightDirection) : mvp);
         program.view.set(Main.INSTANCE.getRenderer().getCamera().view(true, true));
-
-        program.atlas.bind(0, atlas);
         program.camera.set(cameraPosition);
-        program.lightColor.set(new Vec3f(lightColor.x(), lightColor.y(), lightColor.z()));
-        program.lightDirection.set(lightDirection);
+        program.maxLightValue.set(LightStorage.MAX_TOTAL_VALUE);
 
+        //Textures
+        program.atlas.bind(0, atlas);
+        program.normalizedSpriteSize.set(atlas.getNormalizedSpriteSize());
+
+        //Lighting
         Vec3f phongParameters = Main.INSTANCE.getWorld().getPhongParameters();
         program.ambientStrength.set(phongParameters.x());
         program.diffuseStrength.set(phongParameters.y());
         program.specularStrength.set(phongParameters.z());
-
         program.phongExponent.set(phongExponent);
-        program.normalizedSpriteSize.set(atlas.getNormalizedSpriteSize());
-        program.maxLightValue.set(LightStorage.MAX_TOTAL_VALUE);
-        program.shadowMap.bind(1, shadowMapRenderer.getTexture());
+        program.lightColor.set(new Vec3f(lightColor.x(), lightColor.y(), lightColor.z()));
+        program.lightDirection.set(lightDirection);
         program.lightView.set(shadowMapRenderer.lightView(lightDirection));
-        program.shadows.set(shadows && !shadowTransform ? 1 : 0);
-        program.constantBias.set(shadowMapRenderer.constantBias);
+
+        //Toggles
         program.normalMap.set(normalMap ? 1 : 0);
         program.fogSet.set(fog ? 1 : 0);
         program.aoSet.set(ao ? 1 : 0);
+
+        //Fog
         program.fogRange.set(Main.INSTANCE.getWorld().getChunkRadius() * Chunk.WIDTH);
         program.fogColor.set(new Vec3f(0).interpolate(new Vec3f(0.55f, 0.73f, 0.91f), Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.3f , 0, 1)));
         //program.fogColor.set(getHorizonColor());
+
+        //Shadow mapping
+        program.shadowMap.bind(1, shadowMapRenderer.getTexture());
+        program.shadows.set(shadows && !shadowTransform ? 1 : 0);
+        program.constantBias.set(shadowMapRenderer.constantBias);
         program.cascadeScales.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::scale).toArray(Vec3f[]::new));
         program.cascadeTranslations.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::translation).toArray(Vec3f[]::new));
         program.cascadeFar.set(Arrays.stream(shadowMapRenderer.c).map(ShadowMapRenderer.Cascade::far).toArray(Float[]::new));

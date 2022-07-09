@@ -29,11 +29,13 @@ public class Renderer {
     private static final Logger LOGGER = LoggerFactory.getLogger(Renderer.class);
 
     static {
-        try {
-            loadIncludes();
-        } catch (URISyntaxException | IOException e) {
-            throw new RuntimeException(e);
-        }
+        OpenGL.call(() -> {
+            try {
+                loadIncludes();
+            } catch (IOException | URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private final Camera         camera;
@@ -168,7 +170,7 @@ public class Renderer {
         final var paths = Util.listResourceFolder(path, Integer.MAX_VALUE);
 
         for (Path p : paths) {
-            if(Files.isRegularFile(p)) {
+            if (Files.isRegularFile(p)) {
                 final Path relative = path.relativize(p);
                 final String name = "/" + relative.getFileName().toString();
                 final String source = Util.readStringResource(folder + name);
