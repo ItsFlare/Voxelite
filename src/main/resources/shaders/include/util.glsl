@@ -53,3 +53,7 @@ ivec2 decodeTexture(uint data) {
 
     return ivec2(u, v);
 }
+
+vec3 decodeLight(uint data) {
+    return vec3(data >> 20, (data >> 10) & uint(0x3ff), data & uint(0x3ff));
+}

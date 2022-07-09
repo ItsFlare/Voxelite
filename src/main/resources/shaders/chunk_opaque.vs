@@ -35,7 +35,7 @@ void main() {
     Tex = vec2(decodeTexture(data) + tex) * normalizedSpriteSize;
     Pos = vec3(vp);
     Normal = normal;
-    BlockLight = vec3(light >> 20, (light >> 10) & uint(0x3ff), light & uint(0x3ff)) / maxLightValue;
+    BlockLight = decodeLight(light) / maxLightValue;
     ViewSpacePos = (view * vec4(vp, 1)).xyz;
     LightSpacePos = (lightView * vec4(vp, 1)).xyz;
     aoFactor = AmbientOcclusion(ao, gl_VertexID);
