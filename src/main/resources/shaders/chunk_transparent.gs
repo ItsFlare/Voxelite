@@ -1,6 +1,7 @@
 #version 400 core
 #extension GL_ARB_shading_language_include : require
 #include "util.glsl"
+#include "ao.glsl"
 
 layout(points) in;
 layout(triangle_strip, max_vertices = 4) out;
@@ -18,7 +19,6 @@ out vec3 BlockLight;
 out vec3 LightSpacePos;
 out vec3 ViewSpacePos;
 flat out mat3 TBN;
-out float aoFactor;
 
 uniform mat4 mvp;
 uniform mat4 view;
@@ -26,15 +26,12 @@ uniform ivec3 chunk;
 uniform float normalizedSpriteSize;
 uniform int maxLightValue;
 uniform mat4 lightView;
-uniform bool aoSet;
 
 uniform ivec3 normals[6];
 uniform ivec3 vertices[6 * 4];
 uniform ivec2 texCoords[6 * 4];
 
 uniform int visibility;
-
-const vec4 aoMap = vec4(0.5, 0.7, 0.9, 1);
 
 void main() {
     uint data = Data[0];
@@ -59,7 +56,7 @@ void main() {
         Pos = vec3(vp);
         LightSpacePos = (lightView * vec4(vp, 1)).xyz;
         ViewSpacePos = (view * vec4(vp, 1)).xyz;
-        aoFactor = aoSet ? aoMap[(ao >> ((i & 3) << 1)) & 3u] : 1;
+        aoFactor = AmbientOcclusion(ao, i);
         aoFactor = min(aoFactor * 1.5, 1); //Reduce AO effect on transparent materials
         EmitVertex();
     }
