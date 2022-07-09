@@ -1,4 +1,6 @@
 #version 410
+#extension GL_ARB_shading_language_include : require
+#include "util.glsl"
 
 in ivec2 tex;
 in ivec3 pos;
@@ -29,18 +31,11 @@ uniform bool aoSet;
 const float aoMap[4] = float[4](0.5, 0.7, 0.9, 1);
 
 void main() {
-    uint x = data >> 27;
-    uint y = (data >> 22) & uint(0x1f);
-    uint z = (data >> 17) & uint(0x1f);
-
-    uint u = (data >> 10) & uint(0x7f);
-    uint v = (data >> 3) & uint(0x7f);
-
-    ivec3 vp = chunk + pos + ivec3(x, y, z);
+    ivec3 vp = chunk + pos + decodePosition(data);
     gl_Position = mvp * vec4(vp, 1);
 
     TBN = mat3(vec3(tangent), vec3(bitangent), vec3(normal));
-    Tex = vec2(ivec2(u, v) + tex) * normalizedSpriteSize;
+    Tex = vec2(decodeTexture(data) + tex) * normalizedSpriteSize;
     Pos = vec3(vp);
     Normal = normal;
     BlockLight = vec3(light >> 20, (light >> 10) & uint(0x3ff), light & uint(0x3ff)) / maxLightValue;

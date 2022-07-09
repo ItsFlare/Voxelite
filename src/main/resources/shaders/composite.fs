@@ -11,6 +11,8 @@ out vec4 FragColor;
 uniform sampler2D normal;
 uniform sampler2D mer;
 
+vec2 pixel = gl_FragCoord.xy / viewport;
+
 void main() {
     //Copy depth into default framebuffer
     gl_FragDepth = texture(depth, pixel).x;
