@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static org.lwjgl.opengl.GL43.*;
+
 public class Util {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Util.class);
@@ -242,5 +244,21 @@ public class Util {
                 f * (-deltaUV2.x() * edge1.z() + deltaUV1.x() * edge2.z())
         );
         System.out.println("Tan: " + tangent + "BiTang: " + bitangent);
+    }
+
+    public static void printShaderLayout(int id) {
+        System.out.println("- Attributes -");
+        int attributes = glGetProgramInterfacei(id, GL_PROGRAM_INPUT, GL_ACTIVE_RESOURCES);
+        for (int i = 0; i < attributes; ++i) {
+            String name = glGetProgramResourceName(id, GL_PROGRAM_INPUT, i);
+            System.out.println(name);
+        }
+
+        System.out.println("- Uniforms -");
+        int uniforms = glGetProgramInterfacei(id, GL_UNIFORM, GL_ACTIVE_RESOURCES);
+        for (int i = 0; i < uniforms; i++) {
+            String name = glGetProgramResourceName(id, GL_UNIFORM, i);
+            System.out.println(name);
+        }
     }
 }

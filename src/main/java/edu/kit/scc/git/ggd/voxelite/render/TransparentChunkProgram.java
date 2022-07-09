@@ -9,8 +9,6 @@ import net.durchholz.beacon.render.opengl.shader.Uniform;
 
 import java.util.Arrays;
 
-import static org.lwjgl.opengl.GL43.*;
-
 public class TransparentChunkProgram extends ChunkProgram {
 
     public final Uniform<Vec3i[]>  normals        = uniVec3iArray("normals", 6);
@@ -36,18 +34,4 @@ public class TransparentChunkProgram extends ChunkProgram {
         });
     }
 
-    public static void printLayout(int id) {
-        int numActiveAttribs = glGetProgramInterfacei(id, GL_PROGRAM_INPUT, GL_ACTIVE_RESOURCES);
-
-        for (int attrib = 0; attrib < numActiveAttribs; ++attrib) {
-            String name = glGetProgramResourceName(id, GL_PROGRAM_INPUT, attrib);
-            System.out.println(name);
-        }
-
-        int numActiveUniforms = glGetProgramInterfacei(id, GL_UNIFORM, GL_ACTIVE_RESOURCES);
-        for (int i = 0; i < numActiveUniforms; i++) {
-            String name = glGetProgramResourceName(id, GL_UNIFORM, i);
-            System.out.println(name);
-        }
-    }
 }
