@@ -48,12 +48,12 @@ public class LineRenderer {
     }
 
     public void render(OpenGL.Mode mode, Matrix4f mvp, LineProgram.LineVertex... vertices) {
-        OpenGL.colorMask(true);
-        OpenGL.depthMask(false);
-        OpenGL.depthTest(true);
-        OpenGL.blend(true);
+        OpenGL.use(OpenGL.STATE, PROGRAM, va, vb, () -> {
+            OpenGL.colorMask(true);
+            OpenGL.depthMask(false);
+            OpenGL.depthTest(true);
+            OpenGL.blend(true);
 
-        OpenGL.use(PROGRAM, va, vb, () -> {
             PROGRAM.mvp.set(mvp);
 
             vb.data(vertices);

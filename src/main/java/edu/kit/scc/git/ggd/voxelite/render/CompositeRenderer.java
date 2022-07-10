@@ -31,13 +31,10 @@ public class CompositeRenderer {
     }
 
     public void render(GeometryBuffer gBuffer) {
-        OpenGL.depthTest(true); //Must be enabled for depth writing
-        OpenGL.depthFunction(OpenGL.CompareFunction.ALWAYS); //Disable depth testing the other way
-        OpenGL.depthMask(true); //Write gBuffer depth to default framebuffer
-        OpenGL.colorMask(true);
-        OpenGL.blend(false);
+        OpenGL.use(OpenGL.STATE, PROGRAM, va, () -> {
+            OpenGL.resetState();
+            OpenGL.depthFunction(OpenGL.CompareFunction.ALWAYS); //Disable depth testing the other way
 
-        OpenGL.use(PROGRAM, va, () -> {
             final Camera camera = Main.INSTANCE.getRenderer().getCamera();
             final WorldRenderer worldRenderer = Main.INSTANCE.getRenderer().getWorldRenderer();
             PROGRAM.debugRoughness.set(worldRenderer.debugRoughness);
@@ -51,8 +48,6 @@ public class CompositeRenderer {
 
             OpenGL.drawArrays(OpenGL.Mode.TRIANGLE_STRIP, 0, 4);
         });
-
-        OpenGL.depthFunction(OpenGL.CompareFunction.LESS_EQUAL); //TODO Eliminate reset responsibility
     }
 
 }
