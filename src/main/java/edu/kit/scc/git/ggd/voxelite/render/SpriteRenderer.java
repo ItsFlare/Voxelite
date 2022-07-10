@@ -63,12 +63,11 @@ public class SpriteRenderer {
             v[i] = new SpriteProgram.Vertex(vertex, VERTICES[i], tint);
         }
 
-        vertexBuffer.use(() -> {
-            vertexBuffer.data(v);
-        });
+        vertexBuffer.use(() -> vertexBuffer.data(v));
     }
 
     public void render() {
+        activeTextureUnit(0);
 
         use(STATE, vertexArray, texture, () -> {
             depthTest(false);
@@ -78,11 +77,7 @@ public class SpriteRenderer {
             blendEquation(BlendEquation.ADD);
             blendFunction(BlendFunction.ONE, BlendFunction.ONE_MINUS_SOURCE_ALPHA);
 
-            activeTextureUnit(0);
-
             drawArrays(Mode.TRIANGLE_STRIP, 0, VERTICES.length);
         });
-
-        blend(false);
     }
 }
