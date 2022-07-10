@@ -42,9 +42,9 @@ public class ChunkProgram extends Program {
     public final Attribute<Byte>    ao    = attribute("ao", OpenGL.Type.UNSIGNED_INT, 1);
 
 
-    public final Uniform<Matrix4f> mvp   = uniMatrix4f("mvp", true);
-    public final Uniform<Matrix4f> view  = uniMatrix4f("view", true);
-    public final Uniform<Vec3i>    chunk = uniVec3i("chunk");
+    public final Uniform<Matrix4f> mvp                  = uniMatrix4f("mvp", true);
+    public final Uniform<Matrix4f> view                 = uniMatrix4f("view", true);
+    public final Uniform<Vec3i>    chunk                = uniVec3i("chunk");
     public final Sampler           atlas                = sampler("atlas");
     public final Sampler           shadowMap            = sampler("shadowMap");
     public final Uniform<Vec3f>    camera               = uniVec3f("camera");
@@ -66,10 +66,10 @@ public class ChunkProgram extends Program {
     public final Uniform<Integer>  kernel               = uniInteger("kernel");
 
     public final Uniform<Integer> normalMap = uniInteger("normalMapSet");
-    public final Uniform<Integer> fogSet = uniInteger("fogSet");
-    public final Uniform<Integer> aoSet = uniInteger("aoSet");
-    public final Uniform<Integer> fogRange = uniInteger("fogRange");
-    public final Uniform<Vec3f> fogColor = uniVec3f("fogColor");
+    public final Uniform<Integer> fogSet    = uniInteger("fogSet");
+    public final Uniform<Integer> aoSet     = uniInteger("aoSet");
+    public final Uniform<Integer> fogRange  = uniInteger("fogRange");
+    public final Uniform<Vec3f>   fogColor  = uniVec3f("fogColor");
 
     public record QuadVertex(Vec3i position, Vec2i texture, Vec3i normal, Vec3i tangent, Vec3i bitangent) implements Vertex {
         public static final VertexLayout<QuadVertex> LAYOUT   = new VertexLayout<>(QuadVertex.class);

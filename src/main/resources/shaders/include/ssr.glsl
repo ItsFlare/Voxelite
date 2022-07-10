@@ -106,14 +106,19 @@ void CalculateReflection(vec3 viewPos, vec3 normal, in float roughness, inout ve
     vec3 rayDirection = reflect(normalize(viewPos), normalize(normal));
 
     if (dot(vec3(0, 0, -1), rayDirection) > 0) {
-        vec2 hitPixel;
-        bool hit = rayMarchView(viewPos, rayDirection, hitPixel);
+        vec3 origin = vec3(toPixelSpace(viewPos), viewPos.z);
+        vec3 targetView = viewPos + rayDirection * 1000;
+        vec3 target = vec3(toPixelSpace(targetView), targetView.z);
+
+        vec3 hitPixel;
+        bool hit = raymarch(origin, target, 1, 1000, hitPixel);
 
         if (hit) {
-            vec4 reflectionColor = coneTracing ? ConeTrace(hitPixel, hitPixel - toScreenSpace(viewPos), roughness) : texture(opaque, hitPixel);
+            vec2 hitSS = toScreenSpace(hitPixel.xy);
+            vec4 reflectionColor = coneTracing ? ConeTrace(hitSS, hitSS - toScreenSpace(viewPos), roughness) : texture(opaque, hitSS);
             reflectionColor.a = 1;
 
-            color = mix(mix(reflectionColor, color, roughness), color, CalculateFade(hitPixel.xy));
+            color = mix(mix(reflectionColor, color, roughness), color, CalculateFade(hitSS));
             //o = mix(o, vec4(1, 0, 0, 1), 0.1);
         }
     }
