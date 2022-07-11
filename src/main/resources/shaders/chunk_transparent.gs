@@ -44,7 +44,7 @@ void main() {
     ivec3 blockPos = chunk + decodePosition(data);
     vec3 blockLight = decodeLight(Light[0]) / maxLightValue;
     ivec3 normal = normals[direction];
-    vec3 viewNormal = (view * vec4(Normal, 0)).xyz;
+    vec3 viewNormal = (view * vec4(normal, 0)).xyz;
 
     for(int i = 0; i < 4; i++) {
         //Per quad
