@@ -80,7 +80,7 @@ vec4 ConeTrace(vec2 rayOrigin, vec2 rayDirection, float roughness) {
     vec2 rayDirectionNormalized = normalize(rayDirection);
     float rayLength = length(rayDirection);
 
-    float glossiness = 1 - roughness;
+    float glossiness = 1 - min(roughness, 0.999); //TODO Improve singularity fix
     int maxLevel = textureQueryLevels(opaque);
 
     for (int i = 0; i < CONE_STEPS; i++) {
@@ -112,7 +112,7 @@ void CalculateReflection(vec3 viewPos, vec3 normal, in float roughness, inout ve
 
         if (hit) {
             vec4 reflectionColor = coneTracing ? ConeTrace(hitPixel, hitPixel - toScreenSpace(viewPos), roughness) : texture(opaque, hitPixel);
-            reflectionColor.a = color.a;
+            reflectionColor.a = 1;
 
             color = mix(mix(reflectionColor, color, roughness), color, CalculateFade(hitPixel.xy));
             //o = mix(o, vec4(1, 0, 0, 1), 0.1);
