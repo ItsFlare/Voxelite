@@ -33,6 +33,7 @@ public class CompositeRenderer {
     public void render(GeometryBuffer gBuffer) {
         OpenGL.use(OpenGL.STATE, PROGRAM, va, () -> {
             OpenGL.resetState();
+            OpenGL.depthTest(true);
             OpenGL.depthFunction(OpenGL.CompareFunction.ALWAYS); //Disable depth testing the other way
 
             final Camera camera = Main.INSTANCE.getRenderer().getCamera();
