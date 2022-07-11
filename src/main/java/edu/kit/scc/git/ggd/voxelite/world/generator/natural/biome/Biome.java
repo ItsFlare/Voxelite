@@ -23,7 +23,7 @@ public enum Biome {
             if(relative != null) relative.setBlock(Block.DIRT);
         }
         return true;
-    }, 0.25f, new OakTreeFeature()),
+    }, 0.25f, new BirchTreeFeature()),
     FOREST(voxel -> {
         voxel.setBlock(Block.GRASS);
         for (int y = 1; y < 3; y++) {
@@ -43,7 +43,7 @@ public enum Biome {
     SNOW(voxel -> {
         voxel.setBlock(Block.WHITE_GLASS);
         return true;
-    }, 0.5f);
+    }, 0.5f, new AcaciaTreeFeature());
 
     private final TerrainFeature surfaceLayer;
     private final TerrainFeature[] features;
