@@ -11,7 +11,6 @@ import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.event.Listener;
 import net.durchholz.beacon.math.*;
-import net.durchholz.beacon.render.opengl.OpenGL;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -22,6 +21,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.stream.Collectors;
 
 import static java.lang.Math.sin;
+import static net.durchholz.beacon.render.opengl.OpenGL.*;
 import static org.lwjgl.opengl.GL30.*;
 
 public class WorldRenderer {
@@ -170,18 +170,17 @@ public class WorldRenderer {
                         renderChunk -> new RenderInfo(renderChunk, RenderChunk.FULL_VISIBILITY))
                 .toList();
 
-        OpenGL.colorMask(true);
-        OpenGL.depthMask(true);
-        OpenGL.depthTest(true);
-        OpenGL.depthFunction(OpenGL.CompareFunction.LESS);
-        OpenGL.cull(backfaceCull);
+
 
         var gBuffer = Main.INSTANCE.getRenderer().getGeometryBuffer();
 
-        OpenGL.use(gBuffer, () -> {
+        use(STATE, gBuffer, () -> {
+            resetState();
+            cull(backfaceCull);
+
             //Draw opaque
             {
-                OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2);
+                setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2);
                 RenderType.OPAQUE.setPipelineState();
 
                 final ChunkProgram program = RenderType.OPAQUE.getProgram();
@@ -243,10 +242,12 @@ public class WorldRenderer {
 
         //Draw transparent
         {
-            RenderType.TRANSPARENT.setPipelineState();
 
             final TransparentChunkProgram program = (TransparentChunkProgram) RenderType.TRANSPARENT.getProgram(); //TODO Remove cast
-            program.use(() -> {
+            use(STATE, program, () -> {
+                resetState();
+                RenderType.TRANSPARENT.setPipelineState();
+
                 setCommonUniforms(program, mvp, cameraPosition, lightDirection);
                 program.opaque.bind(2, gBuffer.opaque());
                 program.depth.bind(3, gBuffer.depth());

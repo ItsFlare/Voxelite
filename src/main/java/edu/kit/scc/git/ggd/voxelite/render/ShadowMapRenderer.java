@@ -5,13 +5,13 @@ import edu.kit.scc.git.ggd.voxelite.util.Frustum;
 import edu.kit.scc.git.ggd.voxelite.util.Util;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import net.durchholz.beacon.math.*;
-import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.buffers.FBO;
 import net.durchholz.beacon.render.opengl.shader.Shader;
 import net.durchholz.beacon.render.opengl.textures.ArrayTexture2D;
 import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.window.Viewport;
 
+import static net.durchholz.beacon.render.opengl.OpenGL.*;
 import static org.lwjgl.opengl.GL43.GL_NONE;
 
 public class ShadowMapRenderer {
@@ -37,13 +37,13 @@ public class ShadowMapRenderer {
         this.c = new Cascade[cascades];
         this.cullCounts = new int[this.cascades];
 
-        OpenGL.use(fbo, texture, () -> {
+        use(fbo, texture, () -> {
             texture.allocate(resolution, resolution, cascades, GLTexture.BaseFormat.DEPTH_COMPONENT);
             texture.wrapMode(GLTexture.TextureCoordinate.R, GLTexture.WrapMode.CLAMP_TO_EDGE);
             texture.wrapMode(GLTexture.TextureCoordinate.S, GLTexture.WrapMode.CLAMP_TO_EDGE);
             texture.depthCompare(true);
 
-            OpenGL.setDrawBuffers(GL_NONE);
+            setDrawBuffers(GL_NONE);
         });
     }
 
@@ -142,22 +142,23 @@ public class ShadowMapRenderer {
     }
 
     public void render(Vec3f lightDirection) {
-        OpenGL.setViewport(new Viewport(resolution, resolution));
-        OpenGL.depthTest(true);
-        OpenGL.depthMask(true);
-        OpenGL.colorMask(false);
-        OpenGL.blend(false);
+        setViewport(new Viewport(resolution, resolution));
 
         final int visibility = RenderChunk.directionCull(lightDirection.scale(-1000), new Vec3i(0));
 
-        OpenGL.use(PROGRAM, fbo, texture, () -> {
+        use(STATE, PROGRAM, fbo, texture, () -> {
+            depthTest(true);
+            depthMask(true);
+            colorMask(false);
+            blend(false);
+
             final var renderChunks = Main.INSTANCE.getRenderer().getWorldRenderer().getRenderChunks().toArray(RenderChunk[]::new);
             int culled = 0;
 
             //Reverse order for successive frustum culling
             for (int c = cascades - 1; c >= 0; c--) {
                 fbo.depth(texture, 0, c);
-                OpenGL.clearDepth();
+                clearDepth();
 
                 final Matrix4f lightTransform = lightTransform(c, lightDirection);
                 PROGRAM.mvp.set(lightTransform);
@@ -189,7 +190,7 @@ public class ShadowMapRenderer {
         });
 
 
-        OpenGL.setViewport(Main.INSTANCE.getWindow().getViewport());
+        setViewport(Main.INSTANCE.getWindow().getViewport());
     }
 
     public ArrayTexture2D getTexture() {

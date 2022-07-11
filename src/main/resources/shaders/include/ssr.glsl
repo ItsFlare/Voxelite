@@ -111,7 +111,9 @@ void CalculateReflection(vec3 viewPos, vec3 normal, in float roughness, inout ve
         bool hit = rayMarchView(viewPos, rayDirection, hitPixel);
 
         if (hit) {
-            vec4 reflectionColor = coneTracing ? ConeTrace(hitPixel, hitPixel - toScreenSpace(viewPos), roughness) : vec4(texture(opaque, hitPixel).rgb, color.a);
+            vec4 reflectionColor = coneTracing ? ConeTrace(hitPixel, hitPixel - toScreenSpace(viewPos), roughness) : texture(opaque, hitPixel);
+            reflectionColor.a = color.a;
+
             color = mix(mix(reflectionColor, color, roughness), color, CalculateFade(hitPixel.xy));
             //o = mix(o, vec4(1, 0, 0, 1), 0.1);
         }

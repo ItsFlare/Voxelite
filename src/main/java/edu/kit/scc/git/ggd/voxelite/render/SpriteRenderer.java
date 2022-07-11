@@ -4,7 +4,6 @@ import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.util.Util;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec4f;
-import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.buffers.BufferLayout;
 import net.durchholz.beacon.render.opengl.buffers.VertexArray;
 import net.durchholz.beacon.render.opengl.buffers.VertexBuffer;
@@ -64,24 +63,21 @@ public class SpriteRenderer {
             v[i] = new SpriteProgram.Vertex(vertex, VERTICES[i], tint);
         }
 
-        vertexBuffer.use(() -> {
-            vertexBuffer.data(v);
-        });
+        vertexBuffer.use(() -> vertexBuffer.data(v));
     }
 
     public void render() {
-        OpenGL.depthTest(false);
-        OpenGL.depthMask(false);
-        OpenGL.colorMask(true);
-        blend(true);
-        blendEquation(BlendEquation.ADD);
-        blendFunction(BlendFunction.ONE, BlendFunction.ONE_MINUS_SOURCE_ALPHA);
-
         activeTextureUnit(0);
-        use(vertexArray, texture, () -> {
+
+        use(STATE, vertexArray, texture, () -> {
+            depthTest(false);
+            depthMask(false);
+            colorMask(true);
+            blend(true);
+            blendEquation(BlendEquation.ADD);
+            blendFunction(BlendFunction.ONE, BlendFunction.ONE_MINUS_SOURCE_ALPHA);
+
             drawArrays(Mode.TRIANGLE_STRIP, 0, VERTICES.length);
         });
-
-        blend(false);
     }
 }

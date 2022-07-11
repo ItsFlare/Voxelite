@@ -7,7 +7,6 @@ import net.durchholz.beacon.math.AABB;
 import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec1i;
 import net.durchholz.beacon.math.Vec3f;
-import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.buffers.BufferLayout;
 import net.durchholz.beacon.render.opengl.buffers.SSBO;
 import net.durchholz.beacon.render.opengl.buffers.VertexArray;
@@ -21,6 +20,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 import static edu.kit.scc.git.ggd.voxelite.util.Util.debug;
+import static net.durchholz.beacon.render.opengl.OpenGL.*;
 import static org.lwjgl.opengl.GL44.*;
 
 public class OcclusionRenderer {
@@ -45,7 +45,7 @@ public class OcclusionRenderer {
             new OcclusionProgram.CubeVertex(new Vec3f(0, 1, 0))
     };
 
-    private static final VertexBuffer<OcclusionProgram.CubeVertex> CUBE_VB = new VertexBuffer<>(OcclusionProgram.CubeVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.STATIC_DRAW);
+    private static final VertexBuffer<OcclusionProgram.CubeVertex> CUBE_VB = new VertexBuffer<>(OcclusionProgram.CubeVertex.LAYOUT, BufferLayout.INTERLEAVED, Usage.STATIC_DRAW);
 
     static {
         CUBE_VB.use(() -> CUBE_VB.data(CUBE_VERTICES));
@@ -67,7 +67,7 @@ public class OcclusionRenderer {
     private final SSBO<StructArray<Vec1i>>                      ssbo      = new SSBO<>();
     private final IntBuffer                                     mappedBuffer;
     private final VertexArray                                   va        = new VertexArray();
-    private final VertexBuffer<OcclusionProgram.InstanceVertex> instances = new VertexBuffer<>(OcclusionProgram.InstanceVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.STREAM_DRAW);
+    private final VertexBuffer<OcclusionProgram.InstanceVertex> instances = new VertexBuffer<>(OcclusionProgram.InstanceVertex.LAYOUT, BufferLayout.INTERLEAVED, Usage.STREAM_DRAW);
     private final Memory<Query>                                 queries   = new Memory<>();
 
     public OcclusionRenderer() {
@@ -80,7 +80,7 @@ public class OcclusionRenderer {
         });
 
         va.use(() -> {
-            OpenGL.use(CUBE_VB, () -> {
+            use(CUBE_VB, () -> {
                 va.set(PROGRAM.pos, OcclusionProgram.CubeVertex.POSITION, CUBE_VB, 0);
             });
 
@@ -97,12 +97,6 @@ public class OcclusionRenderer {
     }
 
     public void render(Matrix4f mvp) {
-        OpenGL.depthTest(true);
-        OpenGL.depthFunction(OpenGL.CompareFunction.LESS_EQUAL);
-        OpenGL.depthMask(false);
-        OpenGL.colorMask(false);
-        OpenGL.cull(false);
-
         final int frame = Main.INSTANCE.getRenderer().getFrame();
 
         var vertices = queries
@@ -113,7 +107,13 @@ public class OcclusionRenderer {
                     return new OcclusionProgram.InstanceVertex(entry.address(), aabb.min(), aabb.max().subtract(aabb.min()));
                 }).toArray(OcclusionProgram.InstanceVertex[]::new);
 
-        OpenGL.use(PROGRAM, va, ssbo, instances, () -> {
+        use(STATE, PROGRAM, va, ssbo, instances, () -> {
+            depthTest(true);
+            depthFunction(CompareFunction.LESS_EQUAL);
+            depthMask(false);
+            colorMask(false);
+            cull(false);
+
             instances.data(vertices);
 
             PROGRAM.occlusion.set(ssbo);
@@ -121,7 +121,7 @@ public class OcclusionRenderer {
             PROGRAM.mvp.set(mvp);
 
             LOGGER.trace("Dispatching %d occlusion queries in frame %d".formatted(vertices.length, frame));
-            OpenGL.drawArraysInstanced(OpenGL.Mode.TRIANGLE_STRIP, 0, CUBE_VERTICES.length, vertices.length);
+            drawArraysInstanced(Mode.TRIANGLE_STRIP, 0, CUBE_VERTICES.length, vertices.length);
             glMemoryBarrier(GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
         });
     }

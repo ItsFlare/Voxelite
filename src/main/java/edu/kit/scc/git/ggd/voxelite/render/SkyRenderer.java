@@ -98,19 +98,21 @@ public class SkyRenderer {
     }
 
     public void renderPlanetQuad(Matrix4f vp, Quaternion rotation, float scale, Texture2D texture) {
-        OpenGL.blend(false);
-        vp = vp.clone();
+        OpenGL.use(OpenGL.STATE, () -> {
+            OpenGL.blend(false);
+            var vpClone = vp.clone();
 
-        final Matrix4f model = Matrix4f.identity();
-        model.scale(scale);
-        model.multiply(Matrix4f.rotation(rotation));
+            final Matrix4f model = Matrix4f.identity();
+            model.scale(scale);
+            model.multiply(Matrix4f.rotation(rotation));
 
-        final Vec3f quadNormal = new Vec3f(Direction.POS_Z.getAxis());
-        model.translate(quadNormal.rotate(rotation));
+            final Vec3f quadNormal = new Vec3f(Direction.POS_Z.getAxis());
+            model.translate(quadNormal.rotate(rotation));
 
-        vp.multiply(model);
+            vpClone.multiply(model);
 
-        quadRenderer.render(vp, texture, new Vec2f(), new Vec2f(1));
+            quadRenderer.render(vpClone, texture, new Vec2f(), new Vec2f(1));
+        });
     }
 
     private float getRotation() {
