@@ -60,7 +60,7 @@ public class GeneratorChunk<G extends MultiPassGenerator<G>> implements Chunk {
     }
 
     public void generate() {
-        LOGGER.debug("Generating %s at %s%n".formatted(position, pass));
+        LOGGER.debug("Generating %s for %s".formatted(pass, position));
         pass.apply(generator, this);
         pass = pass.getChild();
     }
