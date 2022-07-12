@@ -1,5 +1,4 @@
 #version 410
-#extension GL_ARB_shading_language_include : require
 #include "include\csm.glsl"
 #include "include\fog.glsl"
 #include "include\light.glsl"

@@ -1,5 +1,4 @@
 #version 430
-#extension GL_ARB_shading_language_include : require
 #include "include\csm.glsl"
 #include "include\ssr.glsl"
 #include "include\fog.glsl"

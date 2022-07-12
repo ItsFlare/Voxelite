@@ -1,5 +1,5 @@
 #version 410
-#extension GL_ARB_shading_language_include : require
+
 #include "include\util.glsl"
 #include "include\ao.glsl"
 

@@ -1,5 +1,3 @@
-#extension GL_ARB_shading_language_include : require
-
 #ifndef DEFERRED
     #include "include\deferred.glsl"
 #endif
