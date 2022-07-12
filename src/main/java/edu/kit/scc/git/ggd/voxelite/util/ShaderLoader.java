@@ -47,8 +47,9 @@ public class ShaderLoader {
     private static ShaderGraph.Node[] loadNodes() {
         final List<ShaderGraph.Node> shaders = new ArrayList<>();
         try {
-            Path root = Util.getResourcePath("/");
-            final Path shaderPath = root.resolve("shaders");
+            final Path shaderPath = Util.getResourcePath("/shaders");
+            final Path root = shaderPath.getParent();
+
             for (Path path : Util.listResourceFolder(shaderPath, Integer.MAX_VALUE)) {
                 if (Files.isDirectory(path)) continue; //Exclude directories
                 final String fileName = path.getFileName().toString();
@@ -69,7 +70,7 @@ public class ShaderLoader {
                     default -> throw new IllegalStateException("Unexpected value: " + extension);
                 };
 
-                final String name = shaderPath.relativize(path).toString();
+                final String name = shaderPath.relativize(path).toString().replace('/', '\\');
                 final String source = Util.readStringResource(root.relativize(path).toString());
                 shaders.add(new ShaderGraph.Node(type, name, new StringBuffer(source)));
 
