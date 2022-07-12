@@ -1,7 +1,7 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
-import edu.kit.scc.git.ggd.voxelite.util.Util;
+import edu.kit.scc.git.ggd.voxelite.util.ShaderLoader;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec4f;
 import net.durchholz.beacon.render.opengl.buffers.BufferLayout;
@@ -15,7 +15,7 @@ import static net.durchholz.beacon.render.opengl.OpenGL.*;
 
 public class SpriteRenderer {
 
-    public static final SpriteProgram PROGRAM  = new SpriteProgram(Util.loadShaders("sprite"));
+    public static final SpriteProgram PROGRAM  = new SpriteProgram(ShaderLoader.getSuite("sprite"));
     private static final Vec2f[]      VERTICES = new Vec2f[] {
             new Vec2f(0, 1),
             new Vec2f(0, 0),

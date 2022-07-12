@@ -1,6 +1,6 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
-import edu.kit.scc.git.ggd.voxelite.util.Util;
+import edu.kit.scc.git.ggd.voxelite.util.ShaderLoader;
 import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
@@ -22,7 +22,7 @@ public class OcclusionProgram extends Program {
     public final StorageBuffer     occlusion = storageBuffer("occlusionBuffer", 0);
 
     public OcclusionProgram() {
-        super(Util.loadShaders("occlusion"));
+        super(ShaderLoader.getSuite("occlusion"));
     }
 
     public record CubeVertex(Vec3f position) implements Vertex {

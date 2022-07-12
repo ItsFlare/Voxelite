@@ -7,7 +7,6 @@ import net.durchholz.beacon.math.Matrix3f;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
-import net.durchholz.beacon.render.opengl.shader.Shader;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
 import net.durchholz.beacon.util.Image;
 import net.durchholz.beacon.window.Viewport;
@@ -17,9 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 import static java.lang.Math.sin;
 import static org.lwjgl.opengl.GL30.*;
@@ -27,16 +23,6 @@ import static org.lwjgl.opengl.GL30.*;
 public class Renderer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Renderer.class);
-
-    static {
-        OpenGL.call(() -> {
-            try {
-                loadIncludes();
-            } catch (IOException | URISyntaxException e) {
-                throw new RuntimeException(e);
-            }
-        });
-    }
 
     private final Camera         camera;
     private final UserInterface  userInterface;
@@ -163,24 +149,4 @@ public class Renderer {
         return SkyboxRenderer.createCubemap(images);
     }
 
-    private static void loadIncludes() throws URISyntaxException, IOException {
-        final String folder = "shaders/include";
-        final var path = Util.getResourcePath("/" + folder);
-        assert Files.isDirectory(path);
-        final var paths = Util.listResourceFolder(path, Integer.MAX_VALUE);
-
-        for (Path p : paths) {
-            if (Files.isRegularFile(p)) {
-                final Path relative = path.relativize(p);
-                final String name = "/" + relative.getFileName().toString();
-                final String source = Util.readStringResource(folder + name);
-
-                Util.debug(() -> {
-                    LOGGER.debug("Loading include %s as %s".formatted(p, name));
-                });
-
-                Shader.registerInclude(name, source);
-            }
-        }
-    }
 }

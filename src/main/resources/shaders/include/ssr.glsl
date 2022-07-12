@@ -1,8 +1,8 @@
 #extension GL_ARB_shading_language_include : require
-#include "util.glsl"
+#include "include\util.glsl"
 
 #ifndef DEFERRED
-    #include "deferred.glsl"
+    #include "include\deferred.glsl"
 #endif
 
 uniform float debugRoughness;

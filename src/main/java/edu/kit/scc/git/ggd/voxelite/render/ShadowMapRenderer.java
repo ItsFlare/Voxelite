@@ -2,11 +2,10 @@ package edu.kit.scc.git.ggd.voxelite.render;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.util.Frustum;
-import edu.kit.scc.git.ggd.voxelite.util.Util;
+import edu.kit.scc.git.ggd.voxelite.util.ShaderLoader;
 import edu.kit.scc.git.ggd.voxelite.world.Chunk;
 import net.durchholz.beacon.math.*;
 import net.durchholz.beacon.render.opengl.buffers.FBO;
-import net.durchholz.beacon.render.opengl.shader.Shader;
 import net.durchholz.beacon.render.opengl.textures.ArrayTexture2D;
 import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.window.Viewport;
@@ -16,7 +15,7 @@ import static org.lwjgl.opengl.GL43.GL_NONE;
 
 public class ShadowMapRenderer {
 
-    public static final ChunkShadowProgram PROGRAM             = new ChunkShadowProgram(Shader.vertex(Util.readShaderResource("chunk_opaque_shadow.vs")), Shader.fragment(Util.readShaderResource("default.fs")));
+    public static final ChunkShadowProgram PROGRAM             = new ChunkShadowProgram(ShaderLoader.get("chunk_opaque_shadow.vs"), ShaderLoader.get("default.fs"));
     public static final int                RANGE_BEHIND_CAMERA = 250;
 
     private final FBO            fbo     = new FBO();

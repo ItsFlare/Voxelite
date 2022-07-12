@@ -1,7 +1,7 @@
 #version 410
 #extension GL_ARB_shading_language_include : require
-#include "util.glsl"
-#include "ao.glsl"
+#include "include\util.glsl"
+#include "include\ao.glsl"
 
 in ivec2 tex;
 in ivec3 pos;

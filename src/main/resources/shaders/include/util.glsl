@@ -1,7 +1,7 @@
 #extension GL_ARB_shading_language_include : require
 
 #ifndef DEFERRED
-    #include "deferred.glsl"
+    #include "include\deferred.glsl"
 #endif
 
 vec2 viewport = textureSize(opaque, 0);

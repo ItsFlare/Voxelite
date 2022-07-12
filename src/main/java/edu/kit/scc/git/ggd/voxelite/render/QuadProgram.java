@@ -1,6 +1,6 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
-import edu.kit.scc.git.ggd.voxelite.util.Util;
+import edu.kit.scc.git.ggd.voxelite.util.ShaderLoader;
 import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec3f;
@@ -9,13 +9,12 @@ import net.durchholz.beacon.render.opengl.buffers.Vertex;
 import net.durchholz.beacon.render.opengl.buffers.VertexAttribute;
 import net.durchholz.beacon.render.opengl.buffers.VertexLayout;
 import net.durchholz.beacon.render.opengl.shader.Program;
-import net.durchholz.beacon.render.opengl.shader.Shader;
 import net.durchholz.beacon.render.opengl.shader.Uniform;
 
 public class QuadProgram extends Program {
 
     public QuadProgram() {
-        super(Shader.vertex(Util.readShaderResource("quad.vs")), Shader.fragment(Util.readShaderResource("quad.fs")));
+        super(ShaderLoader.getSuite("quad"));
     }
 
     public final Attribute<Vec3f> pos = attribute("pos", OpenGL.Type.FLOAT, 3);

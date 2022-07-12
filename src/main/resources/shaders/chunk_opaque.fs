@@ -1,8 +1,8 @@
 #version 410
 #extension GL_ARB_shading_language_include : require
-#include "csm.glsl"
-#include "fog.glsl"
-#include "light.glsl"
+#include "include\csm.glsl"
+#include "include\fog.glsl"
+#include "include\light.glsl"
 
 layout(location = 0) out vec3 color;
 layout(location = 1) out vec3 normal;

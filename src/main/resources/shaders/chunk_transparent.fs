@@ -1,12 +1,12 @@
 #version 430
 #extension GL_ARB_shading_language_include : require
-#include "csm.glsl"
-#include "ssr.glsl"
-#include "fog.glsl"
-#include "light.glsl"
+#include "include\csm.glsl"
+#include "include\ssr.glsl"
+#include "include\fog.glsl"
+#include "include\light.glsl"
 
 #ifndef DEFERRED
-    #include "deferred.glsl"
+    #include "include\deferred.glsl"
 #endif
 
 in vec2 Tex;

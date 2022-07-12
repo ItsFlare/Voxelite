@@ -1,6 +1,6 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
-import edu.kit.scc.git.ggd.voxelite.util.Util;
+import edu.kit.scc.git.ggd.voxelite.util.ShaderLoader;
 import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.render.opengl.OpenGL;
@@ -25,7 +25,7 @@ public class CompositeProgram extends Program {
 //    public final Sampler shadowMap = sampler("shadowMap");
 
     public CompositeProgram() {
-        super(Util.loadShaders("composite"));
+        super(ShaderLoader.getSuite("composite"));
     }
 
     public record QuadVertex(Vec2f pos) implements Vertex {

@@ -1,6 +1,6 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
-import edu.kit.scc.git.ggd.voxelite.util.Util;
+import edu.kit.scc.git.ggd.voxelite.util.ShaderLoader;
 import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
@@ -15,7 +15,7 @@ import java.io.IOException;
 public class SkyboxProgram extends Program {
 
     public SkyboxProgram() throws IOException {
-        super(Util.loadShaders("skybox"));
+        super(ShaderLoader.getSuite("skybox"));
     }
 
     public final Attribute<Vec3f> pos = attribute("pos", OpenGL.Type.FLOAT, 3);

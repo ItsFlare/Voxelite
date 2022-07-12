@@ -1,19 +1,19 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
-import edu.kit.scc.git.ggd.voxelite.util.Util;
+import edu.kit.scc.git.ggd.voxelite.util.ShaderLoader;
 
 import static net.durchholz.beacon.render.opengl.OpenGL.*;
 
 public enum RenderType {
-    OPAQUE(new OpaqueChunkProgram(Util.loadShaders("chunk_opaque")), () -> {
+    OPAQUE(new OpaqueChunkProgram(ShaderLoader.getSuite("chunk_opaque")), () -> {
         depthMask(true);
         depthTest(true);
         colorMask(true);
         blend(false);
         cull(Main.INSTANCE.getRenderer().getWorldRenderer().backfaceCull);
     }),
-    TRANSPARENT(new TransparentChunkProgram(Util.loadShaders("chunk_transparent")), () -> {
+    TRANSPARENT(new TransparentChunkProgram(ShaderLoader.getSuite("chunk_transparent")), () -> {
         depthMask(false);
         depthTest(true);
         colorMask(true);

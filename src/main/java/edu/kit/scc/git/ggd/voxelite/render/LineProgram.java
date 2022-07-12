@@ -1,6 +1,6 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
-import edu.kit.scc.git.ggd.voxelite.util.Util;
+import edu.kit.scc.git.ggd.voxelite.util.ShaderLoader;
 import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec4f;
@@ -19,7 +19,7 @@ public class LineProgram extends Program {
     public final Uniform<Matrix4f> mvp = uniMatrix4f("mvp", true);
 
     public LineProgram() {
-        super(Util.loadShaders("line"));
+        super(ShaderLoader.getSuite("line"));
     }
 
     record LineVertex(Vec3f position, Vec4f color) implements Vertex {

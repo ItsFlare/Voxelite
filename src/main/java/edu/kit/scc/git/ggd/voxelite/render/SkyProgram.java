@@ -1,6 +1,6 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
-import edu.kit.scc.git.ggd.voxelite.util.Util;
+import edu.kit.scc.git.ggd.voxelite.util.ShaderLoader;
 import net.durchholz.beacon.math.Matrix3f;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec3f;
@@ -9,15 +9,12 @@ import net.durchholz.beacon.render.opengl.buffers.Vertex;
 import net.durchholz.beacon.render.opengl.buffers.VertexAttribute;
 import net.durchholz.beacon.render.opengl.buffers.VertexLayout;
 import net.durchholz.beacon.render.opengl.shader.Program;
-import net.durchholz.beacon.render.opengl.shader.Shader;
 import net.durchholz.beacon.render.opengl.shader.Uniform;
-
-import java.io.IOException;
 
 public class SkyProgram extends Program {
 
-    public SkyProgram() throws IOException {
-        super(Shader.vertex(Util.readShaderResource("sky.vs")), Shader.fragment(Util.readShaderResource("sky.fs")));
+    public SkyProgram() {
+        super(ShaderLoader.getSuite("sky"));
     }
 
     public final Attribute<Vec2f> ndc = attribute("ndc", OpenGL.Type.FLOAT, 2);

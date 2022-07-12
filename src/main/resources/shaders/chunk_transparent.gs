@@ -1,7 +1,7 @@
 #version 400 core
 #extension GL_ARB_shading_language_include : require
-#include "util.glsl"
-#include "ao.glsl"
+#include "include\util.glsl"
+#include "include\ao.glsl"
 
 layout(points) in;
 layout(triangle_strip, max_vertices = 4) out;

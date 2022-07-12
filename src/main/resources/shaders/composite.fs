@@ -1,9 +1,9 @@
 #version 430
 #extension GL_ARB_shading_language_include : require
-#include "ssr.glsl"
+#include "include\ssr.glsl"
 
 #ifndef DEFERRED
-    #include "deferred.glsl"
+    #include "include\deferred.glsl"
 #endif
 
 out vec4 FragColor;
