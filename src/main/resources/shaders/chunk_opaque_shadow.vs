@@ -1,5 +1,5 @@
 #version 410
-#include "include\util.glsl"
+#include "include\compression.glsl"
 
 in ivec3 pos;
 in uint data;

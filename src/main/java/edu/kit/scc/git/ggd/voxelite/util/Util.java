@@ -2,6 +2,7 @@ package edu.kit.scc.git.ggd.voxelite.util;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
 import net.durchholz.beacon.math.*;
+import net.durchholz.beacon.render.opengl.shader.Program;
 import net.durchholz.beacon.render.opengl.shader.Shader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -246,7 +247,9 @@ public class Util {
         System.out.println("Tan: " + tangent + "BiTang: " + bitangent);
     }
 
-    public static void printShaderLayout(int id) {
+    public static void printInterface(Program program) {
+        int id = program.id();
+
         System.out.println("- Attributes -");
         int attributes = glGetProgramInterfacei(id, GL_PROGRAM_INPUT, GL_ACTIVE_RESOURCES);
         for (int i = 0; i < attributes; ++i) {

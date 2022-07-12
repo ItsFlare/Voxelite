@@ -1,6 +1,6 @@
 #version 410
 
-#include "include\util.glsl"
+#include "include\compression.glsl"
 #include "include\ao.glsl"
 
 in ivec2 tex;

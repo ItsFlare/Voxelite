@@ -1,4 +1,4 @@
-#include "include\util.glsl"
+#include "include\ss.glsl"
 
 #ifndef DEFERRED
     #include "include\deferred.glsl"

@@ -1,5 +1,5 @@
 #version 400 core
-#include "include\util.glsl"
+#include "include\compression.glsl"
 #include "include\ao.glsl"
 
 layout(points) in;
