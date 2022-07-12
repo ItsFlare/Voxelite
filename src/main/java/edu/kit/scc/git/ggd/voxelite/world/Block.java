@@ -34,6 +34,10 @@ public enum Block {
     COBBLESTONE(Builder::texture),
     OAK_LOG(builder -> builder.texture("log_oak").texture("log_oak_top", Direction.POS_Y, Direction.NEG_Y)),
     OAK_LEAVES(builder -> builder.texture("leaves_big_oak").cutout()),
+
+    ACACIA_LOG(builder -> builder.texture("log_acacia").texture("log_acacia_top", Direction.POS_Y, Direction.NEG_Y)),
+
+    BIRCH_LOG(builder -> builder.texture("log_birch").texture("log_birch_top", Direction.POS_Y, Direction.NEG_Y)),
     GRASS(builder -> builder.texture("grass_side").texture("dirt", Direction.NEG_Y).texture("grass_top", Direction.POS_Y)),
     WATER(builder -> builder.texture("water").transparent()),
     TNT(builder -> builder.texture("tnt_side").texture("tnt_bottom", Direction.NEG_Y).texture("tnt_top", Direction.POS_Y)),
@@ -41,6 +45,7 @@ public enum Block {
     RED_GLASS(builder -> builder.texture("glass_red").transparent().filter(new Vec3f(1, 0, 0))),
     CYAN_GLASS(builder -> builder.texture("glass_cyan").transparent().filter(new Vec3f(0, 1, 1))),
     WHITE_GLASS(builder -> builder.texture("glass_white").transparent()),
+
     GLOWSTONE(builder -> builder.texture().light(new Vec3f(1, 0, 0), 31));
 
     public Vec3f light, filter;
