@@ -2,10 +2,13 @@ package edu.kit.scc.git.ggd.voxelite.texture;
 
 import edu.kit.scc.git.ggd.voxelite.util.Util;
 import net.durchholz.beacon.math.Vec2i;
+import net.durchholz.beacon.math.Vec3f;
+import net.durchholz.beacon.math.Vec3i;
 import net.durchholz.beacon.render.opengl.textures.ArrayTexture2D;
 import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.util.Image;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -34,7 +37,8 @@ public class TextureAtlas implements GLTexture {
 
         arrayTexture.use(() -> {
             arrayTexture.magFilter(MagFilter.NEAREST);
-            arrayTexture.minFilter(MinFilter.LINEAR);
+            arrayTexture.minFilter(MinFilter.NEAREST_MIPMAP_LINEAR);
+            arrayTexture.minLOD(0);
 
             int spriteSize = 0;
 
@@ -62,7 +66,8 @@ public class TextureAtlas implements GLTexture {
                 }
 
                 final int maxLevel = log2(spriteSize);
-
+                arrayTexture.maxLOD(maxLevel);
+                arrayTexture.maxLevel(maxLevel);
 
                 for (int level = 0; level <= maxLevel; level++) {
                     int targetSize = spriteSize >> level;
@@ -117,10 +122,24 @@ public class TextureAtlas implements GLTexture {
     }
 
     private static Image resizeImage(Image originalImage, int targetWidth, int targetHeight, boolean normalize) throws IOException {
-        //TODO Normalize
         java.awt.Image resultingImage = originalImage.image().getScaledInstance(targetWidth, targetHeight, java.awt.Image.SCALE_AREA_AVERAGING);
         BufferedImage bi = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
         bi.getGraphics().drawImage(resultingImage, 0, 0, null);
+
+        if(normalize) {
+            for (int x = 0; x < bi.getWidth(); x++) {
+                for (int y = 0; y < bi.getHeight(); y++) {
+                    final Color color = new Color(bi.getRGB(x, y));
+                    final Vec3f rgb = new Vec3f(color.getRed(), color.getGreen(), color.getBlue());
+                    System.out.println(rgb.magnitude());
+                    Vec3i c = new Vec3i(rgb.normalized().scale(255));
+                    System.out.println(c.magnitude());
+                    bi.setRGB(x, y, new Color(c.x(), c.y(), c.z()).getRGB());
+                }
+            }
+            bi.flush();
+        }
+
         return new Image(bi);
     }
 
