@@ -34,7 +34,7 @@ public class World implements ChunkDomain {
 
     public World(NaturalWorldGenerator generator) {
         this.generator = generator;
-        this.chunkLoader = new AsyncChunkLoader<>(generator, loadQueue, 128, 1);
+        this.chunkLoader = new AsyncChunkLoader<>(generator, loadQueue, 128, ForkJoinPool.getCommonPoolParallelism() / 2 + 1);
         this.chunkLoader.start();
     }
 
