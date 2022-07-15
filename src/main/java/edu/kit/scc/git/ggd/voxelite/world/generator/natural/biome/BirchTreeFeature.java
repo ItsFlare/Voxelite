@@ -8,26 +8,40 @@ public class BirchTreeFeature implements TerrainFeature {
 
     @Override
     public boolean place(Voxel voxel) {
-        int maxHeight = 12;
-        int minHeight = 7;
+        int maxHeight = 17;
+        int minHeight = 12;
         int height = (int) Math.floor(Math.random() * (maxHeight - minHeight + 1) + minHeight);
         Voxel relative;
+        float randThreshhold = 0.5f;
 
         for (int i = 0; i < height; i++) {
             relative = voxel.getRelative(new Vec3i(0, i, 0));
             if(relative != null) relative.setBlock(Block.BIRCH_LOG);
         }
 
-        for(int layer = -2; layer <= 2; layer++) {
-            for (int x = -3; x <= 3; x++) {
-                for (int z = -3; z <= 3; z++) {
+        for (int layer = 3; layer > 0; layer--) {
+            for (int x = -layer; x <= layer; x++) {
+                for (int z = -layer; z <= layer; z++) {
                     if(!(x == 0 && z == 0)) {
-                        if (!((x == 0 || z == 0) && Math.abs(layer) == 2)) {
-                            relative = voxel.getRelative(new Vec3i(x < 0 ? x + Math.abs(layer) : x - Math.abs(layer), height - layer + 2, z < 0 ? z + Math.abs(layer) : z - Math.abs(layer)));
-                            if(relative != null) relative.setBlock(Block.OAK_LEAVES);
+                        int start = 3;
+                        if (layer == 3) {
+                            relative = voxel.getRelative(new Vec3i(x, height - start, z));
+                            if ((Math.abs(x) + Math.abs(z) == 2 * layer) && Math.random() > randThreshhold) {
+                                continue;
+                            }
+                            if(relative != null && relative.getBlock() != Block.BIRCH_LOG) relative.setBlock(Block.OAK_LEAVES);
+                        } else {
+                            int offset = 3 - layer;
+
+                            if ((Math.abs(x) + Math.abs(z) == 2 * layer) && Math.random() > randThreshhold) {
+                                continue;
+                            }
+                            relative = voxel.getRelative(new Vec3i(x, height - start + offset, z));
+                            if(relative != null && relative.getBlock() != Block.BIRCH_LOG) relative.setBlock(Block.OAK_LEAVES);
+                            relative = voxel.getRelative(new Vec3i(x, height - start - offset, z));
+                            if(relative != null && relative.getBlock() != Block.BIRCH_LOG) relative.setBlock(Block.OAK_LEAVES);
                         }
                     }
-
                 }
             }
         }

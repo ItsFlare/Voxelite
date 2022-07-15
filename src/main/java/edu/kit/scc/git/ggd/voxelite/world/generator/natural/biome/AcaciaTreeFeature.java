@@ -10,6 +10,7 @@ public class AcaciaTreeFeature implements TerrainFeature {
         int maxHeight = 16;
         int minHeight = 12;
         int height = (int) Math.floor(Math.random() * (maxHeight - minHeight + 1) + minHeight);
+        float randThreshold = 0.5f;
         Voxel relative;
 
 
@@ -40,11 +41,15 @@ public class AcaciaTreeFeature implements TerrainFeature {
             }
         }
         int layerStart = height - 4;
-        for (int layer = 0; layer < 3; layer++) {
-            for (int x = -3; x <= 3; x++) {
-                for (int z = -3; z <= 3; z++) {
+        for (int layer = 3; layer > 0; layer--) {
+            for (int x = -layer; x <= layer; x++) {
+                for (int z = -layer; z <= layer; z++) {
                     if(!(x == 0 && z == 0)) {
-                        relative = voxel.getRelative(new Vec3i(x < 0 ? x + layer : x - layer, layerStart - layer, z < 0 ? z + layer : z - layer));
+                        int offset = (3 - layer);
+                        relative = voxel.getRelative(new Vec3i(x, layerStart - offset, z));
+                        if (Math.abs(x) + Math.abs(z) == 2 * layer && Math.random() > randThreshold) {
+                            continue;
+                        }
                         if(relative != null) relative.setBlock(Block.OAK_LEAVES);
                     }
                 }

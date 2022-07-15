@@ -8,9 +8,10 @@ public class OakTreeFeature implements TerrainFeature {
     @Override
     public boolean place(Voxel voxel) {
         int height = 6;
+        Voxel relative;
 
         for (int i = 0; i < height; i++) {
-            final Voxel relative = voxel.getRelative(new Vec3i(0, i, 0));
+            relative = voxel.getRelative(new Vec3i(0, i, 0)); //TODO nur log checken und nicht volumen
             if(relative != null) relative.setBlock(Block.OAK_LOG);
         }
 
@@ -18,7 +19,7 @@ public class OakTreeFeature implements TerrainFeature {
             for (int z = -2; z <= 2; z++) {
                 if(!(x == 0 && z == 0) && Math.abs(z) + Math.abs(x) != 4) {
                     for (int y = 0; y < 2; y++) {
-                        final Voxel relative = voxel.getRelative(new Vec3i(x, height - 2 - y, z));
+                        relative = voxel.getRelative(new Vec3i(x, height - 2 - y, z));
                         if(relative != null) relative.setBlock(Block.OAK_LEAVES);
                     }
                 }
@@ -28,7 +29,7 @@ public class OakTreeFeature implements TerrainFeature {
         for (int x = -1; x <= 1; x++) {
             for (int z = -1; z <= 1; z++) {
                 if(Math.abs(z) + Math.abs(x) != 2) {
-                    final Voxel relative = voxel.getRelative(new Vec3i(x, height - 1, z));
+                    relative = voxel.getRelative(new Vec3i(x, height - 1, z));
                     if(relative != null) relative.setBlock(Block.OAK_LEAVES);
                 }
             }
