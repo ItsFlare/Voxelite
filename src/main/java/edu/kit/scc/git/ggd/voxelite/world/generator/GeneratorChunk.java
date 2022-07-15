@@ -12,12 +12,13 @@ import java.util.concurrent.locks.ReentrantLock;
 public class GeneratorChunk<G extends MultiPassGenerator<G>> implements Chunk {
     public static final Logger LOGGER = LoggerFactory.getLogger(GeneratorChunk.class);
 
-    private final G generator;
-    private final ChunkDomain domain;
+    private final G                   generator;
+    private final ChunkDomain         domain;
     private final Vec3i               position;
-    private final ChunkStorage<Block>                            blockStorage = new NaiveBlockStorage();
-    private final Lock                                           lock         = new ReentrantLock();
-    private       GeneratorPass<G>    pass;
+    private final ChunkStorage<Block> blockStorage = new NaiveBlockStorage();
+    private final Lock                lock         = new ReentrantLock();
+
+    private volatile GeneratorPass<G> pass;
 
     public GeneratorChunk(G generator, ChunkDomain domain, Vec3i position) {
         this.pass = generator.getFirstPass();
