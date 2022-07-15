@@ -219,7 +219,8 @@ public class NaturalWorldGenerator implements MultiPassGenerator<NaturalWorldGen
 
     public enum Pass implements GeneratorPass<NaturalWorldGenerator> {
         TERRAIN(NaturalWorldGenerator::getTerrainPass),
-        SURFACE(NaturalWorldGenerator::getSurfacePass);
+        SURFACE(NaturalWorldGenerator::getSurfacePass),
+        DUMMY(generator -> chunk -> {}); //Ensures chunk remains in generator world until neighbors are completed
 
         private final Function<NaturalWorldGenerator, GeneratorPassInstance<NaturalWorldGenerator>> pass;
 
