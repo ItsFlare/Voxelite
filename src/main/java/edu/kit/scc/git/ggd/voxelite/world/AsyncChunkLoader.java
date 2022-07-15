@@ -69,20 +69,23 @@ public class AsyncChunkLoader<G extends MultiPassGenerator<G>> extends ParallelR
 
     private boolean isReady(GeneratorChunk<G> chunk) {
         final var pass = chunk.getPass();
-        if(pass == null) return false;
-        if(pass.isFirst()) return true;
+        if (pass == null) return false;
+        if (pass.isFirst()) return true;
 
         //Check if all neighbors are in parent pass
-        for (Direction direction : Direction.values()) {
-            Vec3i position = chunk.getPosition().add(direction.getAxis());
-            if(Main.INSTANCE.getWorld().getChunk(position) != null) continue;
+        for (int x = -1; x <= 1; x++) {
+            for (int y = -1; y <= 1; y++) {
+                for (int z = -1; z <= 1; z++) {
+                    final Vec3i position = chunk.getPosition().add(new Vec3i(x, y, z));
+                    if (Main.INSTANCE.getWorld().getChunk(position) != null) continue;
 
-            var neighbor = getChunk(position);
-            if(neighbor == null) return false;
-            final GeneratorPass<G> neighborPass = neighbor.getPass();
-            if(neighborPass != null && neighborPass.ordinal() < pass.ordinal()) return false;
+                    final var neighbor = getChunk(position);
+                    if (neighbor == null) return false;
+                    final GeneratorPass<G> neighborPass = neighbor.getPass();
+                    if (neighborPass != null && neighborPass.ordinal() < pass.ordinal()) return false;
+                }
+            }
         }
-
         return true;
     }
 }
