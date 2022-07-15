@@ -1,25 +1,27 @@
 package edu.kit.scc.git.ggd.voxelite.world;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
-import edu.kit.scc.git.ggd.voxelite.util.Direction;
 import edu.kit.scc.git.ggd.voxelite.util.ParallelRunner;
 import edu.kit.scc.git.ggd.voxelite.world.generator.GeneratorChunk;
 import edu.kit.scc.git.ggd.voxelite.world.generator.MultiPassGenerator;
 import edu.kit.scc.git.ggd.voxelite.world.generator.natural.pass.GeneratorPass;
+import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
 public class AsyncChunkLoader<G extends MultiPassGenerator<G>> extends ParallelRunner implements ChunkDomain {
 
-    private final G   generator;
-    private final BlockingQueue<Vec3i> pending;
-    private final BlockingQueue<WorldChunk>  finished;
-    private final Map<Vec3i, GeneratorChunk<G>> chunks = new ConcurrentHashMap<>(128);
+    private final G                             generator;
+    private final BlockingQueue<Vec3i>          pending;
+    private final BlockingQueue<WorldChunk>     finished;
+    private final Map<Vec3i, GeneratorChunk<G>> chunks = Collections.synchronizedMap(new HashMap<>());
 
     public AsyncChunkLoader(G generator, BlockingQueue<Vec3i> pending, int bufferLimit, int parallelism) {
         super("AsyncChunkLoader", parallelism);
@@ -42,15 +44,27 @@ public class AsyncChunkLoader<G extends MultiPassGenerator<G>> extends ParallelR
             chunks.putIfAbsent(position, chunk);
         }
 
-        var sorted = chunks.values().stream().toList(); //TODO Sort
+        Vec3f cameraPosition = Main.INSTANCE.getRenderer().getCamera().getPosition();
+        Vec3f cameraDirection = Main.INSTANCE.getRenderer().getCamera().getDirection();
+        Vec3i cameraChunkPos = Chunk.toChunkPosition(cameraPosition);
+
+        var sorted = chunks
+                .values()
+                .stream()
+                .sorted(
+                        Comparator.<GeneratorChunk<G>>comparingInt(c -> ringDistance(c.getPosition(), cameraChunkPos))
+                                .thenComparingDouble(chunk -> chunk.getCenter().subtract(cameraPosition).normalized().dot(cameraDirection))
+                )
+                .toList();
 
         for (GeneratorChunk<G> chunk : sorted) {
-            if(chunk.getLock().tryLock()) {
+            if (chunk.getLock().tryLock()) {
                 try {
-                    if(isReady(chunk)) chunk.generate();
+                    if (isReady(chunk)) chunk.generate();
 
-                    if(chunk.getPass() == null) {
-                        if(finished.offer(new WorldChunk(chunk))) chunks.remove(chunk.getPosition());
+                    if (chunk.getPass() == null) {
+                        //TODO Assert neighbors are not dependent anymore
+                        if (finished.offer(new WorldChunk(chunk))) chunks.remove(chunk.getPosition());
                     }
                 } finally {
                     chunk.getLock().unlock();
@@ -87,5 +101,9 @@ public class AsyncChunkLoader<G extends MultiPassGenerator<G>> extends ParallelR
             }
         }
         return true;
+    }
+
+    public static int ringDistance(Vec3i a, Vec3i b) {
+        return a.subtract(b).abs().max();
     }
 }
