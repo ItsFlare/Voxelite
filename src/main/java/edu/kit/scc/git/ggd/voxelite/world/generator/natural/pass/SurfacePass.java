@@ -10,12 +10,14 @@ import edu.kit.scc.git.ggd.voxelite.world.generator.natural.NaturalWorldGenerato
 import edu.kit.scc.git.ggd.voxelite.world.generator.natural.biome.Biome;
 import edu.kit.scc.git.ggd.voxelite.world.generator.noise.Noise;
 import edu.kit.scc.git.ggd.voxelite.world.generator.noise.SimplexNoise;
+import edu.kit.scc.git.ggd.voxelite.world.generator.noise.VoronoiNoise;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 
 public class SurfacePass implements GeneratorPassInstance<NaturalWorldGenerator> {
     private static final Noise FEATURE_NOISE     = new SimplexNoise();
+    private static final VoronoiNoise voroNoise = new VoronoiNoise();
     private static final float FEATURE_THRESHOLD = 0.9f;
 
     private final NaturalWorldGenerator generator;
@@ -54,122 +56,26 @@ public class SurfacePass implements GeneratorPassInstance<NaturalWorldGenerator>
                         if (lastAir - y == 1) {
                             biome.getSurfaceLayer().place(voxel);
 
-                            final float featureNoiseSample = FEATURE_NOISE.sample(chunk.getWorldPosition().xz().add(new Vec2f(x, z)).scale(biome.getFeatureDensity() * 10));
-                            boolean placeFeature = featureNoiseSample > FEATURE_THRESHOLD;
-                            if (placeFeature) {
+                            //final float featureNoiseSample = FEATURE_NOISE.sample(chunk.getWorldPosition().xz().add(new Vec2f(x, z)).scale(biome.getFeatureDensity() * 10));
+                            //boolean placeFeature = featureNoiseSample > FEATURE_THRESHOLD;
+                            Vec2f pos = new Vec2f(voxel.position().x(), voxel.position().z());
+
+                            final float featureNoiseSample = voroNoise.sample(pos);
+
+
+                            if (featureNoiseSample == 1) {
                                 var features = biome.getFeatures();
                                 if (features.length != 0) {
-                                    var feature = features[(int) (((featureNoiseSample - FEATURE_THRESHOLD) / (1f - FEATURE_THRESHOLD)) * (features.length - 1))];
+                                    //var feature = features[(int) (((featureNoiseSample - FEATURE_THRESHOLD) / (1f - FEATURE_THRESHOLD)) * (features.length - 1))];
+                                    var feature = features[0];
                                     final Voxel neighbor = voxel.getNeighbor(Direction.POS_Y);
                                     if(neighbor != null) feature.place(neighbor);
                                 }
                             }
-                            /*Voxel neighbor = voxel.getNeighbor(Direction.POS_Y);
-                            if(neighbor != null) {
-                                float nois = new SimplexNoise().sample( voxel.getNeighbor(Direction.POS_Y).position());
-                                if (nois > 0.80) {
-                                    placeIgloo(voxel.getNeighbor(Direction.POS_Y));
-                                }
-                            }*/
                         }
                     }
                 }
             }
         }
-    }
-    private void placeIgloo(Voxel voxel) {
-        Voxel relative;
-
-        for (int x = -3; x <= 3; x++) {
-            for (int z = -3; z <= 3; z++) {
-                for (int y = 0; y < 7; y++) {
-                    relative = voxel.getRelative(new Vec3i(x, y, z));
-                    if (relative == null) {
-                        return;
-                    }
-                }
-            }
-        }
-        for (int x = -3; x <= 3; x++) {
-            for (int z = -3; z <= 3; z++) {
-                relative = voxel.getRelative(new Vec3i(x, 0, z));
-                if(relative != null) {
-                    relative.setBlock(Block.COBBLESTONE); //TODO replace with snow
-                }
-
-                for (int y = 1; y <= 3; y++) {
-                    if (Math.abs(x) == 3 - y) {
-                        if (y == 1) {
-                            voxel.getRelative(new Vec3i(x, y, z)).setBlock(Block.COBBLESTONE);
-                        }
-                        if (z == -3) {
-                            int num = y - 1;
-                            while(num >= 0) {
-                                voxel.getRelative(new Vec3i(x,y - num,z)).setBlock(Block.COBBLESTONE);
-                                num--;
-                            }
-                        }
-                        voxel.getRelative(new Vec3i(x, y + 1, z)).setBlock(Block.COBBLESTONE);
-                    }
-                }
-            }
-        }
-    }
-    private boolean place(Voxel voxel, Biome biome) {
-        int size = 5;
-
-        Voxel relative;
-
-
-
-        for (int x = -2; x <= 2; x++) {
-            for (int z = -2; z <= 2; z++) {
-                for (int y = 0; y < 7; y++) {
-                    relative = voxel.getRelative(new Vec3i(x, y, z));
-                    if (relative == null) {
-                        return false;
-                    }
-                }
-            }
-        }
-
-        for (int x = -2; x <= 2; x++) {
-            for(int z = -2; z <= 2; z++) {
-
-                relative = voxel.getRelative(new Vec3i(x, 0, z));
-                if(relative != null) relative.setBlock(Block.COBBLESTONE);
-
-                if(Math.abs(x) == 2 || Math.abs(z) == 2) {
-                    int counter = 0;
-                    while (counter < size) {
-                        relative = voxel.getRelative(new Vec3i(x, counter, z));
-                        if(relative != null) {
-                            if(Math.abs(x) + Math.abs(z) == 4) {
-                                relative.setBlock(Block.OAK_LOG);
-                            } else {
-                                relative.setBlock(Block.COBBLESTONE);
-                            }
-                        }
-                        counter++;
-                    }
-                    counter = -1;
-                    relative = voxel.getRelative(new Vec3i(x, counter, z));
-                    while (relative.getBlock() == Block.AIR) {
-                        relative.setBlock(Block.COBBLESTONE);
-                        counter--;
-                        relative = voxel.getRelative(new Vec3i(x, counter, z));
-                    }
-                }
-            }
-        }
-        for (int y = 0; y <= 2; y++) {
-            for (int x = -2 + y; x <= 2 - y; x++) {
-                for (int z = -2 + y; z <= 2 - y; z++) {
-                    relative = voxel.getRelative(new Vec3i(x, size + y, z));
-                    if(relative != null) relative.setBlock(Block.COBBLESTONE);
-                }
-            }
-        }
-        return true;
     }
 }
