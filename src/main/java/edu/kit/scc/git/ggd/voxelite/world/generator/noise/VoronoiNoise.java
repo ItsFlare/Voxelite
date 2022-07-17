@@ -14,7 +14,6 @@ public class VoronoiNoise implements Noise {
             for (int y = 0; y < tileSize; y++) {
                 randNumArray[x][y] = new Vec2f((float) Math.random(), (float) Math.random());
             }
-            //System.out.println("index:" + "[" + (i / tileSize) + ", " + i % tileSize + "] " + randNumArray[i / tileSize][i % tileSize]);
         }
     }
 
@@ -27,7 +26,7 @@ public class VoronoiNoise implements Noise {
         int gridPosX = position.x() < 0 ? (int) -((position.x() / blockWidth) % tileSize) : (int) ((position.x() / blockWidth) % tileSize);
         int gridPosY = position.y() < 0 ? (int) -((position.y() / blockWidth) % tileSize) : (int) ((position.y() / blockWidth) % tileSize);
 
-        //calculate the starting in block of the grid
+        //calculate the starting position of the block in the grid
         float blockPosX = position.x() < 0 ? -((position.x() % gridWidth) % blockWidth) : ((position.x() % gridWidth) % blockWidth);
         float blockPosY = position.y() < 0 ? -((position.y() % gridWidth) % blockWidth) : ((position.y() % gridWidth) % blockWidth);
 
@@ -42,20 +41,9 @@ public class VoronoiNoise implements Noise {
 
         if (point.x() >= lowerXLimit && point.x() <= upperXLimit) {
             if (point.y() >= lowerYLimit && point.y() <= upperYLimit) {
-                //System.out.println("1:");
-                System.out.println("randomNum:" + randomNum);
-                System.out.println("input:" + position);
-                System.out.println(point);
-                System.out.println("lowerXLimit: " + lowerXLimit + " upperXLimit: " + upperXLimit);
-                System.out.println("lowerYLimit: " + lowerYLimit + " upperYLimit: " + upperYLimit);
                 return 1;
             }
         }
-        /*System.out.println("0:");
-        System.out.println("input:" + position);
-        System.out.println(point);
-        System.out.println("lowerXLimit: " + lowerXLimit + " upperXLimit: " + upperXLimit);
-        System.out.println("lowerYLimit: " + lowerYLimit + " upperYLimit: " + upperYLimit);*/
         return 0;
     }
 
