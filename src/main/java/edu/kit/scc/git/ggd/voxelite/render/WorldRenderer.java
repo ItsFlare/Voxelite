@@ -60,7 +60,7 @@ public class WorldRenderer {
     public Vec4f             lightColor      = new Vec4f(1);
     public float             ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f, debugRoughness;
     public int phongExponent = 32, uploadRate = 5, sortRate = 5;
-    public boolean directionCull = true, backfaceCull = true, dotCull = true, frustumCull = true, caveCull = true, occlusionCull = false, shadows = true, shadowTransform = false, transparentSort = true, captureFrustum = false, debugFrustum = false, normalMap = true, fog = true, ao = true, reflections = true, coneTracing = false;
+    public boolean directionCull = true, backfaceCull = true, dotCull = true, frustumCull = true, caveCull = true, occlusionCull = false, shadows = true, shadowTransform = false, transparentSort = true, captureFrustum = false, debugFrustum = false, normalMap = true, fog = true, ao = true, aliasingOn = true ,reflections = true, coneTracing = false;
     public int emptyCount, frustumCullCount, dotCullCount, caveCullCount, occlusionCullCount, totalCullCount;
     public int occlusionCullThreshold;
 
@@ -287,7 +287,7 @@ public class WorldRenderer {
             });
         }
 
-        postRenderer.render(outputTexture);
+        postRenderer.render(outputTexture, aliasingOn ? 1 : 0);
 
         //quadRenderer.render(Matrix4f.identity(), gBuffer.normal(), new Vec2f(0), new Vec2f(1));
     }

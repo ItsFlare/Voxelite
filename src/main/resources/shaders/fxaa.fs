@@ -1,6 +1,7 @@
 #version 430
 
 uniform sampler2D composite;
+uniform bool aliasingOn;
 
 out vec4 fragColor;
 
@@ -19,6 +20,11 @@ float rgb2luma(vec3 rgb){
 
 void main() {
     vec3 colorCenter = texture(composite,pixel).rgb;
+
+    if (!aliasingOn) {
+        fragColor = vec4(colorCenter, 1);
+        return;
+    }
 
     // Luma at the current fragment
     float lumaCenter = rgb2luma(colorCenter);
