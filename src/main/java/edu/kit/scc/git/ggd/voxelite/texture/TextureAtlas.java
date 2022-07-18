@@ -131,9 +131,7 @@ public class TextureAtlas implements GLTexture {
                 for (int y = 0; y < bi.getHeight(); y++) {
                     final Color color = new Color(bi.getRGB(x, y));
                     final Vec3f rgb = new Vec3f(color.getRed(), color.getGreen(), color.getBlue());
-                    System.out.println(rgb.magnitude());
                     Vec3i c = new Vec3i(rgb.normalized().scale(255));
-                    System.out.println(c.magnitude());
                     bi.setRGB(x, y, new Color(c.x(), c.y(), c.z()).getRGB());
                 }
             }
