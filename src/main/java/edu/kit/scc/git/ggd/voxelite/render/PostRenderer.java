@@ -14,7 +14,7 @@ public class PostRenderer extends ScreenRenderer {
     public void render(Texture2D outputTexture, int aliasing) {
         OpenGL.use(OpenGL.STATE, PROGRAM, va, () -> {
             PROGRAM.composite.bind(0, outputTexture);
-            PROGRAM.aliasingOn.set(aliasing);
+            PROGRAM.antiAliasingOn.set(aliasing);
 
             drawScreen();
         });

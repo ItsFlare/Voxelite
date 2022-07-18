@@ -21,7 +21,7 @@ float rgb2luma(vec3 rgb){
 void main() {
     vec3 colorCenter = texture(composite,pixel).rgb;
 
-    if (!aliasingOn) {
+    if (!antiAliasingOn) {
         fragColor = vec4(colorCenter, 1);
         return;
     }
