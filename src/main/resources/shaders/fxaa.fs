@@ -1,7 +1,7 @@
 #version 430
 
 uniform sampler2D composite;
-uniform bool aliasingOn;
+uniform bool antiAliasingOn;
 
 out vec4 fragColor;
 

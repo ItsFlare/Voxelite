@@ -6,7 +6,7 @@ import net.durchholz.beacon.render.opengl.shader.Uniform;
 public class PostProgram extends ScreenProgram {
     public final Sampler composite   = sampler("composite");
 
-    public final Uniform<Integer> aliasingOn = uniInteger("aliasingOn");
+    public final Uniform<Integer> antiAliasingOn = uniInteger("antiAliasingOn");
 
     public PostProgram() {
         super(ShaderLoader.get("screen.vs"), ShaderLoader.get("fxaa.fs"));
