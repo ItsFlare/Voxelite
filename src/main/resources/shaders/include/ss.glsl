@@ -1,5 +1,3 @@
-#include "include\math.glsl"
-
 #ifndef DEFERRED
 #include "include\deferred.glsl"
 #endif
@@ -51,6 +49,7 @@ vec2 toPixelSpace(vec3 viewSpace) {
     return toPixelSpace(toScreenSpace(viewSpace));
 }
 
+//const float MAX_FLOAT = intBitsToFloat(2139095039);
 //bool raymarch(vec2 origin, vec2 target, vec2 viewport) {
 //    ivec2 pixel = ivec2(gl_FragCoord.xy);
 //
@@ -66,8 +65,8 @@ vec2 toPixelSpace(vec3 viewSpace) {
 //    float tDeltaX = signX == 0 ? MAX_FLOAT : (signX / lenX);
 //    float tDeltaY = signY == 0 ? MAX_FLOAT : (signY / lenY);
 //
-//    float tMaxX = tDeltaX * (signX > 0 ? 1 - frac(origin.x) : frac(origin.x));
-//    float tMaxY = tDeltaY * (signY > 0 ? 1 - frac(origin.y) : frac(origin.y));
+//    float tMaxX = tDeltaX * (signX > 0 ? 1 - fract(origin.x) : fract(origin.x));
+//    float tMaxY = tDeltaY * (signY > 0 ? 1 - fract(origin.y) : fract(origin.y));
 //
 //    int x = int(floor(origin.x));
 //    int y = int(floor(origin.y));
