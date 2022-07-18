@@ -11,6 +11,10 @@ import edu.kit.scc.git.ggd.voxelite.world.event.ChunkUnloadEvent;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.event.Listener;
 import net.durchholz.beacon.math.*;
+import net.durchholz.beacon.render.opengl.OpenGL;
+import net.durchholz.beacon.render.opengl.buffers.FBO;
+import net.durchholz.beacon.render.opengl.textures.GLTexture;
+import net.durchholz.beacon.render.opengl.textures.Texture2D;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -40,7 +44,14 @@ public class WorldRenderer {
     private final OcclusionRenderer          occlusionRenderer = new OcclusionRenderer();
     private final LineRenderer               lineRenderer      = new LineRenderer();
     private final CompositeRenderer          compositeRenderer = new CompositeRenderer();
+
+    private final PostRenderer               postRenderer      = new PostRenderer();
+
     private final QuadRenderer quadRenderer = new QuadRenderer();
+
+    private final FBO outputFrameBuffer = new FBO();
+
+    private final Texture2D outputTexture = new Texture2D();
 
 
     private RenderChunk[] lastSorted = new RenderChunk[0];
@@ -65,6 +76,16 @@ public class WorldRenderer {
         } catch (IOException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
+
+        outputTexture.use(() -> {
+            outputTexture.magFilter(GLTexture.MagFilter.NEAREST);
+            outputTexture.minFilter(GLTexture.MinFilter.NEAREST);
+            outputTexture.allocate(1, 1, GLTexture.SizedFormat.RGBA_8);
+        });
+
+        OpenGL.use(outputFrameBuffer, () -> {
+            outputFrameBuffer.color(0, outputTexture,0);
+        });
 
         asyncChunkBuilder.start();
     }
@@ -238,13 +259,13 @@ public class WorldRenderer {
         gBuffer.opaque().use(() -> gBuffer.opaque().generateMipmap());
 
         //Draw composite
-        compositeRenderer.render(gBuffer);
+        compositeRenderer.render(gBuffer, outputFrameBuffer);
 
         //Draw transparent
         {
 
             final TransparentChunkProgram program = (TransparentChunkProgram) RenderType.TRANSPARENT.getProgram(); //TODO Remove cast
-            use(STATE, program, () -> {
+            use(STATE, program, outputFrameBuffer, () -> {
                 resetState();
                 RenderType.TRANSPARENT.setPipelineState();
 
@@ -265,6 +286,8 @@ public class WorldRenderer {
                 }
             });
         }
+
+        postRenderer.render(outputTexture);
 
         //quadRenderer.render(Matrix4f.identity(), gBuffer.normal(), new Vec2f(0), new Vec2f(1));
     }
@@ -507,6 +530,10 @@ public class WorldRenderer {
 
     public int getUploadQueueSize() {
         return uploadQueue.size();
+    }
+
+    public Texture2D getOutputTexture() {
+        return outputTexture;
     }
 
     public ShadowMapRenderer getShadowMapRenderer() {

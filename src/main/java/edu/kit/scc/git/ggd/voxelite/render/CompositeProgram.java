@@ -10,31 +10,21 @@ import net.durchholz.beacon.render.opengl.buffers.VertexLayout;
 import net.durchholz.beacon.render.opengl.shader.Program;
 import net.durchholz.beacon.render.opengl.shader.Uniform;
 
-public class CompositeProgram extends Program {
-
-    public final Attribute<Vec2f> pos = attribute("pos", OpenGL.Type.FLOAT, 2);
+public class CompositeProgram extends ScreenProgram {
 
     public final Uniform<Float> debugRoughness      = uniFloat("debugRoughness");
     public final Sampler        opaque      = sampler("opaque");
     public final Sampler        normal      = sampler("normal");
     public final Sampler        mer         = sampler("mer");
     public final Sampler        depth       = sampler("depth");
+
     public final Uniform<Matrix4f> projection = uniMatrix4f("projection", true);
     public final Uniform<Integer> reflections = uniInteger("reflections");
     public final Uniform<Integer> coneTracing = uniInteger("coneTracing");
 //    public final Sampler shadowMap = sampler("shadowMap");
 
     public CompositeProgram() {
-        super(ShaderLoader.getSuite("composite"));
+        super(ShaderLoader.get("screen.vs"), ShaderLoader.get("composite.fs"));
     }
 
-    public record QuadVertex(Vec2f pos) implements Vertex {
-        public static final VertexLayout<QuadVertex> LAYOUT   = new VertexLayout<>(QuadVertex.class);
-        public static final VertexAttribute<Vec2f>   POSITION = LAYOUT.vec2f(false);
-
-        @Override
-        public VertexLayout<QuadVertex> getLayout() {
-            return LAYOUT;
-        }
-    }
 }
