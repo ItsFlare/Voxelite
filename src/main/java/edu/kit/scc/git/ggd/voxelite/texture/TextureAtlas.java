@@ -4,6 +4,7 @@ import edu.kit.scc.git.ggd.voxelite.util.Util;
 import net.durchholz.beacon.math.Vec2i;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
+import net.durchholz.beacon.math.Vec4f;
 import net.durchholz.beacon.render.opengl.textures.ArrayTexture2D;
 import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.util.Image;
@@ -73,6 +74,7 @@ public class TextureAtlas implements GLTexture {
                     int targetSize = spriteSize >> level;
                     int atlasPixelSize = atlasGridSize * targetSize;
                     arrayTexture.allocate(atlasPixelSize, atlasPixelSize, 3, GLTexture.SizedFormat.RGBA_8, level);
+                    arrayTexture.clear(level, BaseFormat.RGBA, new Vec4f(0));
 
                     for (int i = 0; i < spriteList.size(); i++) {
                         final int x = i % atlasGridSize, y = i / atlasGridSize;
