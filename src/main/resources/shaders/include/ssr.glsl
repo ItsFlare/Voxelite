@@ -1,9 +1,5 @@
 #include "include\ss.glsl"
 
-#ifndef DEFERRED
-    #include "include\deferred.glsl"
-#endif
-
 uniform float debugRoughness;
 uniform bool reflections;
 uniform bool coneTracing;

@@ -1,7 +1,3 @@
-#ifndef DEFERRED
-#include "include\deferred.glsl"
-#endif
-
 vec2 viewport = textureSize(opaque, 0);
 float aspectRatio = viewport.x / viewport.y;
 

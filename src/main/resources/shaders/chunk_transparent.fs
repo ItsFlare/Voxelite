@@ -15,15 +15,12 @@ uniform vec3 camera;
 
 uniform bool shadows;
 
+#include "include\deferred.glsl"
 #include "include\csm.glsl"
 #include "include\ssr.glsl"
 #include "include\fog.glsl"
 #include "include\light.glsl"
 #include "include\normal.glsl"
-
-#ifndef DEFERRED
-#include "include\deferred.glsl"
-#endif
 
 void main() {
 

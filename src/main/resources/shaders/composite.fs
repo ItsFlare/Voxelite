@@ -1,10 +1,7 @@
 #version 430
+#include "include\deferred.glsl"
 #include "include\ssr.glsl"
 #include "include\csm.glsl"
-
-#ifndef DEFERRED
-    #include "include\deferred.glsl"
-#endif
 
 out vec4 FragColor;
 
