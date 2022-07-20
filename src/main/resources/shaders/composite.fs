@@ -20,18 +20,18 @@ void main() {
 
     vec4 o = texture(opaque, pixel);
     o.a = 1;
+    FragColor = o;
 
-    vec3 n = texture(normal, pixel).xyz;
+    vec3 n = normalize(texture(normal, pixel).xyz);
 
     //No geometry (background)
     if (n == vec3(0)) {
-        FragColor = o;
         return;
     }
 
     if(reflections) {
         float roughness = texture(mer, pixel).b;
-        CalculateReflection(toViewSpace(pixel), n, roughness, o);
+        CalculateReflection(toViewSpace(pixel), n, roughness, FragColor);
     }
 
     vec2 viewPortCoord = gl_FragCoord.xy / viewport;
@@ -53,23 +53,5 @@ void main() {
         accumulator += ShadowCalculation(LightSpacePos, vec3(0, 1, 0), debugColor);
     }
 
-    FragColor = o;
-    FragColor = mix(FragColor, vec4(vec3(accumulator / iter), 1), 0.75);
-
-    //if(raycast(vec2(0) * viewport, vec2(1) * viewport, viewport)) FragColor = vec4(0, 1, 0, 1);
-    //if(raycast(vec2(0, 1) * viewport, vec2(1, 0) * viewport, viewport)) FragColor = vec4(0, 1, 0, 1);
-
-    //if(raycast(vec2(0, 0.5) * viewport, vec2(1000, viewport.y / 2), viewport)) FragColor = vec4(1, 1, 0, 1);
-    //if(raycast(vec2(0.5, 0) * viewport, vec2(0.5, 1) * viewport, viewport)) FragColor = vec4(1, 0, 1, 1);
-
-    //DDA line debug
-//    FragColor = mix(FragColor, vec4(SampleDepth(pixel) / 25), 0.99999);
-//    FragColor.a = 1;
-//    vec3 hit;
-//    bool b = raymarch(vec3(1, 0.5 * viewport.y, 0), vec3(1 * viewport.x, 0.5 * viewport.y, -25), 2, 10000, hit);
-//    if(b) {
-//        if(length(ivec2(hit.xy) - ivec2(gl_FragCoord.xy)) < 10) FragColor = vec4(1, 0, 0, 1);
-//    } else {
-//        FragColor = vec4(0);
-//    }
+    FragColor = mix(FragColor, vec4(vec3(accumulator / iter), 1), 0.01);
 }
