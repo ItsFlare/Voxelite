@@ -2,14 +2,11 @@ package edu.kit.scc.git.ggd.voxelite.texture;
 
 import edu.kit.scc.git.ggd.voxelite.util.Util;
 import net.durchholz.beacon.math.Vec2i;
-import net.durchholz.beacon.math.Vec3f;
-import net.durchholz.beacon.math.Vec3i;
 import net.durchholz.beacon.math.Vec4f;
 import net.durchholz.beacon.render.opengl.textures.ArrayTexture2D;
 import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.util.Image;
 
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -22,7 +19,11 @@ import java.util.Map;
 
 public class TextureAtlas implements GLTexture {
 
-    private final ArrayTexture2D     arrayTexture;
+    private static final Vec4f DEFAULT_MER = new Vec4f(0, 0, 1, 1);
+    private static final Vec4f DEFAULT_NORMAL = new Vec4f(0.5f, 0.5f, 1, 1);
+    private static final Vec4f DEFAULT_ALBEDO = new Vec4f(0);
+
+    private final ArrayTexture2D arrayTexture;
     private final Map<String, Vec2i> map = new HashMap<>();
     private final float              normalizedSpriteSize;
 
@@ -74,7 +75,9 @@ public class TextureAtlas implements GLTexture {
                     int targetSize = spriteSize >> level;
                     int atlasPixelSize = atlasGridSize * targetSize;
                     arrayTexture.allocate(atlasPixelSize, atlasPixelSize, 3, GLTexture.SizedFormat.RGBA_8, level);
-                    arrayTexture.clear(level, BaseFormat.RGBA, new Vec4f(0));
+                    arrayTexture.clear(level, BaseFormat.RGBA, DEFAULT_ALBEDO, atlasPixelSize, atlasPixelSize, 1, 0, 0, 0);
+                    arrayTexture.clear(level, BaseFormat.RGBA, DEFAULT_NORMAL, atlasPixelSize, atlasPixelSize, 1, 0, 0, 1);
+                    arrayTexture.clear(level, BaseFormat.RGBA, DEFAULT_MER, atlasPixelSize, atlasPixelSize, 1, 0, 0, 2);
 
                     for (int i = 0; i < spriteList.size(); i++) {
                         final int x = i % atlasGridSize, y = i / atlasGridSize;
@@ -87,9 +90,9 @@ public class TextureAtlas implements GLTexture {
                             normal = sprite.normal;
                             mer = sprite.mer;
                         } else {
-                            color = resizeImage(sprite.color, targetSize, targetSize, false);
-                            normal = sprite.normal != null ? resizeImage(sprite.normal, targetSize, targetSize, true) : null;
-                            mer = sprite.mer != null ? resizeImage(sprite.mer, targetSize, targetSize, false) : null;
+                            color = resizeImage(sprite.color, targetSize, targetSize);
+                            normal = sprite.normal != null ? resizeImage(sprite.normal, targetSize, targetSize) : null;
+                            mer = sprite.mer != null ? resizeImage(sprite.mer, targetSize, targetSize) : null;
                         }
 
                         final int posX = x * targetSize;
@@ -123,23 +126,10 @@ public class TextureAtlas implements GLTexture {
         return arrayTexture.type();
     }
 
-    private static Image resizeImage(Image originalImage, int targetWidth, int targetHeight, boolean normalize) throws IOException {
+    private static Image resizeImage(Image originalImage, int targetWidth, int targetHeight) throws IOException {
         java.awt.Image resultingImage = originalImage.image().getScaledInstance(targetWidth, targetHeight, java.awt.Image.SCALE_AREA_AVERAGING);
         BufferedImage bi = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
         bi.getGraphics().drawImage(resultingImage, 0, 0, null);
-
-        if(normalize) {
-            for (int x = 0; x < bi.getWidth(); x++) {
-                for (int y = 0; y < bi.getHeight(); y++) {
-                    final Color color = new Color(bi.getRGB(x, y));
-                    final Vec3f rgb = new Vec3f(color.getRed(), color.getGreen(), color.getBlue());
-                    Vec3i c = new Vec3i(rgb.normalized().scale(255));
-                    bi.setRGB(x, y, new Color(c.x(), c.y(), c.z()).getRGB());
-                }
-            }
-            bi.flush();
-        }
-
         return new Image(bi);
     }
 
