@@ -12,9 +12,6 @@ import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.event.Listener;
 import net.durchholz.beacon.math.*;
 import net.durchholz.beacon.render.opengl.OpenGL;
-import net.durchholz.beacon.render.opengl.buffers.FBO;
-import net.durchholz.beacon.render.opengl.textures.GLTexture;
-import net.durchholz.beacon.render.opengl.textures.Texture2D;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -49,11 +46,6 @@ public class WorldRenderer {
 
     private final QuadRenderer quadRenderer = new QuadRenderer();
 
-    private final FBO outputFrameBuffer = new FBO();
-
-    private final Texture2D outputTexture = new Texture2D();
-
-
     private RenderChunk[] lastSorted = new RenderChunk[0];
 
     public List<RenderChunk> renderList      = new ArrayList<>();
@@ -76,16 +68,6 @@ public class WorldRenderer {
         } catch (IOException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
-
-        outputTexture.use(() -> {
-            outputTexture.magFilter(GLTexture.MagFilter.NEAREST);
-            outputTexture.minFilter(GLTexture.MinFilter.NEAREST);
-            outputTexture.allocate(1, 1, GLTexture.SizedFormat.RGBA_8);
-        });
-
-        OpenGL.use(outputFrameBuffer, () -> {
-            outputFrameBuffer.color(0, outputTexture,0);
-        });
 
         asyncChunkBuilder.start();
     }
@@ -253,44 +235,44 @@ public class WorldRenderer {
                     lineRenderer.render(matrix, new Vec4f(1, 1, 0, 1), renderChunk.getChunk().getBoundingBox());
                 }
             }
+
+            //Generate mipmaps for cone tracing
+            gBuffer.opaque().use(() -> gBuffer.opaque().generateMipmap());
+
+            //Generate mipmaps for volumetric lighting
+            gBuffer.depth().use(() -> gBuffer.depth().generateMipmap());
+
+            //Draw composite
+            compositeRenderer.render(gBuffer);
+
+            //Draw transparent
+            {
+                final TransparentChunkProgram program = (TransparentChunkProgram) RenderType.TRANSPARENT.getProgram(); //TODO Remove cast
+                use(STATE, program, gBuffer, () -> {
+                    OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4);
+                    resetState();
+                    RenderType.TRANSPARENT.setPipelineState();
+
+                    setCommonUniforms(program, mvp, cameraPosition, lightDirection);
+                    program.opaque.bind(2, gBuffer.opaque());
+                    program.depth.bind(3, gBuffer.depth());
+                    program.debugRoughness.set(debugRoughness);
+                    program.reflections.set(reflections ? 1 : 0);
+                    program.coneTracing.set(coneTracing ? 1 : 0);
+                    program.projection.set(camera.projection());
+
+                    for (int i = frameRenderInfo.size() - 1; i >= 0; i--) {
+                        RenderInfo info = frameRenderInfo.get(i);
+                        final RenderChunk renderChunk = info.chunk();
+                        program.chunk.set(renderChunk.getChunk().getWorldPosition());
+
+                        renderChunk.render(RenderType.TRANSPARENT, info.visibility());
+                    }
+                });
+            }
         });
 
-        //Generate mipmaps for cone tracing
-        gBuffer.opaque().use(() -> gBuffer.opaque().generateMipmap());
-
-        //Generate mipmaps for volumetric lighting
-        gBuffer.depth().use(() -> gBuffer.depth().generateMipmap());
-
-        //Draw composite
-        compositeRenderer.render(gBuffer, outputFrameBuffer);
-
-        //Draw transparent
-        {
-
-            final TransparentChunkProgram program = (TransparentChunkProgram) RenderType.TRANSPARENT.getProgram(); //TODO Remove cast
-            use(STATE, program, outputFrameBuffer, () -> {
-                resetState();
-                RenderType.TRANSPARENT.setPipelineState();
-
-                setCommonUniforms(program, mvp, cameraPosition, lightDirection);
-                program.opaque.bind(2, gBuffer.opaque());
-                program.depth.bind(3, gBuffer.depth());
-                program.debugRoughness.set(debugRoughness);
-                program.reflections.set(reflections ? 1 : 0);
-                program.coneTracing.set(coneTracing ? 1 : 0);
-                program.projection.set(camera.projection());
-
-                for (int i = frameRenderInfo.size() - 1; i >= 0; i--) {
-                    RenderInfo info = frameRenderInfo.get(i);
-                    final RenderChunk renderChunk = info.chunk();
-                    program.chunk.set(renderChunk.getChunk().getWorldPosition());
-
-                    renderChunk.render(RenderType.TRANSPARENT, info.visibility());
-                }
-            });
-        }
-
-        postRenderer.render(outputTexture, aliasingOn ? 1 : 0);
+        postRenderer.render(gBuffer.composite(), aliasingOn ? 1 : 0);
 
         //quadRenderer.render(Matrix4f.identity(), gBuffer.normal(), new Vec2f(0), new Vec2f(1));
     }
@@ -533,10 +515,6 @@ public class WorldRenderer {
 
     public int getUploadQueueSize() {
         return uploadQueue.size();
-    }
-
-    public Texture2D getOutputTexture() {
-        return outputTexture;
     }
 
     public ShadowMapRenderer getShadowMapRenderer() {

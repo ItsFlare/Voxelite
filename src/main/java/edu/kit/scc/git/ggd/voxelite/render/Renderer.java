@@ -8,8 +8,6 @@ import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
-import net.durchholz.beacon.render.opengl.textures.GLTexture;
-import net.durchholz.beacon.render.opengl.textures.Texture2D;
 import net.durchholz.beacon.util.Image;
 import net.durchholz.beacon.window.Viewport;
 import net.durchholz.beacon.window.Window;
@@ -48,10 +46,6 @@ public class Renderer {
         this.worldRenderer = new WorldRenderer();
         this.viewport = window.getViewport();
         gBuffer.allocate(viewport.width(), viewport.height());
-        Texture2D outputTexture = worldRenderer.getOutputTexture();
-        outputTexture.use(() -> {
-            outputTexture.allocate(viewport.width(), viewport.height(), GLTexture.SizedFormat.RGBA_8);
-        });
     }
 
     public void init() {
@@ -106,10 +100,6 @@ public class Renderer {
             viewport = v;
             if (viewport.width() + viewport.height() > 0) {
                 gBuffer.allocate(viewport.width(), viewport.height());
-                Texture2D outputTexture = worldRenderer.getOutputTexture();
-                outputTexture.use(() -> {
-                    outputTexture.allocate(viewport.width(), viewport.height(), GLTexture.SizedFormat.RGBA_8);
-                });
             }
         }
 

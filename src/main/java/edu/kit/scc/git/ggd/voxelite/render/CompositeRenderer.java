@@ -2,14 +2,13 @@ package edu.kit.scc.git.ggd.voxelite.render;
 
 import edu.kit.scc.git.ggd.voxelite.Main;
 import net.durchholz.beacon.math.Matrix4f;
-import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
-import net.durchholz.beacon.render.opengl.buffers.*;
-import net.durchholz.beacon.render.opengl.textures.GLTexture;
-import net.durchholz.beacon.render.opengl.textures.Texture2D;
 
 import java.util.Arrays;
+
+import static org.lwjgl.opengl.GL30.GL_COLOR_ATTACHMENT3;
+import static org.lwjgl.opengl.GL30.GL_COLOR_ATTACHMENT4;
 
 public class CompositeRenderer extends ScreenRenderer {
 
@@ -25,11 +24,11 @@ public class CompositeRenderer extends ScreenRenderer {
         super(PROGRAM);
     }
 
-    public void render(GeometryBuffer gBuffer, FBO outputFrameBuffer) {
-        OpenGL.use(OpenGL.STATE, PROGRAM, va, outputFrameBuffer, () -> {
+    public void render(GeometryBuffer gBuffer) {
+        OpenGL.use(OpenGL.STATE, PROGRAM, va, () -> {
+            OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4);
             OpenGL.resetState();
-            OpenGL.depthTest(true);
-            OpenGL.depthFunction(OpenGL.CompareFunction.ALWAYS); //Disable depth testing the other way
+            OpenGL.depthTest(false);
 
             final Camera camera = Main.INSTANCE.getRenderer().getCamera();
             final WorldRenderer worldRenderer = Main.INSTANCE.getRenderer().getWorldRenderer();

@@ -4,7 +4,8 @@
 #include "include\csm.glsl"
 #include "include\vl.glsl"
 
-out vec4 FragColor;
+layout(location = 0) out vec4 color;
+layout(location = 1) out vec3 bloom;
 
 uniform vec3 camera;
 uniform float fov;
@@ -21,7 +22,7 @@ void main() {
 
     vec4 o = texture(opaque, pixel);
     o.a = 1;
-    FragColor = o;
+    color = o;
 
     vec3 n = normalize(texture(normal, pixel).xyz);
 
@@ -32,7 +33,7 @@ void main() {
 
     if(reflections) {
         float roughness = texture(mer, pixel).b;
-        CalculateReflection(toViewSpace(pixel), n, roughness, FragColor);
+        CalculateReflection(toViewSpace(pixel), n, roughness, color);
     }
 
     vec2 viewPortCoord = gl_FragCoord.xy / viewport;
@@ -54,7 +55,7 @@ void main() {
         accumulator += ShadowCalculation(LightSpacePos, vec3(0, 1, 0), debugColor);
     }
 
-    FragColor = mix(FragColor, vec4(vec3(accumulator / iter), 1), 0.01);
+    color = mix(color, vec4(vec3(accumulator / iter), 1), 0.01);
 
-    CalculateVLS(pixel, vec2(0.5), FragColor.xyz);
+    CalculateVLS(pixel, vec2(0.5), color.xyz);
 }
