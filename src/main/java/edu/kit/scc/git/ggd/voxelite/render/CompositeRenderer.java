@@ -5,30 +5,16 @@ import net.durchholz.beacon.math.Matrix4f;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
-import net.durchholz.beacon.render.opengl.buffers.BufferLayout;
-import net.durchholz.beacon.render.opengl.buffers.VertexArray;
-import net.durchholz.beacon.render.opengl.buffers.VertexBuffer;
+import net.durchholz.beacon.render.opengl.buffers.*;
+import net.durchholz.beacon.render.opengl.textures.GLTexture;
+import net.durchholz.beacon.render.opengl.textures.Texture2D;
 
 import java.util.Arrays;
 
-public class CompositeRenderer {
+public class CompositeRenderer extends ScreenRenderer {
 
     public static final CompositeProgram PROGRAM = new CompositeProgram();
 
-    public static final CompositeProgram.QuadVertex[] QUAD_VERTICES = new CompositeProgram.QuadVertex[]{
-            new CompositeProgram.QuadVertex(new Vec2f(-1, -1)),
-            new CompositeProgram.QuadVertex(new Vec2f(1, -1)),
-            new CompositeProgram.QuadVertex(new Vec2f(-1, 1)),
-            new CompositeProgram.QuadVertex(new Vec2f(1, 1))
-    };
-
-    public static final VertexBuffer<CompositeProgram.QuadVertex> VB = new VertexBuffer<>(CompositeProgram.QuadVertex.LAYOUT, BufferLayout.INTERLEAVED, OpenGL.Usage.STATIC_DRAW);
-
-    static {
-        VB.use(() -> VB.data(QUAD_VERTICES));
-    }
-
-    private final VertexArray va = new VertexArray();
 
     public int godraySamples;
     public float godrayDensity;
@@ -36,11 +22,11 @@ public class CompositeRenderer {
     public float godrayExposure;
 
     public CompositeRenderer() {
-        OpenGL.use(va, VB, () -> va.set(PROGRAM.pos, CompositeProgram.QuadVertex.POSITION, VB, 0));
+        super(PROGRAM);
     }
 
-    public void render(GeometryBuffer gBuffer) {
-        OpenGL.use(OpenGL.STATE, PROGRAM, va, () -> {
+    public void render(GeometryBuffer gBuffer, FBO outputFrameBuffer) {
+        OpenGL.use(OpenGL.STATE, PROGRAM, va, outputFrameBuffer, () -> {
             OpenGL.resetState();
             OpenGL.depthTest(true);
             OpenGL.depthFunction(OpenGL.CompareFunction.ALWAYS); //Disable depth testing the other way
@@ -75,8 +61,7 @@ public class CompositeRenderer {
 
             PROGRAM.viewToLight.set(viewToLight);
 
-            OpenGL.drawArrays(OpenGL.Mode.TRIANGLE_STRIP, 0, 4);
+            drawScreen();
         });
     }
-
 }
