@@ -237,6 +237,9 @@ public class WorldRenderer {
         //Generate mipmaps for cone tracing
         gBuffer.opaque().use(() -> gBuffer.opaque().generateMipmap());
 
+        //Generate mipmaps for volumetric lighting
+        gBuffer.depth().use(() -> gBuffer.depth().generateMipmap());
+
         //Draw composite
         compositeRenderer.render(gBuffer);
 

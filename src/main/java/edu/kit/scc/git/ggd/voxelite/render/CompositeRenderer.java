@@ -30,6 +30,11 @@ public class CompositeRenderer {
 
     private final VertexArray va = new VertexArray();
 
+    public int godraySamples;
+    public float godrayDensity;
+    public float godrayDecay;
+    public float godrayExposure;
+
     public CompositeRenderer() {
         OpenGL.use(va, VB, () -> va.set(PROGRAM.pos, CompositeProgram.QuadVertex.POSITION, VB, 0));
     }
@@ -50,6 +55,11 @@ public class CompositeRenderer {
             PROGRAM.projection.set(camera.projection());
             PROGRAM.reflections.set(worldRenderer.reflections ? 1 : 0);
             PROGRAM.coneTracing.set(worldRenderer.coneTracing ? 1 : 0);
+
+            PROGRAM.godraySamples.set(godraySamples);
+            PROGRAM.godrayDecay.set(godrayDecay);
+            PROGRAM.godrayDensity.set(godrayDensity);
+            PROGRAM.godrayExposure.set(godrayExposure);
 
             var shadowMapRenderer = Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer();
             PROGRAM.shadowMap.bind(4, shadowMapRenderer.getTexture());

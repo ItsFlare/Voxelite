@@ -46,7 +46,7 @@ public class UserInterface {
     private ImGuiContext  imGuiContext;
     private ImPlotContext imPlotContext;
 
-    private final Accordion camera, world, generator, render, shadow, cull, light, perf;
+    private final Accordion camera, world, generator, render, shadow, cull, vl, light, perf;
 
     private final LongRingBuffer loadQueueRingBuffer = new SuppliedLongRingBuffer(() -> Main.INSTANCE.getWorld().getLoadQueueSize());
     private final LongRingBuffer buildRingBuffer     = new SuppliedLongRingBuffer(() -> Main.INSTANCE.getRenderer().getWorldRenderer().getBuildQueueSize());
@@ -177,6 +177,15 @@ public class UserInterface {
             this.cull = new Accordion("Culling", false, caveCull, ImGui::sameLine, dotCull, ImGui::sameLine, frustumCull, ImGui::sameLine, occlusionCull, ImGui::sameLine, directionCull, ImGui::sameLine, backfaceCull,
                     occlusionCullThreshold,
                     cullStats);
+        }
+
+        {
+            var samples = new IntSliderElement("Samples", 50, 0, 200, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godraySamples = value);
+            var density = new FloatSliderElement("Density", 1, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godrayDensity = value);
+            var decay = new FloatSliderElement("Decay", 1, 0, 10, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godrayDecay = value);
+            var exposure = new FloatSliderElement("Exposure", 0.05f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godrayExposure = value);
+
+            this.vl = new Accordion("Volumetric Lighting", true, samples, density, decay, exposure);
         }
 
         {
@@ -391,6 +400,7 @@ public class UserInterface {
         render.draw();
         shadow.draw();
         cull.draw();
+        vl.draw();
         world.draw();
         light.draw();
         perf.draw();

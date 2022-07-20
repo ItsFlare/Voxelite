@@ -2,6 +2,7 @@
 #include "include\deferred.glsl"
 #include "include\ssr.glsl"
 #include "include\csm.glsl"
+#include "include\vl.glsl"
 
 out vec4 FragColor;
 
@@ -54,4 +55,6 @@ void main() {
     }
 
     FragColor = mix(FragColor, vec4(vec3(accumulator / iter), 1), 0.01);
+
+    CalculateVLS(pixel, vec2(0.5), FragColor.xyz);
 }
