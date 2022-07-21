@@ -1,7 +1,15 @@
 #version 430
 
 uniform sampler2D composite;
-uniform bool antiAliasingOn;
+uniform sampler2D bloom;
+uniform bool aaEnabled;
+uniform bool bloomEnabled;
+uniform bool hdrEnabled;
+uniform bool gammaEnabled;
+
+uniform float gamma;
+uniform float exposure;
+uniform float bloomIntensity;
 
 out vec4 fragColor;
 
@@ -18,42 +26,37 @@ float rgb2luma(vec3 rgb){
     return sqrt(dot(rgb, vec3(0.299, 0.587, 0.114)));
 }
 
-void main() {
-    vec3 colorCenter = texture(composite,pixel).rgb;
-
-    if (!antiAliasingOn) {
-        fragColor = vec4(colorCenter, 1);
-        return;
-    }
+void fxaa() {
+    vec3 colorCenter = texture(composite, pixel).rgb;
 
     // Luma at the current fragment
     float lumaCenter = rgb2luma(colorCenter);
 
     // Luma at the four direct neighbours of the current fragment.
-    float lumaDown = rgb2luma(textureOffset(composite, pixel, ivec2(0,-1)).rgb);
-    float lumaUp = rgb2luma(textureOffset(composite, pixel, ivec2(0,1)).rgb);
-    float lumaLeft = rgb2luma(textureOffset(composite, pixel, ivec2(-1,0)).rgb);
-    float lumaRight = rgb2luma(textureOffset(composite, pixel, ivec2(1,0)).rgb);
+    float lumaDown = rgb2luma(textureOffset(composite, pixel, ivec2(0, -1)).rgb);
+    float lumaUp = rgb2luma(textureOffset(composite, pixel, ivec2(0, 1)).rgb);
+    float lumaLeft = rgb2luma(textureOffset(composite, pixel, ivec2(-1, 0)).rgb);
+    float lumaRight = rgb2luma(textureOffset(composite, pixel, ivec2(1, 0)).rgb);
 
     // Find the maximum and minimum luma around the current fragment.
-    float lumaMin = min(lumaCenter,min(min(lumaDown,lumaUp),min(lumaLeft,lumaRight)));
-    float lumaMax = max(lumaCenter,max(max(lumaDown,lumaUp),max(lumaLeft,lumaRight)));
+    float lumaMin = min(lumaCenter, min(min(lumaDown, lumaUp), min(lumaLeft, lumaRight)));
+    float lumaMax = max(lumaCenter, max(max(lumaDown, lumaUp), max(lumaLeft, lumaRight)));
 
     // Compute the delta.
     float lumaRange = lumaMax - lumaMin;
 
     // If the luma variation is lower that a threshold (or if we are in a really dark area), we are not on an edge, don't perform any AA.
-    if(lumaRange < max(EDGE_THRESHOLD_MIN,lumaMax*EDGE_THRESHOLD_MAX)){
+    if (lumaRange < max(EDGE_THRESHOLD_MIN, lumaMax*EDGE_THRESHOLD_MAX)){
         fragColor = vec4(colorCenter, 1);
         return;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    float lumaDownLeft = rgb2luma(textureOffset(composite,pixel,ivec2(-1,-1)).rgb);
-    float lumaUpRight = rgb2luma(textureOffset(composite,pixel,ivec2(1,1)).rgb);
-    float lumaUpLeft = rgb2luma(textureOffset(composite,pixel,ivec2(-1,1)).rgb);
-    float lumaDownRight = rgb2luma(textureOffset(composite,pixel,ivec2(1,-1)).rgb);
+    float lumaDownLeft = rgb2luma(textureOffset(composite, pixel, ivec2(-1, -1)).rgb);
+    float lumaUpRight = rgb2luma(textureOffset(composite, pixel, ivec2(1, 1)).rgb);
+    float lumaUpLeft = rgb2luma(textureOffset(composite, pixel, ivec2(-1, 1)).rgb);
+    float lumaDownRight = rgb2luma(textureOffset(composite, pixel, ivec2(1, -1)).rgb);
 
     // Combine the four edges lumas (using intermediary variables for future computations with the same values).
     float lumaDownUp = lumaDown + lumaUp;
@@ -66,7 +69,7 @@ void main() {
     float lumaUpCorners = lumaUpRight + lumaUpLeft;
 
     // Compute an estimation of the gradient along the horizontal and vertical axis.
-    float edgeHorizontal =  abs(-2.0 * lumaLeft + lumaLeftCorners)  + abs(-2.0 * lumaCenter + lumaDownUp ) * 2.0    + abs(-2.0 * lumaRight + lumaRightCorners);
+    float edgeHorizontal =  abs(-2.0 * lumaLeft + lumaLeftCorners)  + abs(-2.0 * lumaCenter + lumaDownUp) * 2.0    + abs(-2.0 * lumaRight + lumaRightCorners);
     float edgeVertical =    abs(-2.0 * lumaUp + lumaUpCorners)      + abs(-2.0 * lumaCenter + lumaLeftRight) * 2.0  + abs(-2.0 * lumaDown + lumaDownCorners);
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -86,7 +89,7 @@ void main() {
     bool is1Steepest = abs(gradient1) >= abs(gradient2);
 
     // Gradient in the corresponding direction, normalized.
-    float gradientScaled = 0.25*max(abs(gradient1),abs(gradient2));
+    float gradientScaled = 0.25*max(abs(gradient1), abs(gradient2));
 
     // Choose the step size (one pixel) according to the edge direction.
     float stepLength = isHorizontal ? inverseScreenSize.y : inverseScreenSize.x;
@@ -94,7 +97,7 @@ void main() {
     // Average luma in the correct direction.
     float lumaLocalAverage = 0.0;
 
-    if(is1Steepest){
+    if (is1Steepest){
         // Switch the direction
         stepLength = - stepLength;
         lumaLocalAverage = 0.5*(luma1 + lumaCenter);
@@ -104,7 +107,7 @@ void main() {
 
     // Shift UV in the correct direction by half a pixel.
     vec2 currentUv = pixel;
-    if(isHorizontal){
+    if (isHorizontal){
         currentUv.y += stepLength * 0.5;
     } else {
         currentUv.x += stepLength * 0.5;
@@ -115,14 +118,14 @@ void main() {
     //First Iteration
 
     // Compute offset (for each iteration step) in the right direction.
-    vec2 offset = isHorizontal ? vec2(inverseScreenSize.x,0.0) : vec2(0.0,inverseScreenSize.y);
+    vec2 offset = isHorizontal ? vec2(inverseScreenSize.x, 0.0) : vec2(0.0, inverseScreenSize.y);
     // Compute UVs to explore on each side of the edge, orthogonally. The QUALITY allows us to step faster.
     vec2 uv1 = currentUv - offset;
     vec2 uv2 = currentUv + offset;
 
     // Read the lumas at both current extremities of the exploration segment, and compute the delta wrt to the local average luma.
-    float lumaEnd1 = rgb2luma(texture(composite,uv1).rgb);
-    float lumaEnd2 = rgb2luma(texture(composite,uv2).rgb);
+    float lumaEnd1 = rgb2luma(texture(composite, uv1).rgb);
+    float lumaEnd2 = rgb2luma(texture(composite, uv2).rgb);
     lumaEnd1 -= lumaLocalAverage;
     lumaEnd2 -= lumaLocalAverage;
 
@@ -132,10 +135,10 @@ void main() {
     bool reachedBoth = reached1 && reached2;
 
     // If the side is not reached, we continue to explore in this direction.
-    if(!reached1){
+    if (!reached1){
         uv1 -= offset;
     }
-    if(!reached2){
+    if (!reached2){
         uv2 += offset;
     }
 
@@ -143,15 +146,15 @@ void main() {
 
     //Following iterations
 
-    if(!reachedBoth){
-        for(int i = 2; i < ITERATIONS; i++){
+    if (!reachedBoth){
+        for (int i = 2; i < ITERATIONS; i++){
             // If needed, read luma in 1st direction, compute delta.
-            if(!reached1){
+            if (!reached1){
                 lumaEnd1 = rgb2luma(texture(composite, uv1).rgb);
                 lumaEnd1 = lumaEnd1 - lumaLocalAverage;
             }
             // If needed, read luma in opposite direction, compute delta.
-            if(!reached2){
+            if (!reached2){
                 lumaEnd2 = rgb2luma(texture(composite, uv2).rgb);
                 lumaEnd2 = lumaEnd2 - lumaLocalAverage;
             }
@@ -161,15 +164,15 @@ void main() {
             reachedBoth = reached1 && reached2;
 
             // If the side is not reached, we continue to explore in this direction, with a variable quality.
-            if(!reached1){
+            if (!reached1){
                 uv1 -= offset * QUALITY[i];
             }
-            if(!reached2){
+            if (!reached2){
                 uv2 += offset * QUALITY[i];
             }
 
             // If both sides have been reached, stop the exploration.
-            if(reachedBoth){ break;}
+            if (reachedBoth){ break; }
         }
     }
 
@@ -208,25 +211,37 @@ void main() {
     // Full weighted average of the luma over the 3x3 neighborhood.
     float lumaAverage = (1.0/12.0) * (2.0 * (lumaDownUp + lumaLeftRight) + lumaLeftCorners + lumaRightCorners);
     // Ratio of the delta between the global average and the center luma, over the luma range in the 3x3 neighborhood.
-    float subPixelOffset1 = clamp(abs(lumaAverage - lumaCenter)/lumaRange,0.0,1.0);
+    float subPixelOffset1 = clamp(abs(lumaAverage - lumaCenter)/lumaRange, 0.0, 1.0);
     float subPixelOffset2 = (-2.0 * subPixelOffset1 + 3.0) * subPixelOffset1 * subPixelOffset1;
     // Compute a sub-pixel offset based on this delta.
     float subPixelOffsetFinal = subPixelOffset2 * subPixelOffset2 * SUBPIXEL_QUALITY;
 
     // Pick the biggest of the two offsets.
-    finalOffset = max(finalOffset,subPixelOffsetFinal);
+    finalOffset = max(finalOffset, subPixelOffsetFinal);
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Compute the final UV coordinates.
     vec2 finalUv = pixel;
-    if(isHorizontal){
+    if (isHorizontal){
         finalUv.y += finalOffset * stepLength;
     } else {
         finalUv.x += finalOffset * stepLength;
     }
 
     // Read the color at the new UV coordinates, and use it.
-    vec3 finalColor = texture(composite,finalUv).rgb;
+    vec3 finalColor = texture(composite, finalUv).rgb;
     fragColor = vec4(finalColor, 1);
+}
+
+void main() {
+    fragColor = texture(composite, pixel);
+
+    if (aaEnabled) fxaa();
+
+    if (bloomEnabled) fragColor += textureLod(bloom, pixel, 1) * bloomIntensity;
+
+    if (hdrEnabled) fragColor = vec4(1.0) - exp(-fragColor * exposure);
+
+    if (gammaEnabled) fragColor = pow(fragColor, vec4(1.0 / gamma));
 }

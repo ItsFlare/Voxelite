@@ -46,7 +46,7 @@ public class UserInterface {
     private ImGuiContext  imGuiContext;
     private ImPlotContext imPlotContext;
 
-    private final Accordion camera, world, generator, render, shadow, cull, vl, light, perf;
+    private final Accordion camera, world, generator, render, post, shadow, cull, vl, light, perf;
 
     private final LongRingBuffer loadQueueRingBuffer = new SuppliedLongRingBuffer(() -> Main.INSTANCE.getWorld().getLoadQueueSize());
     private final LongRingBuffer buildRingBuffer     = new SuppliedLongRingBuffer(() -> Main.INSTANCE.getRenderer().getWorldRenderer().getBuildQueueSize());
@@ -80,7 +80,7 @@ public class UserInterface {
             var normalMap = new CheckboxElement("Normal Map", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().normalMap = value);
             var fog = new CheckboxElement("Fog", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().fog = value);
             var ao = new CheckboxElement("AO", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().ao = value);
-            var aliasing = new CheckboxElement("Anti-Aliasing", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().aliasingOn = value);
+            var aa = new CheckboxElement("AA", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().aliasingOn = value);
             var transparentSort = new CheckboxElement("Transparent sort", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().transparentSort = value);
             var frustumDebug = new CheckboxElement("Debug Frustum", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().debugFrustum = value);
             var frustumCapture = new CheckboxElement("Capture Frustum", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().captureFrustum = value);
@@ -89,13 +89,26 @@ public class UserInterface {
             var reflections = new CheckboxElement("SSR", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().reflections = value);
             var coneTracing = new CheckboxElement("CT", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().coneTracing = value);
 
-
             this.render = new Accordion("Render", true, skybox, ImGui::sameLine, world, ImGui::sameLine, vsync, ImGui::sameLine, wireframe, ImGui::sameLine, transparentSort,
-                    frustumDebug, ImGui::sameLine, frustumCapture,  ImGui::sameLine, ao, aliasing, ImGui::sameLine, fog, ImGui::sameLine, normalMap,
-                    reflections, ImGui::sameLine, coneTracing,
-                    roughness,
-                    ticksPerDay
+                    frustumDebug, ImGui::sameLine, frustumCapture,  ImGui::sameLine, ao, ImGui::sameLine, aa, ImGui::sameLine, fog,
+                    normalMap, ImGui::sameLine, reflections, ImGui::sameLine, coneTracing,
+                    ticksPerDay,
+                    roughness
             );
+        }
+
+        {
+            var bloom = new CheckboxElement("Bloom", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().bloom = value);
+            var bloomBlur = new IntSliderElement("Bloom Blurs", 1, 0, 20, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().bloomBlurIterations  = value);
+            var bloomIntensity = new FloatSliderElement("Bloom Intensity", 3, 0, 10, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().bloomIntensity = value);
+
+            var hdr = new CheckboxElement("HDR", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().hdr = value);
+            var exposure = new FloatSliderElement("HDR Exposure", 1, 0, 2, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().exposure = value);
+
+            var gammaCorrect = new CheckboxElement("Gamma Correction", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().gammaCorrect = value);
+            var gamma = new FloatSliderElement("Gamma", 1, 0, 3, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().gamma = value);
+
+            this.post = new Accordion("Post-Processing", true, bloom, bloomIntensity, bloomBlur, hdr, exposure, gammaCorrect, gamma);
         }
 
         {
@@ -184,7 +197,7 @@ public class UserInterface {
             var samples = new IntSliderElement("Samples", 50, 0, 200, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godraySamples = value);
             var density = new FloatSliderElement("Density", 1, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godrayDensity = value);
             var decay = new FloatSliderElement("Decay", 1, 0, 10, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godrayDecay = value);
-            var exposure = new FloatSliderElement("Exposure", 0.05f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godrayExposure = value);
+            var exposure = new FloatSliderElement("VL Exposure", 0.05f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godrayExposure = value);
 
             this.vl = new Accordion("Volumetric Lighting", true, samples, density, decay, exposure);
         }
@@ -399,6 +412,7 @@ public class UserInterface {
         drawProfiler();
         camera.draw();
         render.draw();
+        post.draw();
         shadow.draw();
         cull.draw();
         vl.draw();

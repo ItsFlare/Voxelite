@@ -41,10 +41,7 @@ public class WorldRenderer {
     private final OcclusionRenderer          occlusionRenderer = new OcclusionRenderer();
     private final LineRenderer               lineRenderer      = new LineRenderer();
     private final CompositeRenderer          compositeRenderer = new CompositeRenderer();
-
     private final PostRenderer               postRenderer      = new PostRenderer();
-
-    private final QuadRenderer quadRenderer = new QuadRenderer();
 
     private RenderChunk[] lastSorted = new RenderChunk[0];
 
@@ -52,7 +49,7 @@ public class WorldRenderer {
     public Vec4f             lightColor      = new Vec4f(1);
     public float             ambientStrength = 0.4f, diffuseStrength = 0.7f, specularStrength = 0.2f, debugRoughness;
     public int phongExponent = 32, uploadRate = 5, sortRate = 5;
-    public boolean directionCull = true, backfaceCull = true, dotCull = true, frustumCull = true, caveCull = true, occlusionCull = false, shadows = true, shadowTransform = false, transparentSort = true, captureFrustum = false, debugFrustum = false, normalMap = true, fog = true, ao = true, aliasingOn = true ,reflections = true, coneTracing = false;
+    public boolean directionCull = true, backfaceCull = true, dotCull = true, frustumCull = true, caveCull = true, occlusionCull = false, shadows = true, shadowTransform = false, transparentSort = true, captureFrustum = false, debugFrustum = false, normalMap = true, fog = true, ao = true, aliasingOn = true, reflections = true, coneTracing = false;
     public int emptyCount, frustumCullCount, dotCullCount, caveCullCount, occlusionCullCount, totalCullCount;
     public int occlusionCullThreshold;
 
@@ -174,7 +171,6 @@ public class WorldRenderer {
                 .toList();
 
 
-
         var gBuffer = Main.INSTANCE.getRenderer().getGeometryBuffer();
 
         use(STATE, gBuffer, () -> {
@@ -270,11 +266,10 @@ public class WorldRenderer {
                     }
                 });
             }
+
         });
 
-        postRenderer.render(gBuffer.composite(), aliasingOn ? 1 : 0);
-
-        //quadRenderer.render(Matrix4f.identity(), gBuffer.normal(), new Vec2f(0), new Vec2f(1));
+        postRenderer.render(gBuffer);
     }
 
     private void setCommonUniforms(ChunkProgram program, Matrix4f mvp, Vec3f cameraPosition, Vec3f lightDirection) {
@@ -305,7 +300,7 @@ public class WorldRenderer {
 
         //Fog
         program.fogRange.set(Main.INSTANCE.getWorld().getChunkRadius() * Chunk.WIDTH);
-        program.fogColor.set(new Vec3f(0).interpolate(new Vec3f(0.55f, 0.73f, 0.91f), Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.3f , 0, 1)));
+        program.fogColor.set(new Vec3f(0).interpolate(new Vec3f(0.55f, 0.73f, 0.91f), Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.3f, 0, 1)));
         //program.fogColor.set(getHorizonColor());
 
         //Shadow mapping
@@ -322,7 +317,7 @@ public class WorldRenderer {
         Quaternion quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), Main.getDayPercentage() * 360).normalized();
         Vec3f quadNormal = new Vec3f(Direction.POS_Z.getAxis());
         Vec3f sunPosition = quadNormal.rotate(quaternion);
-        Vec3f skyColor = new Vec3f(0).interpolate(new Vec3f(0.55f, 0.73f, 0.91f), Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.2f , 0, 1));
+        Vec3f skyColor = new Vec3f(0).interpolate(new Vec3f(0.55f, 0.73f, 0.91f), Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.2f, 0, 1));
         Vec3f sunsetColor = skyColor;
         double directionToSunDeg = Util.clamp(camera.getDirection().dot(sunPosition), 0, 1);
         if ((sunPosition.z() < -0.9 || sunPosition.z() > 0.9)) {
@@ -332,9 +327,9 @@ public class WorldRenderer {
             Vec3f c = new Vec3f(1.00f, 0.00f, 0.00f); //red
             Vec3f d = new Vec3f(0.70f, 0.00f, 0.30f); //purple
             if (sunPosition.y() >= 0) {
-                if(num < 0.95f) {
+                if (num < 0.95f) {
                     sunsetColor = a.interpolate(skyColor, (0.95f - num) / 0.05f);
-                } else if (num < 0.98){
+                } else if (num < 0.98) {
                     sunsetColor = b.interpolate(a, (0.98f - num) / 0.03f);
                 } else {
                     sunsetColor = c.interpolate(b, (1 - num) / 0.02f);
@@ -529,4 +524,7 @@ public class WorldRenderer {
         return compositeRenderer;
     }
 
+    public PostRenderer getPostRenderer() {
+        return postRenderer;
+    }
 }

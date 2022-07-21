@@ -27,6 +27,7 @@ void main() {
 
     vec3 n = GetNormal(Tex);
     vec4 t = texture(atlas, vec3(Tex, 0));
+    vec3 mer = texture(atlas, vec3(Tex, 2)).rgb;
 
     vec3 debugColor;
     float shadow = shadows ? ShadowCalculation(LightSpacePos, Normal, debugColor) : 1;
@@ -39,9 +40,11 @@ void main() {
     debugColor = n;
 
     if(reflections) {
-        float roughness = texture(atlas, vec3(Tex, 2)).b;
+        float roughness = mer.b;
         CalculateReflection(ViewSpacePos, ViewNormal, roughness, color);
     }
+
+    bloom = color.rgb * mer.g;
 
     if(cascadeDebug) color.rgb += debugColor;
 }

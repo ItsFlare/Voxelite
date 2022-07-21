@@ -25,6 +25,7 @@ void main() {
     color = o;
 
     vec3 n = normalize(texture(normal, pixel).xyz);
+    vec3 MER = texture(mer, pixel).rgb;
 
     //No geometry (background)
     if (n == vec3(0)) {
@@ -32,7 +33,7 @@ void main() {
     }
 
     if(reflections) {
-        float roughness = texture(mer, pixel).b;
+        float roughness = MER.b;
         CalculateReflection(toViewSpace(pixel), n, roughness, color);
     }
 
@@ -56,6 +57,7 @@ void main() {
     }
 
     color = mix(color, vec4(vec3(accumulator / iter), 1), 0.01);
+    bloom = color.rgb * MER.g;
 
     CalculateVLS(pixel, vec2(0.5), color.xyz);
 }

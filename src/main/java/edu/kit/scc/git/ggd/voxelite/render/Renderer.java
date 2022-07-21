@@ -3,6 +3,8 @@ package edu.kit.scc.git.ggd.voxelite.render;
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.ui.UserInterface;
 import edu.kit.scc.git.ggd.voxelite.util.Util;
+import net.durchholz.beacon.event.EventType;
+import net.durchholz.beacon.event.Listener;
 import net.durchholz.beacon.math.Matrix3f;
 import net.durchholz.beacon.math.Vec2f;
 import net.durchholz.beacon.math.Vec3f;
@@ -11,6 +13,7 @@ import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
 import net.durchholz.beacon.util.Image;
 import net.durchholz.beacon.window.Viewport;
 import net.durchholz.beacon.window.Window;
+import net.durchholz.beacon.window.event.ViewportResizeEvent;
 import org.lwjgl.opengl.GL30;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +49,8 @@ public class Renderer {
         this.worldRenderer = new WorldRenderer();
         this.viewport = window.getViewport();
         gBuffer.allocate(viewport.width(), viewport.height());
+
+        EventType.addListener(this);
     }
 
     public void init() {
@@ -66,7 +71,6 @@ public class Renderer {
 
 
     public void render() {
-        updateViewport();
         OpenGL.polygonMode(OpenGL.Face.BOTH, wireframe ? OpenGL.PolygonMode.LINE : OpenGL.PolygonMode.FILL);
 
         gBuffer.use(() -> {
@@ -92,17 +96,9 @@ public class Renderer {
         userInterface.tick();
     }
 
-    private void updateViewport() {
-        final Viewport v = Main.INSTANCE.getWindow().getViewport();
-
-        if (!viewport.equals(v)) {
-            OpenGL.setViewport(v);
-            viewport = v;
-            if (viewport.width() + viewport.height() > 0) {
-                gBuffer.allocate(viewport.width(), viewport.height());
-            }
-        }
-
+    @Listener
+    private void onResize(ViewportResizeEvent event) {
+        gBuffer.allocate(event.viewport().width(), event.viewport().height());
     }
 
     private void renderSky() {

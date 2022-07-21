@@ -27,7 +27,13 @@ public record GeometryBuffer(FBO fbo,
         setFilters(mer);
         setFilters(depth);
         setFilters(composite);
-        setFilters(bloom);
+
+        bloom.use(() -> {
+            bloom.magFilter(GLTexture.MagFilter.LINEAR);
+            bloom.minFilter(GLTexture.MinFilter.LINEAR);
+            bloom.wrapMode(GLTexture.TextureCoordinate.S, GLTexture.WrapMode.CLAMP_TO_EDGE);
+            bloom.wrapMode(GLTexture.TextureCoordinate.T, GLTexture.WrapMode.CLAMP_TO_EDGE);
+        });
 
         use(() -> {
             allocate(width, height);
