@@ -9,23 +9,22 @@ const int lod = 0;
 /*
 Mitchell. Volumetric Light Scattering as a Post-Process. 2007.
 */
-void CalculateVLS(vec2 texCoord, vec2 lightPos, inout vec3 color) {
+float CalculateVLS(vec2 texCoord, vec2 lightPos) {
 
     float accumulator = 0;
-    vec2 deltaTexCoord = (texCoord - lightPos);
-    deltaTexCoord *= 1.0 / godraySamples * godrayDensity;
+    vec2 delta = texCoord - lightPos;
+    delta *= 1.0 / godraySamples * godrayDensity;
     float d = 1;
 
     for (int i = 0; i < MAX_SAMPLES; i++) {
         if(i >= godraySamples) break;
 
-        texCoord -= deltaTexCoord;
-        float s = textureLod(depth, texCoord, lod).x < 1 ? -0.1 : 0.9;
-        accumulator += s * d;
+        texCoord -= delta; //Move from sun towards pixel
+        accumulator += step(1, textureLod(depth, texCoord, lod).x) * d; //Add 1 for sky or 0 for geometry
         d *= godrayDecay;
     }
 
-    accumulator /= godraySamples;
+    accumulator /= godraySamples; //Average
 
-    color += accumulator * godrayExposure;
+    return accumulator * godrayExposure;
 }

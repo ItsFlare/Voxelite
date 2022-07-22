@@ -66,7 +66,7 @@ public record GeometryBuffer(FBO fbo,
         mer.use(() -> mer.allocate(width, height, GLTexture.SizedFormat.RGB_8));
         depth.use(() -> depth.allocate(width, height, GLTexture.BaseFormat.DEPTH_COMPONENT));
         bloom.use(() -> bloom.allocate(width, height, GLTexture.SizedFormat.RGB_8));
-        composite.use(() -> composite.allocate(width, height, GLTexture.SizedFormat.RGB_8));
+        composite.use(() -> composite.allocate(width, height, GLTexture.SizedFormat.RGBA_8));
     }
 
     private static void setFilters(Texture2D texture) {

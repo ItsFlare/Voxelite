@@ -272,6 +272,9 @@ public class WorldRenderer {
 
         });
 
+        //Generate mipmap for VL sampling
+        gBuffer.composite().use(() -> gBuffer.composite().generateMipmap());
+
         postRenderer.render(gBuffer);
     }
 

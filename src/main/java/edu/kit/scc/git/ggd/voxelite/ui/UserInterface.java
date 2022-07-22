@@ -196,7 +196,7 @@ public class UserInterface {
         {
             var samples = new IntSliderElement("Samples", 50, 0, 200, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godraySamples = value);
             var density = new FloatSliderElement("Density", 1, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godrayDensity = value);
-            var decay = new FloatSliderElement("Decay", 1, 0, 10, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godrayDecay = value);
+            var decay = new FloatSliderElement("Decay", 1, 0, 1.1f, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godrayDecay = value);
             var exposure = new FloatSliderElement("VL Exposure", 0.05f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godrayExposure = value);
 
             this.vl = new Accordion("Volumetric Lighting", true, samples, density, decay, exposure);
