@@ -28,7 +28,7 @@ import static org.lwjgl.opengl.GL30.*;
 
 public class WorldRenderer {
 
-    private static final Comparator<RenderChunk> DISTANCE_COMPARATOR = Comparator.comparingInt(rc -> Chunk.toWorldPosition(rc.getChunk().getPosition()).subtract(new Vec3i(Main.INSTANCE.getRenderer().getCamera().getPosition())).magnitudeSq()); //Breaks general contract
+    private static final Comparator<RenderChunk> DISTANCE_COMPARATOR = Comparator.comparingDouble(rc -> Main.INSTANCE.getRenderer().getCamera().getPosition().subtract(rc.getChunk().getCenter()).magnitudeSq()); //Breaks general contract
     private static final int                     SHADOW_MAP_SIZE     = 1 << 13;
     public static        int                     frustumNumber       = 0;
 
