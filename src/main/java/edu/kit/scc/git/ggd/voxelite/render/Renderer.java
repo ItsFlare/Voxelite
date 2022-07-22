@@ -11,7 +11,6 @@ import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
 import net.durchholz.beacon.util.Image;
-import net.durchholz.beacon.window.Viewport;
 import net.durchholz.beacon.window.Window;
 import net.durchholz.beacon.window.event.ViewportResizeEvent;
 import org.lwjgl.opengl.GL30;
@@ -34,8 +33,6 @@ public class Renderer {
     private final SpriteRenderer crosshairRenderer = new SpriteRenderer(new Image(Util.readResource("textures/crosshair.png")));
     private final GeometryBuffer gBuffer           = new GeometryBuffer(1, 1);
 
-    private Viewport viewport;
-
     public boolean renderUI     = true;
     public boolean renderSkybox = true;
     public boolean renderWorld  = true;
@@ -47,8 +44,7 @@ public class Renderer {
         this.camera = new Camera(window);
         this.userInterface = new UserInterface();
         this.worldRenderer = new WorldRenderer();
-        this.viewport = window.getViewport();
-        gBuffer.allocate(viewport.width(), viewport.height());
+        gBuffer.allocate(window.getViewport().width(), window.getViewport().height());
 
         EventType.addListener(this);
     }
@@ -103,11 +99,10 @@ public class Renderer {
 
     private void renderSky() {
         float dayPercentage = Util.clamp((float) sin(2 * Math.PI * Main.getDayPercentage()) + 0.75f, 0, 1);
-        Vec2f viewportRes = new Vec2f(viewport.width(), viewport.height());
 
         var projection = camera.projection();
         projection.multiply(camera.view(false, true));
-        //System.out.println(camera.getDirection());
+        final Vec2f viewportRes = new Vec2f(Main.INSTANCE.getWindow().getViewport().width(), Main.INSTANCE.getWindow().getViewport().height());
 
         gBuffer.use(() -> {
             OpenGL.setDrawBuffers(GL30.GL_COLOR_ATTACHMENT0);
