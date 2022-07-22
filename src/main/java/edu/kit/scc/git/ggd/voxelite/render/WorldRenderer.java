@@ -12,6 +12,7 @@ import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.event.Listener;
 import net.durchholz.beacon.math.*;
 import net.durchholz.beacon.render.opengl.OpenGL;
+import org.lwjgl.opengl.GL40;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -248,6 +249,8 @@ public class WorldRenderer {
                     OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4);
                     resetState();
                     RenderType.TRANSPARENT.setPipelineState();
+                    GL40.glBlendFunci(1, GL_SRC_ALPHA, GL_SRC_COLOR);
+                    GL40.glBlendEquationi(1, GL_FUNC_ADD);
 
                     setCommonUniforms(program, mvp, cameraPosition, lightDirection);
                     program.opaque.bind(2, gBuffer.opaque());

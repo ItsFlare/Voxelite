@@ -9,7 +9,7 @@ in vec3 ViewSpacePos;
 in float aoFactor;
 
 layout(location = 0) out vec4 color;
-layout(location = 1) out vec3 bloom;
+layout(location = 1) out vec4 bloom;
 
 uniform sampler2DArray atlas;
 uniform vec3 camera;
@@ -44,7 +44,24 @@ void main() {
         CalculateReflection(ViewSpacePos, ViewNormal, roughness, color);
     }
 
-    bloom = color.rgb * mer.g;
+    /*
+    Fragment color F := color
+    Emission e := mer.g
+    Intensity i := 1 - F.a
+    Correction c := 1 / max(F)
+    Spectrum W := F * c
+
+    Desired formula:  D = F * e + D * W * i
+    GL blend formula: D = S * S.a + D * S
+    => S := W * i
+    => S.a := e / (c * i)
+    */
+
+    float emission = mer.g;
+    float intensity = 1.0 - color.a;
+    float correction = 1.0 / max(color.r, max(color.g, color.b));
+    vec3 spectrum = color.rgb * correction;
+    bloom = vec4(spectrum * intensity, emission / (correction * intensity));
 
     if(cascadeDebug) color.rgb += debugColor;
 }
