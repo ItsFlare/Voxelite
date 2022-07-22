@@ -47,21 +47,21 @@ void main() {
     /*
     Fragment color F := color
     Emission e := mer.g
-    Intensity i := 1 - F.a
+    Transmittance t := 1 - F.a
     Correction c := 1 / max(F)
     Spectrum W := F * c
 
-    Desired formula:  D = F * e + D * W * i
+    Desired formula:  D = F * e + D * W * t
     GL blend formula: D = S * S.a + D * S
-    => S := W * i
-    => S.a := e / (c * i)
+    => S := W * t
+    => S.a := e / (c * t)
     */
 
     float emission = mer.g;
-    float intensity = 1.0 - color.a;
+    float transmittance = 1.0 - color.a;
     float correction = 1.0 / max(color.r, max(color.g, color.b));
     vec3 spectrum = color.rgb * correction;
-    bloom = vec4(spectrum * intensity, emission / (correction * intensity));
+    bloom = vec4(spectrum * transmittance, emission / (correction * transmittance));
 
     if(cascadeDebug) color.rgb += debugColor;
 }
