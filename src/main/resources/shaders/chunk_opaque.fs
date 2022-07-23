@@ -40,7 +40,7 @@ void main() {
 
     if(cascadeDebug) color += debugColor;
 
-    normal = (view * vec4(Normal, 0)).xyz;
+    normal = (view * vec4(n, 0)).xyz;
     mer = texture(atlas, vec3(Tex, 2)).rgb;
     bloom = BlockLight * t.rgb * mer.g; //TODO Perhaps BlockLight shouldn't be factored in?
 }

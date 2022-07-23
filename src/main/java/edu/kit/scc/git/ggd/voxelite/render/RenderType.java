@@ -19,7 +19,7 @@ public enum RenderType {
         colorMask(true);
         blend(true);
         blendEquation(BlendEquation.ADD);
-        blendFunction(BlendFunction.SOURCE_ALPHA, BlendFunction.ONE_MINUS_SOURCE_ALPHA, BlendFunction.ZERO, BlendFunction.ONE);
+        blendFunction(BlendFunction.SOURCE_ALPHA, BlendFunction.ONE_MINUS_SOURCE_ALPHA);
         cull(Main.INSTANCE.getRenderer().getWorldRenderer().backfaceCull);
     });
 

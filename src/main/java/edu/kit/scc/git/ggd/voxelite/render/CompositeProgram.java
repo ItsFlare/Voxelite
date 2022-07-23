@@ -26,10 +26,6 @@ public class CompositeProgram extends ScreenProgram {
     public final Uniform<Float[]> cascadeFar          = uniFloatArray("cascades", "far", 4);
     public final Uniform<Integer> kernel              = uniInteger("kernel");
 
-    public final Uniform<Integer>  godraySamples  = uniInteger("godraySamples");
-    public final Uniform<Float>    godrayDensity  = uniFloat("godrayDensity");
-    public final Uniform<Float>    godrayDecay    = uniFloat("godrayDecay");
-    public final Uniform<Float>    godrayExposure = uniFloat("godrayExposure");
 
     public CompositeProgram() {
         super(ShaderLoader.get("screen.vs"), ShaderLoader.get("composite.fs"));

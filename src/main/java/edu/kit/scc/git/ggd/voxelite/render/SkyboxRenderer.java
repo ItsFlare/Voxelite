@@ -74,7 +74,9 @@ public class SkyboxRenderer {
             OpenGL.depthTest(false);
             OpenGL.depthMask(false);
             OpenGL.blend(true);
-            OpenGL.blendFunction(OpenGL.BlendFunction.SOURCE_ALPHA, OpenGL.BlendFunction.ONE_MINUS_SOURCE_ALPHA);
+
+            //Separate function ensures sky is always treated as opaque
+            OpenGL.blendFunction(OpenGL.BlendFunction.SOURCE_ALPHA, OpenGL.BlendFunction.ONE_MINUS_SOURCE_ALPHA, OpenGL.BlendFunction.ZERO, OpenGL.BlendFunction.ONE);
 
             program.mvp.set(matrix);
             program.alpha.set(a);

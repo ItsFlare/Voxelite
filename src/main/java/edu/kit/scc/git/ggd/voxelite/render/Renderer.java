@@ -3,13 +3,19 @@ package edu.kit.scc.git.ggd.voxelite.render;
 import edu.kit.scc.git.ggd.voxelite.Main;
 import edu.kit.scc.git.ggd.voxelite.ui.UserInterface;
 import edu.kit.scc.git.ggd.voxelite.util.Util;
+import edu.kit.scc.git.ggd.voxelite.world.generator.noise.FBM;
+import edu.kit.scc.git.ggd.voxelite.world.generator.noise.Noise;
+import edu.kit.scc.git.ggd.voxelite.world.generator.noise.SimplexNoise;
 import net.durchholz.beacon.event.EventType;
 import net.durchholz.beacon.event.Listener;
 import net.durchholz.beacon.math.Matrix3f;
 import net.durchholz.beacon.math.Vec2f;
+import net.durchholz.beacon.math.Vec2i;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
+import net.durchholz.beacon.render.opengl.textures.GLTexture;
+import net.durchholz.beacon.render.opengl.textures.Texture2D;
 import net.durchholz.beacon.util.Image;
 import net.durchholz.beacon.window.Window;
 import net.durchholz.beacon.window.event.ViewportResizeEvent;
@@ -17,7 +23,10 @@ import org.lwjgl.opengl.GL30;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static java.lang.Math.sin;
 import static org.lwjgl.opengl.GL30.*;
@@ -32,6 +41,7 @@ public class Renderer {
     private final SkyRenderer    skyRenderer       = new SkyRenderer();
     private final SpriteRenderer crosshairRenderer = new SpriteRenderer(new Image(Util.readResource("textures/crosshair.png")));
     private final GeometryBuffer gBuffer           = new GeometryBuffer(1, 1);
+    private final Texture2D      noiseTexture      = new Texture2D();
 
     public boolean renderUI     = true;
     public boolean renderSkybox = true;
@@ -45,6 +55,14 @@ public class Renderer {
         this.userInterface = new UserInterface();
         this.worldRenderer = new WorldRenderer();
         gBuffer.allocate(window.getViewport().width(), window.getViewport().height());
+
+        noiseTexture.use(() -> {
+            noiseTexture.image(generateNoiseImage(new Vec2i(256)));
+            noiseTexture.magFilter(GLTexture.MagFilter.NEAREST);
+            noiseTexture.minFilter(GLTexture.MinFilter.NEAREST);
+            noiseTexture.wrapMode(GLTexture.TextureCoordinate.S, GLTexture.WrapMode.MIRRORED_REPEAT);
+            noiseTexture.wrapMode(GLTexture.TextureCoordinate.T, GLTexture.WrapMode.MIRRORED_REPEAT);
+        });
 
         EventType.addListener(this);
     }
@@ -70,7 +88,7 @@ public class Renderer {
         OpenGL.polygonMode(OpenGL.Face.BOTH, wireframe ? OpenGL.PolygonMode.LINE : OpenGL.PolygonMode.FILL);
 
         gBuffer.use(() -> {
-            OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3);
+            OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4);
             glClearDepth(1); //Background is at infinity (required for sky reflection)
             OpenGL.clearAll();
         });
@@ -133,6 +151,30 @@ public class Renderer {
 
     public GeometryBuffer getGeometryBuffer() {
         return gBuffer;
+    }
+
+    public Texture2D getNoiseTexture() {
+        return noiseTexture;
+    }
+
+    private static Image generateNoiseImage(Vec2i resolution) {
+        Noise simplex = new SimplexNoise(ThreadLocalRandom.current().nextInt());
+        Noise fbm = new FBM(new SimplexNoise(ThreadLocalRandom.current().nextInt()), 3);
+
+        BufferedImage img = new BufferedImage(resolution.x(), resolution.y(), BufferedImage.TYPE_INT_RGB);
+        for (int x = 0; x < resolution.x(); x++) {
+            for (int y = 0; y < resolution.y(); y++) {
+                int r = (int) (ThreadLocalRandom.current().nextFloat() * 256f);
+                int g = (int) ((simplex.sample(new Vec2f(x, y)) * 0.5 + 0.5) * 256f);
+                int b = (int) ((fbm.sample(new Vec2f(x, y)) * 0.5 + 0.5) * 256f);
+                final Color color = new Color(r, g, b);
+
+                img.setRGB(x, y, color.getRGB());
+            }
+        }
+        img.flush();
+
+        return new Image(img);
     }
 
     private static CubemapTexture loadSkybox() throws IOException {

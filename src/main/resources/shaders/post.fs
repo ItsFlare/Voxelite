@@ -2,23 +2,25 @@
 
 uniform sampler2D composite;
 uniform sampler2D bloom;
-uniform sampler2D vl;
+uniform sampler2D godrays;
+
+uniform mat4 projection;
 
 uniform bool aaEnabled;
 uniform bool bloomEnabled;
 uniform bool hdrEnabled;
 uniform bool gammaEnabled;
-uniform bool godraysEnabled = true;
+uniform bool godraysEnabled;
 
 uniform float gamma;
 uniform float exposure;
 uniform float bloomIntensity;
 
-uniform int godraySamples = 5;
-uniform int godrayLod = 2;
-uniform float godrayStride = 0.01;
+uniform int godrayBlurSamples;
+uniform int godrayBlurLod;
+uniform float godrayBlurStride;
 
-const vec2 sun = vec2(0.5);
+const vec2 lightPos = vec2(0.5);
 
 out vec4 fragColor;
 
@@ -36,15 +38,15 @@ void main() {
 
     if (godraysEnabled) {
         vec2 uv = pixel;
-        vec2 delta = (sun - pixel) * godrayStride;
+        vec2 delta = (lightPos - pixel) * godrayBlurStride / float(godrayBlurSamples);
 
-        float accumulator = 0;
-        for (int i = 0; i < godraySamples; i++) {
-            accumulator += textureLod(composite, uv, godrayLod).a;
+        vec3 accumulator = vec3(0);
+        for (int i = 0; i < godrayBlurSamples; i++) {
+            accumulator += textureLod(godrays, uv, godrayBlurLod).rgb;
             uv += delta;
         }
 
-        fragColor += accumulator / godraySamples;
+        fragColor.rgb += accumulator / godrayBlurSamples;
     }
 
     if (hdrEnabled) fragColor = vec4(1.0) - exp(-fragColor * exposure);

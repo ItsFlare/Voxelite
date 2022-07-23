@@ -64,4 +64,7 @@ void main() {
     bloom = vec4(spectrum * transmittance, emission / (correction * transmittance));
 
     if(cascadeDebug) color.rgb += debugColor;
+
+    //Cap alpha below 1 to allow other shaders to differentiate transparent geometry without depth information
+    color.a = min(color.a, 0.995);
 }

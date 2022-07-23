@@ -8,17 +8,10 @@ import net.durchholz.beacon.render.opengl.OpenGL;
 import java.util.Arrays;
 
 import static org.lwjgl.opengl.GL30.GL_COLOR_ATTACHMENT3;
-import static org.lwjgl.opengl.GL30.GL_COLOR_ATTACHMENT4;
 
 public class CompositeRenderer extends ScreenRenderer {
 
     public static final CompositeProgram PROGRAM = new CompositeProgram();
-
-
-    public int godraySamples;
-    public float godrayDensity;
-    public float godrayDecay;
-    public float godrayExposure;
 
     public CompositeRenderer() {
         super(PROGRAM);
@@ -41,10 +34,7 @@ public class CompositeRenderer extends ScreenRenderer {
             PROGRAM.reflections.set(worldRenderer.reflections ? 1 : 0);
             PROGRAM.coneTracing.set(worldRenderer.coneTracing ? 1 : 0);
 
-            PROGRAM.godraySamples.set(godraySamples);
-            PROGRAM.godrayDecay.set(godrayDecay);
-            PROGRAM.godrayDensity.set(godrayDensity);
-            PROGRAM.godrayExposure.set(godrayExposure);
+
 
             var shadowMapRenderer = Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer();
             PROGRAM.shadowMap.bind(4, shadowMapRenderer.getTexture());

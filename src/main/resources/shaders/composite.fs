@@ -2,7 +2,6 @@
 #include "include\deferred.glsl"
 #include "include\ssr.glsl"
 #include "include\csm.glsl"
-#include "include\vl.glsl"
 
 layout(location = 0) out vec4 color;
 
@@ -51,6 +50,4 @@ void main() {
 
         color = mix(color, vec4(vec3(accumulator / iter), 1), 0.01);
     }
-
-    color.a = CalculateVLS(pixel, vec2(0.5));
 }

@@ -8,9 +8,9 @@ public class PostRenderer extends ScreenRenderer {
 
     private final BloomBlurRenderer bloomBlurRenderer = new BloomBlurRenderer();
 
-    public int   bloomBlurIterations;
-    public float exposure, gamma, bloomIntensity;
-    public boolean bloom, aa, hdr, gammaCorrect;
+    public int   bloomBlurIterations, godrayBlurSamples, godrayBlurLod;
+    public float exposure, gamma, bloomIntensity, godrayBlurStride;
+    public boolean bloom, aa, hdr, gammaCorrect, godrays;
 
     public PostRenderer() {
         super(PROGRAM);
@@ -22,6 +22,7 @@ public class PostRenderer extends ScreenRenderer {
         OpenGL.use(OpenGL.STATE, PROGRAM, va, () -> {
             PROGRAM.composite.bind(0, gBuffer.composite());
             PROGRAM.bloom.bind(1, gBuffer.bloom());
+            PROGRAM.godrays.bind(2, gBuffer.opaque());
 
             PROGRAM.aaEnabled.set(aa ? 1 : 0);
 
@@ -33,6 +34,11 @@ public class PostRenderer extends ScreenRenderer {
 
             PROGRAM.bloomEnabled.set(bloom ? 1 : 0);
             PROGRAM.bloomIntensity.set(bloomIntensity);
+
+            PROGRAM.godraysEnabled.set(godrays ? 1 : 0);
+            PROGRAM.godrayBlurSamples.set(godrayBlurSamples);
+            PROGRAM.godrayBlurLod.set(godrayBlurLod);
+            PROGRAM.godrayBlurStride.set(godrayBlurStride);
 
             drawScreen();
         });

@@ -1,11 +1,11 @@
 const float EDGE_THRESHOLD_MIN = 0.0312;
 const float EDGE_THRESHOLD_MAX = 0.125;
 vec2 viewport = textureSize(composite, 0);
-vec2 pixel = gl_FragCoord.xy / viewport;
 const int ITERATIONS = 12;
 const float[] QUALITY = float[12](1, 1, 1, 1, 1, 1.5, 2, 2, 2, 2, 4, 8);
 const float SUBPIXEL_QUALITY = 0.75;
 vec2 inverseScreenSize = 1 / viewport;
+vec2 pixel = gl_FragCoord.xy * inverseScreenSize;
 
 
 float rgb2luma(vec3 rgb){

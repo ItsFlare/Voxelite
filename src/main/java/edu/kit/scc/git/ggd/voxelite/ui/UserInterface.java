@@ -194,12 +194,16 @@ public class UserInterface {
         }
 
         {
-            var samples = new IntSliderElement("Samples", 50, 0, 200, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godraySamples = value);
-            var density = new FloatSliderElement("Density", 1, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godrayDensity = value);
-            var decay = new FloatSliderElement("Decay", 1, 0, 1.1f, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godrayDecay = value);
-            var exposure = new FloatSliderElement("VL Exposure", 0.05f, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getCompositeRenderer().godrayExposure = value);
+            var enabled = new CheckboxElement("VL Enabled", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().godrays = value);
+            var samples = new IntSliderElement("Samples", 10, 0, 200, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getGodrayRenderer().godraySamples = value);
+            var density = new FloatSliderElement("Density", 1, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getGodrayRenderer().godrayDensity = value);
+            var exposure = new FloatSliderElement("VL Exposure", 0.75f, 0, 2, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getGodrayRenderer().godrayExposure = value);
+            var noiseFactor = new FloatSliderElement("Noise factor", 1.5f, 0, 2, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getGodrayRenderer().godrayNoiseFactor = value);
+            var blurSamples = new IntSliderElement("Blur samples", 25, 1, 50, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().godrayBlurSamples = value);
+            var blurLod = new IntSliderElement("Blur LOD", 2, 0, 5, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().godrayBlurLod = value);
+            var blurStride = new FloatSliderElement("Blur stride", 0.5f, 0, 2, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().godrayBlurStride = value);
 
-            this.vl = new Accordion("Volumetric Lighting", true, samples, density, decay, exposure);
+            this.vl = new Accordion("Volumetric Lighting", true, enabled, samples, density, exposure, noiseFactor, blurSamples, blurLod, blurStride);
         }
 
         {
@@ -327,6 +331,8 @@ public class UserInterface {
                             }, "filter", value -> {
                                 Block.RED_GLASS.filter = new Vec3f(value.x(), value.y(), value.z());
                                 Block.RED_GLASS.compressedFilter = CompressedLightStorage.encode(Block.RED_GLASS.filter, CompressedLightStorage.MAX_COMPONENT_VALUE);
+                            }, "godray", value -> {
+                                Main.INSTANCE.getRenderer().getWorldRenderer().getGodrayRenderer().godrayColor = value.xyz();
                             }
                     )
             );

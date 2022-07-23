@@ -42,6 +42,7 @@ public class WorldRenderer {
     private final OcclusionRenderer          occlusionRenderer = new OcclusionRenderer();
     private final LineRenderer               lineRenderer      = new LineRenderer();
     private final CompositeRenderer          compositeRenderer = new CompositeRenderer();
+    private final GodrayRenderer             godrayRenderer    = new GodrayRenderer();
     private final PostRenderer               postRenderer      = new PostRenderer();
 
     private RenderChunk[] lastSorted = new RenderChunk[0];
@@ -202,6 +203,8 @@ public class WorldRenderer {
             }
 
             if (debugFrustum) {
+                OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0);
+
                 final Matrix4f matrix;
                 if (shadowTransform) {
                     matrix = shadowMapRenderer.lightTransform(frustumNumber, lightDirection);
@@ -270,10 +273,20 @@ public class WorldRenderer {
                 });
             }
 
+            //Draw godrays
+            {
+                if(postRenderer.godrays) {
+                    //Reuse opaque texture
+                    OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT0);
+                    OpenGL.clearColor();
+                    godrayRenderer.render(gBuffer);
+                }
+            }
+
         });
 
         //Generate mipmap for VL sampling
-        gBuffer.composite().use(() -> gBuffer.composite().generateMipmap());
+        gBuffer.opaque().use(() -> gBuffer.opaque().generateMipmap());
 
         postRenderer.render(gBuffer);
     }
@@ -528,6 +541,10 @@ public class WorldRenderer {
 
     public CompositeRenderer getCompositeRenderer() {
         return compositeRenderer;
+    }
+
+    public GodrayRenderer getGodrayRenderer() {
+        return godrayRenderer;
     }
 
     public PostRenderer getPostRenderer() {
