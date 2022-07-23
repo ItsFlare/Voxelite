@@ -20,6 +20,8 @@ public class GeneratorChunk<G extends MultiPassGenerator<G>> implements Chunk {
 
     private volatile GeneratorPass<G> pass;
 
+    private final HeightMap heightMap = new HeightMap();
+
     public GeneratorChunk(G generator, ChunkDomain domain, Vec3i position) {
         this.pass = generator.getFirstPass();
         this.generator = generator;
@@ -68,5 +70,9 @@ public class GeneratorChunk<G extends MultiPassGenerator<G>> implements Chunk {
 
     public MultiPassGenerator<G> getGenerator() {
         return generator;
+    }
+
+    public HeightMap getHeightMap() {
+        return heightMap;
     }
 }
