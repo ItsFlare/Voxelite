@@ -17,9 +17,6 @@ uniform sampler2D mer;
 vec2 pixel = gl_FragCoord.xy / viewport;
 
 void main() {
-    //Copy depth into default framebuffer
-    gl_FragDepth = texture(depth, pixel).x;
-
     vec4 o = texture(opaque, pixel);
     o.a = 1;
     color = o;
