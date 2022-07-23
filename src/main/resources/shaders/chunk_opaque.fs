@@ -3,6 +3,7 @@
 layout(location = 0) out vec3 color;
 layout(location = 1) out vec3 normal;
 layout(location = 2) out vec3 mer;
+layout(location = 3) out vec3 bloom;
 
 in vec2 Tex;
 in vec3 Pos;
@@ -41,4 +42,5 @@ void main() {
 
     normal = (view * vec4(Normal, 0)).xyz;
     mer = texture(atlas, vec3(Tex, 2)).rgb;
+    bloom = BlockLight * t.rgb * mer.g; //TODO Perhaps BlockLight shouldn't be factored in?
 }

@@ -5,7 +5,6 @@
 #include "include\vl.glsl"
 
 layout(location = 0) out vec4 color;
-layout(location = 1) out vec3 bloom;
 
 uniform vec3 camera;
 uniform float fov;
@@ -51,7 +50,6 @@ void main() {
         }
 
         color = mix(color, vec4(vec3(accumulator / iter), 1), 0.01);
-        bloom = color.rgb * MER.g; //TODO Attenuate
     }
 
     color.a = CalculateVLS(pixel, vec2(0.5));

@@ -180,7 +180,7 @@ public class WorldRenderer {
 
             //Draw opaque
             {
-                setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2);
+                setDrawBuffers(GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT4);
                 RenderType.OPAQUE.setPipelineState();
 
                 final ChunkProgram program = RenderType.OPAQUE.getProgram();

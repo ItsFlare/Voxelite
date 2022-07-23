@@ -26,7 +26,7 @@ public class CompositeRenderer extends ScreenRenderer {
 
     public void render(GeometryBuffer gBuffer) {
         OpenGL.use(OpenGL.STATE, PROGRAM, va, () -> {
-            OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4);
+            OpenGL.setDrawBuffers(GL_COLOR_ATTACHMENT3);
             OpenGL.resetState();
             OpenGL.depthTest(false);
 

@@ -58,9 +58,9 @@ void main() {
     */
 
     float emission = mer.g;
-    float transmittance = 1.0 - color.a;
-    float correction = 1.0 / max(color.r, max(color.g, color.b));
-    vec3 spectrum = color.rgb * correction;
+    float transmittance = 1.0 - t.a;
+    float correction = clamp(1.0 / max(t.r, max(t.g, t.b)), 0, 100);
+    vec3 spectrum = t.rgb * correction;
     bloom = vec4(spectrum * transmittance, emission / (correction * transmittance));
 
     if(cascadeDebug) color.rgb += debugColor;
