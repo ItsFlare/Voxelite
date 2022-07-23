@@ -100,13 +100,13 @@ public class UserInterface {
         {
             var bloom = new CheckboxElement("Bloom", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().bloom = value);
             var bloomBlur = new IntSliderElement("Bloom Blurs", 1, 0, 20, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().bloomBlurIterations  = value);
-            var bloomIntensity = new FloatSliderElement("Bloom Intensity", 3, 0, 10, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().bloomIntensity = value);
+            var bloomIntensity = new FloatSliderElement("Bloom Intensity", 5, 0, 10, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().bloomIntensity = value);
 
             var hdr = new CheckboxElement("HDR", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().hdr = value);
-            var exposure = new FloatSliderElement("HDR Exposure", 1, 0, 2, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().exposure = value);
+            var exposure = new FloatSliderElement("HDR Exposure", 1.75f, 0, 5, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().exposure = value);
 
             var gammaCorrect = new CheckboxElement("Gamma Correction", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().gammaCorrect = value);
-            var gamma = new FloatSliderElement("Gamma", 1, 0, 3, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().gamma = value);
+            var gamma = new FloatSliderElement("Gamma", 0.8f, 0, 3, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().gamma = value);
 
             this.post = new Accordion("Post-Processing", true, bloom, bloomIntensity, bloomBlur, hdr, exposure, gammaCorrect, gamma);
         }
