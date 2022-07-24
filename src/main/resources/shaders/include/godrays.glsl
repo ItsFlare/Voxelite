@@ -48,7 +48,7 @@ vec3 CalculateGodrays(vec2 texCoord) {
 
     //Step ensures godrays are invisible if ray is facing away from nearest light
     //Left side of min ensures godrays are invisible if light is straight above, as the screen space position would be invalid
-    float moonDecay = pow(lightRayAngle, 1);
+    float moonDecay = pow(lightRayAngle, 2);
     float sunDecay = pow(lightRayAngle, 2) * 0.25 + pow(lightRayAngle, 8) * 0.75;
     float angularDecay = step(0, lightRayAngle) * min(abs(lightViewAngle), mix(sunDecay, moonDecay, moonFactor));
 
