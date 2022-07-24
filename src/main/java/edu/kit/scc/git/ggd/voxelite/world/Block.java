@@ -39,7 +39,7 @@ public enum Block {
 
     BIRCH_LOG(builder -> builder.texture("log_birch").texture("log_birch_top", Direction.POS_Y, Direction.NEG_Y)),
     GRASS(builder -> builder.texture("grass_side").texture("dirt", Direction.NEG_Y).texture("grass_top", Direction.POS_Y)),
-    WATER(builder -> builder.texture("water")),
+    WATER(builder -> builder.texture("water").transparent()),
     TNT(builder -> builder.texture("tnt_side").texture("tnt_bottom", Direction.NEG_Y).texture("tnt_top", Direction.POS_Y)),
     CACTUS(builder -> builder.texture("cactus_side").texture("cactus_top", Direction.POS_Y).texture("cactus_bottom", Direction.NEG_Y)),
     RED_GLASS(builder -> builder.texture("glass_red").transparent().filter(new Vec3f(1, 0, 0))),
