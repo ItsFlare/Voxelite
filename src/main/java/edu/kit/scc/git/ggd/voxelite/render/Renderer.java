@@ -112,7 +112,8 @@ public class Renderer {
 
     @Listener
     private void onResize(ViewportResizeEvent event) {
-        gBuffer.allocate(event.viewport().width(), event.viewport().height());
+        final Viewport viewport = event.viewport();
+        if(!viewport.isZero()) gBuffer.allocate(viewport.width(), viewport.height());
     }
 
     private void renderSky() {
