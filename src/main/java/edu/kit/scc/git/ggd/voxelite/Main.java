@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.opengl.GL30.GL_MULTISAMPLE;
+import static org.lwjgl.opengl.GL30.glDisable;
 
 public class Main {
     public static final Main INSTANCE;
@@ -61,6 +63,9 @@ public class Main {
 
         //Window
         glfwDefaultWindowHints();
+        glfwWindowHint(GLFW_RED_BITS, 16);
+        glfwWindowHint(GLFW_GREEN_BITS, 16);
+        glfwWindowHint(GLFW_BLUE_BITS, 16);
         window = Window.builder().title("Voxelite").build();
         window.setCursorMode(Window.CursorMode.DISABLED);
         window.setRawMouseInput(true);
@@ -68,6 +73,7 @@ public class Main {
         //Context
         window.makeContextCurrent();
         GL.createCapabilities();
+        glDisable(GL_MULTISAMPLE);
         OpenGL.setExecutor(executor);
 
         //Renderer
