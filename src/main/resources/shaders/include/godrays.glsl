@@ -2,14 +2,15 @@ uniform int godraySamples;
 uniform float godrayDensity;
 uniform float godrayExposure;
 uniform float godrayNoiseFactor;
+uniform vec3 godrayColorOverride = vec3(0);
 
 uniform vec3 lightView;
 uniform vec2 lightScreen;
 
 uniform float fov;
 
-uniform vec3 sunColor = vec3(1, 0.4, 0);
-uniform vec3 moonColor = vec3(0.25, 0.25, 0.3);
+uniform vec3 sunColor;
+uniform vec3 moonColor;
 
 #include "include\util.glsl"
 
@@ -41,13 +42,15 @@ vec3 CalculateGodrays(vec2 texCoord) {
     float lightRayAngle = dot(ray, lightView);
     float lightViewAngle = dot(vec3(0, 0, -1), lightView);
 
-    bool moon = lightViewAngle < 0;
-    vec3 godrayColor = moon ? moonColor : sunColor;
-    if(moon) lightRayAngle = -lightRayAngle;
+    float moonFactor = step(0, -lightViewAngle); //1 if moon is closer than sun
+    vec3 godrayColor = godrayColorOverride == vec3(0) ? mix(sunColor, moonColor, moonFactor) : godrayColorOverride;
+    lightRayAngle = mix(lightRayAngle, -lightRayAngle, moonFactor);
 
     //Step ensures godrays are invisible if ray is facing away from nearest light
     //Left side of min ensures godrays are invisible if light is straight above, as the screen space position would be invalid
-    float angularDecay = step(0, lightRayAngle) * min(abs(lightViewAngle), pow(lightRayAngle, 2) * 0.25 + pow(lightRayAngle, 8) * 0.75);
+    float moonDecay = pow(lightRayAngle, 1);
+    float sunDecay = pow(lightRayAngle, 2) * 0.25 + pow(lightRayAngle, 8) * 0.75;
+    float angularDecay = step(0, lightRayAngle) * min(abs(lightViewAngle), mix(sunDecay, moonDecay, moonFactor));
 
     vec2 delta = clampRay(texCoord, lightScreen);
     delta /= godraySamples * godrayDensity;

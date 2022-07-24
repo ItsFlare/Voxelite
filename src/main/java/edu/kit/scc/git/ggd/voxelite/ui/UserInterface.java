@@ -332,7 +332,7 @@ public class UserInterface {
                                 Block.RED_GLASS.filter = new Vec3f(value.x(), value.y(), value.z());
                                 Block.RED_GLASS.compressedFilter = CompressedLightStorage.encode(Block.RED_GLASS.filter, CompressedLightStorage.MAX_COMPONENT_VALUE);
                             }, "godray", value -> {
-                                Main.INSTANCE.getRenderer().getWorldRenderer().getGodrayRenderer().godrayColor = value.xyz();
+                                Main.INSTANCE.getRenderer().getWorldRenderer().getGodrayRenderer().godrayColorOverride = value.xyz();
                             }
                     )
             );
