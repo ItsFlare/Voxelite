@@ -17,6 +17,7 @@ import net.durchholz.beacon.render.opengl.textures.CubemapTexture;
 import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.render.opengl.textures.Texture2D;
 import net.durchholz.beacon.util.Image;
+import net.durchholz.beacon.window.Viewport;
 import net.durchholz.beacon.window.Window;
 import net.durchholz.beacon.window.event.ViewportResizeEvent;
 import org.lwjgl.opengl.GL30;
