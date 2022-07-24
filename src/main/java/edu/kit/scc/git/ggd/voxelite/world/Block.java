@@ -46,6 +46,10 @@ public enum Block {
     CYAN_GLASS(builder -> builder.texture("glass_cyan").transparent().filter(new Vec3f(0, 1, 1))),
     WHITE_GLASS(builder -> builder.texture("glass_white").transparent()),
 
+    ICE(Builder::texture),
+
+    COPPER_ORE(Builder::texture),
+
     GLOWSTONE(builder -> builder.texture().light(new Vec3f(1, 0, 0), 31));
 
     public Vec3f light, filter;

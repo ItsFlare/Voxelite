@@ -6,7 +6,7 @@ import edu.kit.scc.git.ggd.voxelite.world.Voxel;
 import net.durchholz.beacon.math.Vec3i;
 
 public enum Biome {
-    OCEAN(voxel -> true, 0f),
+    OCEAN(voxel -> true),
     BEACH(voxel -> {
         float temperature = Main.INSTANCE.getWorld().getGenerator().getTemperature().sample(voxel.position());
         Block block = temperature < 0 ? Block.STONE : Block.SAND;
@@ -15,7 +15,7 @@ public enum Biome {
             if(relative != null) relative.setBlock(block);
         }
         return true;
-    }, 0.5f),
+    }),
     PLAINS(voxel -> {
         voxel.setBlock(Block.GRASS);
         for (int y = 1; y < 3; y++) {
@@ -23,7 +23,7 @@ public enum Biome {
             if(relative != null) relative.setBlock(Block.DIRT);
         }
         return true;
-    }, 0.25f, new BirchTreeFeature()),
+    }, new Structure(3, 5, new BirchTreeFeature())),
     FOREST(voxel -> {
         voxel.setBlock(Block.GRASS);
         for (int y = 1; y < 3; y++) {
@@ -31,39 +31,36 @@ public enum Biome {
             if(relative != null) relative.setBlock(Block.DIRT);
         }
         return true;
-    }, 0.1f, new OakTreeFeature()),
+    },  new Structure(1, 3, new OakTreeFeature())),
     MOUNTAINS(voxel -> {
         voxel.setBlock(Block.STONE);
         return true;
-    }, 0.25f),
+    }),
     DESERT(voxel -> {
         voxel.setBlock(Block.SAND);
         return true;
-    }, 0.5f, new CactusFeature()),
+    },  new Structure(0, 2, new CactusFeature())),
     SNOW(voxel -> {
         voxel.setBlock(Block.WHITE_GLASS);
         return true;
-    }, 0.5f, new AcaciaTreeFeature());
+    },  new Structure(0, 3, new AcaciaTreeFeature()));
 
     private final TerrainFeature surfaceLayer;
-    private final TerrainFeature[] features;
-    private final float featureDensity;
 
-    Biome(TerrainFeature surfaceLayer, float featureDensity, TerrainFeature... features) {
+    private final Structure[] structures;
+
+    Biome(TerrainFeature surfaceLayer, Structure... structures) {
         this.surfaceLayer = surfaceLayer;
-        this.features = features;
-        this.featureDensity = featureDensity;
+        this.structures = structures;
+
     }
 
     public TerrainFeature getSurfaceLayer() {
         return surfaceLayer;
     }
 
-    public TerrainFeature[] getFeatures() {
-        return features;
+    public Structure[] getStructures() {
+        return structures;
     }
 
-    public float getFeatureDensity() {
-        return featureDensity;
-    }
 }
