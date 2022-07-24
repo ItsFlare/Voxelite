@@ -114,7 +114,7 @@ public class UserInterface {
         {
             var enabled = new CheckboxElement("Enabled", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().shadows = value);
             var transform = new CheckboxElement("Transform", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().shadowTransform = value);
-            var frustumCull = new CheckboxElement("Frustum Cull", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().frustumCull = value);
+            var frustumCull = new CheckboxElement("Frustum Cull", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().frustumCull = value);
             var hardwareFilter = new CheckboxElement("Hardware PCF", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().hardwareFiltering(value));
             var cascadeDebug = new CheckboxElement("Cascade Debug", false, value -> {
                 RenderType.OPAQUE.getProgram().use(() -> {
