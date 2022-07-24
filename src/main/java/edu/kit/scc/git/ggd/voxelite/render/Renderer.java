@@ -157,6 +157,10 @@ public class Renderer {
         return noiseTexture;
     }
 
+    public SkyRenderer getSkyRenderer() {
+        return skyRenderer;
+    }
+
     private static Image generateNoiseImage(Vec2i resolution) {
         Noise simplex = new SimplexNoise(ThreadLocalRandom.current().nextInt());
         Noise fbm = new FBM(new SimplexNoise(ThreadLocalRandom.current().nextInt()), 3);

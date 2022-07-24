@@ -29,7 +29,9 @@ public class GodrayRenderer extends ScreenRenderer {
             PROGRAM.godrayExposure.set(godrayExposure);
             PROGRAM.godrayDensity.set(godrayDensity);
             PROGRAM.godrayNoiseFactor.set(godrayNoiseFactor);
-            PROGRAM.godrayColor.set(godrayColor);
+
+            PROGRAM.lightView.set(Main.INSTANCE.getRenderer().getSkyRenderer().getLightView());
+            PROGRAM.lightScreen.set(Main.INSTANCE.getRenderer().getSkyRenderer().getLightScreen());
 
             PROGRAM.fov.set(Main.INSTANCE.getRenderer().getCamera().getFOV());
 

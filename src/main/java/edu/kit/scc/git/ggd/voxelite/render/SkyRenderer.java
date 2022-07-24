@@ -68,7 +68,7 @@ public class SkyRenderer {
         OpenGL.depthTest(false);
         OpenGL.cull(false);
 
-        Quaternion quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotation()).normalized();
+        Quaternion quaternion = getRotation();
         final Matrix4f model = Matrix4f.identity();
         model.scale(0.1f);
         model.multiply(Matrix4f.rotation(quaternion));
@@ -91,9 +91,9 @@ public class SkyRenderer {
     public void renderPlanets(Matrix4f vp) {
         Quaternion quaternion;
 
-        quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotation()).normalized();
+        quaternion = getRotation();
         renderPlanetQuad(vp, quaternion, 0.05f, sunTexture);
-        quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotation() + 180).normalized();
+        quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotationAngle() + 180).normalized();
         renderPlanetQuad(vp, quaternion, 0.03f, moonTexture);
     }
 
@@ -115,12 +115,32 @@ public class SkyRenderer {
         });
     }
 
-    private float getRotation() {
+    public Vec2f getLightScreen() {
+        Vec3f ws = new Vec3f(Direction.POS_Z.getAxis()).rotate(getRotation());
+        var vp = Main.INSTANCE.getRenderer().getCamera().transform(false, true);
+
+        Vec4f transformed = ws.extend(1).transform(vp);
+        transformed = transformed.divide(transformed.w());
+        Vec2f ndc = transformed.xy();
+        return ndc.scale(0.5f).add(0.5f);
+    }
+
+    public Vec3f getLightView() {
+        Vec3f ws = new Vec3f(Direction.POS_Z.getAxis()).rotate(getRotation());
+        var vp = Main.INSTANCE.getRenderer().getCamera().view(false, true);
+        return ws.extend(0).transform(vp).xyz().normalized();
+    }
+
+    private Quaternion getRotation() {
+        return Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotationAngle()).normalized();
+    }
+
+    private float getRotationAngle() {
         return Main.getDayPercentage() * 360;
     }
 
     public void renderNightSkyBox(Matrix4f vp, float a) {
-        Quaternion quaternion = Quaternion.ofAxisAngle(new Vec3f(Direction.NEG_X.getAxis()), getRotation()).normalized();
+        Quaternion quaternion = getRotation();
         final Matrix4f model = Matrix4f.identity();
         model.multiply(Matrix4f.rotation(quaternion));
         vp = vp.clone();
