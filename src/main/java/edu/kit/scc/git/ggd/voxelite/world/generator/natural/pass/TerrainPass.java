@@ -47,7 +47,7 @@ public class TerrainPass implements GeneratorPassInstance<NaturalWorldGenerator>
                     final int y = position.y();
 
                     if(y == SEA_LEVEL) {
-                        if (noiseFunction.sample(position) > 0.9 && biome == Biome.SNOW) {
+                        if (noiseFunction.sample(position) > 0.9 && noise.temperature() < -0.5f) {
                             placeIceBerg(voxel);
                         }
                         if (voxel.getBlock() != Block.ICE) {
