@@ -80,7 +80,7 @@ public class UserInterface {
             var normalMap = new CheckboxElement("Normal Map", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().normalMap = value);
             var fog = new CheckboxElement("Fog", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().fog = value);
             var ao = new CheckboxElement("AO", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().ao = value);
-            var aa = new CheckboxElement("AA", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().aliasingOn = value);
+            var aa = new CheckboxElement("AA", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().aa = value);
             var transparentSort = new CheckboxElement("Transparent sort", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().transparentSort = value);
             var frustumDebug = new CheckboxElement("Debug Frustum", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().debugFrustum = value);
             var frustumCapture = new CheckboxElement("Capture Frustum", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().captureFrustum = value);
