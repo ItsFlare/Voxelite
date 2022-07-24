@@ -20,11 +20,12 @@ uniform int godrayBlurSamples;
 uniform int godrayBlurLod;
 uniform float godrayBlurStride;
 
-const vec2 lightPos = vec2(0.5);
+uniform vec2 lightScreen;
 
 out vec4 fragColor;
 
 #include "include\fxaa.glsl"
+#include "include\util.glsl"
 
 void main() {
     fragColor = texture(composite, pixel);
@@ -38,7 +39,7 @@ void main() {
 
     if (godraysEnabled) {
         vec2 uv = pixel;
-        vec2 delta = (lightPos - pixel) * godrayBlurStride / float(godrayBlurSamples);
+        vec2 delta = clampRay(pixel, lightScreen) * godrayBlurStride / godrayBlurSamples;
 
         vec3 accumulator = vec3(0);
         for (int i = 0; i < godrayBlurSamples; i++) {
@@ -46,7 +47,8 @@ void main() {
             uv += delta;
         }
 
-        fragColor.rgb += accumulator / godrayBlurSamples;
+        accumulator /= godrayBlurSamples; // Average
+        fragColor.rgb += accumulator;
     }
 
     if (hdrEnabled) fragColor = vec4(1.0) - exp(-fragColor * exposure);

@@ -114,7 +114,7 @@ public class UserInterface {
         {
             var enabled = new CheckboxElement("Enabled", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().shadows = value);
             var transform = new CheckboxElement("Transform", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().shadowTransform = value);
-            var frustumCull = new CheckboxElement("Frustum Cull", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().frustumCull = value);
+            var frustumCull = new CheckboxElement("Frustum Cull", false, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().frustumCull = value);
             var hardwareFilter = new CheckboxElement("Hardware PCF", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getShadowMapRenderer().hardwareFiltering(value));
             var cascadeDebug = new CheckboxElement("Cascade Debug", false, value -> {
                 RenderType.OPAQUE.getProgram().use(() -> {
@@ -197,7 +197,7 @@ public class UserInterface {
             var enabled = new CheckboxElement("VL Enabled", true, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().godrays = value);
             var samples = new IntSliderElement("Samples", 10, 0, 200, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getGodrayRenderer().godraySamples = value);
             var density = new FloatSliderElement("Density", 1, 0, 1, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getGodrayRenderer().godrayDensity = value);
-            var exposure = new FloatSliderElement("VL Exposure", 0.75f, 0, 2, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getGodrayRenderer().godrayExposure = value);
+            var exposure = new FloatSliderElement("VL Exposure", 1, 0, 5, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getGodrayRenderer().godrayExposure = value);
             var noiseFactor = new FloatSliderElement("Noise factor", 1.5f, 0, 2, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getGodrayRenderer().godrayNoiseFactor = value);
             var blurSamples = new IntSliderElement("Blur samples", 25, 1, 50, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().godrayBlurSamples = value);
             var blurLod = new IntSliderElement("Blur LOD", 2, 0, 5, value -> Main.INSTANCE.getRenderer().getWorldRenderer().getPostRenderer().godrayBlurLod = value);
@@ -332,7 +332,7 @@ public class UserInterface {
                                 Block.RED_GLASS.filter = new Vec3f(value.x(), value.y(), value.z());
                                 Block.RED_GLASS.compressedFilter = CompressedLightStorage.encode(Block.RED_GLASS.filter, CompressedLightStorage.MAX_COMPONENT_VALUE);
                             }, "godray", value -> {
-                                Main.INSTANCE.getRenderer().getWorldRenderer().getGodrayRenderer().godrayColor = value.xyz();
+                                Main.INSTANCE.getRenderer().getWorldRenderer().getGodrayRenderer().godrayColorOverride = value.xyz();
                             }
                     )
             );

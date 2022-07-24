@@ -7,6 +7,7 @@ import net.durchholz.beacon.render.opengl.OpenGL;
 import net.durchholz.beacon.render.opengl.buffers.FBO;
 import net.durchholz.beacon.render.opengl.textures.GLTexture;
 import net.durchholz.beacon.render.opengl.textures.Texture2D;
+import net.durchholz.beacon.window.Viewport;
 import net.durchholz.beacon.window.event.ViewportResizeEvent;
 
 import static org.lwjgl.opengl.GL30.GL_COLOR_ATTACHMENT0;
@@ -39,7 +40,8 @@ public class BloomBlurRenderer extends ScreenRenderer {
 
     @Listener
     private void onResize(ViewportResizeEvent event) {
-        texture.use(() -> texture.allocate(event.viewport().width(), event.viewport().height(), GLTexture.SizedFormat.RGB_8));
+        final Viewport viewport = event.viewport();
+        if(!viewport.isZero()) texture.use(() -> texture.allocate(viewport.width(), viewport.height(), GLTexture.SizedFormat.RGB_8));
     }
 
     public void render(GeometryBuffer gBuffer, int iterations) {

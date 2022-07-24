@@ -8,10 +8,7 @@ import edu.kit.scc.git.ggd.voxelite.world.generator.natural.pass.GeneratorPass;
 import net.durchholz.beacon.math.Vec3f;
 import net.durchholz.beacon.math.Vec3i;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
@@ -48,14 +45,18 @@ public class AsyncChunkLoader<G extends MultiPassGenerator<G>> extends ParallelR
         Vec3f cameraDirection = Main.INSTANCE.getRenderer().getCamera().getDirection();
         Vec3i cameraChunkPos = Chunk.toChunkPosition(cameraPosition);
 
-        var sorted = chunks
-                .values()
-                .stream()
-                .sorted(
-                        Comparator.<GeneratorChunk<G>>comparingInt(c -> ringDistance(c.getPosition(), cameraChunkPos))
-                                .thenComparingDouble(chunk -> chunk.getCenter().subtract(cameraPosition).normalized().dot(cameraDirection))
-                )
-                .toList();
+        List<GeneratorChunk<G>> sorted;
+        synchronized (chunks) {
+            sorted = chunks
+                    .values()
+                    .stream()
+                    .sorted(
+                            Comparator.<GeneratorChunk<G>>comparingInt(c -> ringDistance(c.getPosition(), cameraChunkPos))
+                                    .thenComparingDouble(chunk -> chunk.getCenter().subtract(cameraPosition).normalized().dot(cameraDirection))
+                    )
+                    .toList();
+        }
+
 
         for (GeneratorChunk<G> chunk : sorted) {
             if (chunk.getLock().tryLock()) {

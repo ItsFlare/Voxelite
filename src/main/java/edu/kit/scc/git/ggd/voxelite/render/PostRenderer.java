@@ -1,5 +1,6 @@
 package edu.kit.scc.git.ggd.voxelite.render;
 
+import edu.kit.scc.git.ggd.voxelite.Main;
 import net.durchholz.beacon.render.opengl.OpenGL;
 
 public class PostRenderer extends ScreenRenderer {
@@ -39,6 +40,8 @@ public class PostRenderer extends ScreenRenderer {
             PROGRAM.godrayBlurSamples.set(godrayBlurSamples);
             PROGRAM.godrayBlurLod.set(godrayBlurLod);
             PROGRAM.godrayBlurStride.set(godrayBlurStride);
+
+            PROGRAM.lightScreen.set(Main.INSTANCE.getRenderer().getSkyRenderer().getLightScreen());
 
             drawScreen();
         });
